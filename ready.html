@@ -1,0 +1,62 @@
+<uiView>
+  <div id="climblogger">
+
+    <!-- Route number -->
+    <div class="cm-fg" style="width:100%;height:14%">
+      <div class="f-num" style="top:calc(55% - 50%e); left:calc(50% - 50%e); font-size: 14px;">
+        ROUTE <eval input="/Zapp/{zapp_index}/Output/routeNum" outputFormat="Count_Threedigits" default="1" />
+      </div>
+    </div>
+
+    <!-- Grade (hero, tappable to cycle) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+      style="top:14%;left:0%;width:100%;height:38%;position:absolute;">
+      <div class="cm-mid" style="top:calc(10% - 50%e); left:calc(50% - 50%e); font-size: 12px;">
+        GRADE
+      </div>
+      <div class="f-num" style="top:calc(55% - 50%e); left:calc(50% - 50%e); font-size: 64px;">
+        <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="Count_Threedigits" default="5" />
+      </div>
+    </div>
+
+    <!-- START button -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
+      style="top:55%;left:15%;width:70%;height:16%;position:absolute;">
+      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
+                  width:80%;height:70%;position:absolute;
+                  background:rgba(255,255,255,0.15);border-radius:8px;">
+        <div class="f-num" style="top:calc(50% - 50%e); left:calc(50% - 50%e); font-size: 20px;">
+          START
+        </div>
+      </div>
+    </div>
+
+    <!-- Session time (bottom) -->
+    <div class="cm-mid p-hc" style="top:calc(82% - 50%e); font-size: 10px;">SESSION</div>
+    <div class="f-num p-hc" style="top:calc(88% - 50%e); font-size: 14px;">
+      <eval input="/Zapp/{zapp_index}/Output/sessionTime" outputFormat="Duration_FourdigitsFixed" default="0:00" />
+    </div>
+
+    <!-- Button hints -->
+    <:if test="{{ IS_NG3 }}">
+      <div class="btn btn-top">
+        <img class="cm-bgc icon" src="hint-btn-top.png" />
+      </div>
+      <div class="btn btn-btm">
+        <img class="cm-bgc icon" src="hint-btn-bottom.png" />
+      </div>
+    </:if>
+
+    <!-- Physical buttons: up=grade up, up long=grade down, down=START -->
+    <:if test="{{ HAS_ON_EVENT }}">
+    <userInput>
+      <pushButton name="up"
+        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');" />
+      <pushButton name="down"
+        onClick="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+    </userInput>
+    </:if>
+
+  </div>
+</uiView>

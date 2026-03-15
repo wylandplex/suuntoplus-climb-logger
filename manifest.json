@@ -1,0 +1,40 @@
+{
+  "name": "Climb Log",
+  "description": "Route logger for climbing sessions",
+  "version": "1.3",
+  "author": "skyfi",
+  "modificationTime": 1773183600,
+  "type": "feature",
+  "usage": "workout",
+  "in": [
+    { "name": "Heartrate", "source": "/Activity/Move/-1/Heartrate/Current", "type": "subscribe" }
+  ],
+  "out": [
+    { "name": "routeNum" },
+    { "name": "grade" },
+    { "name": "routeTime" },
+    { "name": "state" },
+    { "name": "totalRoutes" },
+    { "name": "sessionTime" },
+    { "name": "lastResult" },
+    { "name": "lastGrade" },
+    { "name": "lastDuration" },
+    { "name": "routeHrAvg" },
+    { "name": "totalSends" }
+  ],
+  "template": [
+    { "name": "ready.html" },
+    { "name": "climb.html" },
+    { "name": "break.html" }
+  ],
+  "settings": [
+    {
+      "shownName": "Default Grade (2-9)",
+      "path": "appSettings.defaultGrade",
+      "type": "int",
+      "min": 2,
+      "max": 9,
+      "inputType": "slider"
+    }
+  ]
+}
