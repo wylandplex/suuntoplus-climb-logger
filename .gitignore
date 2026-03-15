@@ -1,0 +1,4 @@
+*.fea
+*.dev
+*.wfa
+.DS_Store
