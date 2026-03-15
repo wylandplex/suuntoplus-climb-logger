@@ -1,7 +1,7 @@
 {
   "name": "Climb Log",
   "description": "Route logger for climbing sessions",
-  "version": "2.0",
+  "version": "2.1",
   "author": "skyfi",
   "modificationTime": 1773183600,
   "type": "feature",
@@ -35,10 +35,18 @@
   ],
   "settings": [
     {
-      "shownName": "Default Grade (2-9)",
+      "shownName": "Grade System (0-8)",
+      "path": "appSettings.gradeSystem",
+      "type": "int",
+      "min": 0,
+      "max": 8,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Difficulty (1-9)",
       "path": "appSettings.defaultGrade",
       "type": "int",
-      "min": 2,
+      "min": 1,
       "max": 9,
       "inputType": "slider"
     },
