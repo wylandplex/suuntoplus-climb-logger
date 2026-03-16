@@ -1,7 +1,7 @@
 {
   "name": "Climb Log",
   "description": "Route logger for climbing sessions",
-  "version": "1.3",
+  "version": "2.1",
   "author": "skyfi",
   "modificationTime": 1773183600,
   "type": "feature",
@@ -16,23 +16,62 @@
     { "name": "state" },
     { "name": "totalRoutes" },
     { "name": "sessionTime" },
-    { "name": "lastResult" },
     { "name": "lastGrade" },
     { "name": "lastDuration" },
     { "name": "routeHrAvg" },
-    { "name": "totalSends" }
+    { "name": "totalSends" },
+    { "name": "sendPct" },
+    { "name": "lastResult" },
+    { "name": "climbMode" },
+    { "name": "projTries" },
+    { "name": "projSends" },
+    { "name": "projBest" },
+    { "name": "modeSub" }
   ],
   "template": [
+    { "name": "setup.html" },
     { "name": "ready.html" },
     { "name": "climb.html" },
     { "name": "break.html" }
   ],
   "settings": [
     {
-      "shownName": "Default Grade (2-9)",
+      "shownName": "Grade System (0-8)",
+      "path": "appSettings.gradeSystem",
+      "type": "int",
+      "min": 0,
+      "max": 7,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Difficulty (1-9)",
       "path": "appSettings.defaultGrade",
       "type": "int",
-      "min": 2,
+      "min": 1,
+      "max": 9,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Project 1 (0=off)",
+      "path": "appSettings.proj1",
+      "type": "int",
+      "min": 0,
+      "max": 9,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Project 2 (0=off)",
+      "path": "appSettings.proj2",
+      "type": "int",
+      "min": 0,
+      "max": 9,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Project 3 (0=off)",
+      "path": "appSettings.proj3",
+      "type": "int",
+      "min": 0,
       "max": 9,
       "inputType": "slider"
     }

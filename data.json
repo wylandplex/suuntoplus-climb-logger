@@ -1,5 +1,9 @@
 {
   "appSettings": {
-    "defaultGrade": 5
+    "gradeSystem": 0,
+    "defaultGrade": 5,
+    "proj1": 7,
+    "proj2": 0,
+    "proj3": 5
   }
 }
