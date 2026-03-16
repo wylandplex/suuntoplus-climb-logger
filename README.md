@@ -15,11 +15,10 @@ Configure your grade system and up to 5 project routes on the watch before climb
 ```
 ┌─────────────────┐       ┌─────────────────┐
 │   GRADE SYSTEM  │       │   PROJECT 1     │
-│                 │       │                 │
-│     French      │       │     French      │
+│  French Sport   │       │  French Sport   │
 │      6a         │       │      7a+        │
 │                 │       │                 │
-│    [ NEXT ]     │       │    [ NEXT ]     │
+│ [CLIMB] [PROJ]  │       │ [SKIP]  [NEXT]  │
 │                 │       │                 │
 │  swipe to change│       │  swipe to change│
 └─────────────────┘       └─────────────────┘
@@ -27,9 +26,10 @@ Configure your grade system and up to 5 project routes on the watch before climb
 ```
 
 - **Swipe up/down** or **buttons up/down**: cycle through options
-- **Tap NEXT**: advance to next step
-- **Tap OK** (step 5): finish setup, go to ready screen
-- **Long press down** or **double-tap NEXT/OK**: skip remaining setup
+- **Tap CLIMB** (step 0): skip projects, go straight to ready
+- **Tap PROJECTS** (step 0): configure project routes (steps 1-5)
+- **Tap SKIP** (steps 1-5): skip remaining projects, go to ready
+- **Tap NEXT/OK**: advance to next project / finish setup
 
 Set a project grade to **OFF** to disable that project slot.
 
@@ -153,8 +153,10 @@ Phone settings are used as defaults on first launch. After the first on-watch se
 | Screen | Gesture | Action |
 |--------|---------|--------|
 | Setup | Swipe up/down | Cycle system or grade |
-| Setup | Tap NEXT/OK | Advance step / finish |
-| Setup | Double-tap NEXT/OK | Skip to ready |
+| Setup | Tap CLIMB (step 0) | Skip to ready |
+| Setup | Tap PROJECTS (step 0) | Configure projects |
+| Setup | Tap SKIP (steps 1-5) | Skip to ready |
+| Setup | Tap NEXT/OK (steps 1-5) | Advance / finish |
 | Ready | Swipe up/down | Cycle grade (free) or project (proj) |
 | Ready | Tap START | Begin climbing |
 | Ready | Double-tap system label | Cycle grade system |
@@ -168,8 +170,9 @@ Phone settings are used as defaults on first launch. After the first on-watch se
 | Screen | Button | Action |
 |--------|--------|--------|
 | Setup | Up | Cycle up |
+| Setup | Up long | PROJECTS / NEXT / OK |
 | Setup | Down | Cycle down |
-| Setup | Down long | Skip to ready |
+| Setup | Down long | CLIMB / SKIP |
 | Ready | Up | Cycle grade/project up |
 | Ready | Up long | Toggle free/project mode |
 | Ready | Down long | Start climbing |
@@ -214,6 +217,7 @@ code climb-logger/
 
 ## Version History
 
-- **v2.1** — 8 real grade systems, 5 project routes per system, free/project mode toggle, project stats tracking, on-watch setup, multi-screen flow
+- **v2.2** — On-watch setup with CLIMB/PROJECTS buttons, discipline labels, grade sync fix
+- **v2.1** — 8 real grade systems, 5 project routes per system, free/project mode toggle, project stats tracking
 - **v2.0** — Redesigned UI, simpler lap flow, project routes
 - **v1.0** — Basic route logger with grade 2-9 and type cycling
