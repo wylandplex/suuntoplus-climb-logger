@@ -217,7 +217,4 @@ code climb-logger/
 
 ## Version History
 
-- **v2.2** — On-watch setup with CLIMB/PROJECTS buttons, discipline labels, grade sync fix
-- **v2.1** — 8 real grade systems, 5 project routes per system, free/project mode toggle, project stats tracking
-- **v2.0** — Redesigned UI, simpler lap flow, project routes
-- **v1.0** — Basic route logger with grade 2-9 and type cycling
+- **v1.0** — Initial release: 8 grade systems, on-watch setup, free/project mode, session stats
