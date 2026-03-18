@@ -8,7 +8,7 @@
     </div>
 
     <!-- System name (decoded from grade output to guarantee sync) -->
-    <div class="f-num" style="top:calc(32% - 50%e); left:calc(50% - 50%e); font-size: 24px;">
+    <div style="top:calc(32% - 50%e); left:calc(50% - 50%e); font-size: 24px;">
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x=>'French Sport,UIAA Sport,YDS Sport,British Trad,Ice (WI),Mixed,V-Scale Boulder,Font Boulder'.split(',')[Math.floor(x/100)]||'French Sport'" default="French Sport" />
     </div>
 

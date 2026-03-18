@@ -1,19 +1,18 @@
 {
   "name": "Climb Log",
   "description": "Route logger for climbing sessions",
-  "version": "1.0",
+  "version": "2.2",
   "author": "skyfi",
-  "modificationTime": 1773183600,
+  "modificationTime": 1773792000,
   "type": "feature",
   "usage": "workout",
   "in": [
-    { "name": "Heartrate", "source": "/Activity/Move/-1/Heartrate/Current", "type": "subscribe" }
+    { "name": "Heartrate", "source": "Activity/Move/-1/Heartrate/Current", "type": "subscribe" }
   ],
   "out": [
     { "name": "routeNum" },
     { "name": "grade" },
     { "name": "routeTime" },
-    { "name": "state" },
     { "name": "totalRoutes" },
     { "name": "sessionTime" },
     { "name": "lastGrade" },
