@@ -2,6 +2,12 @@
 
 Route logger for climbing sessions on Suunto Vertical 2. Tracks grades across 8 systems, logs sends and fails with time and heart rate, and supports project tracking for repeat attempts on specific routes.
 
+## Screenshots
+
+| Setup | Project Config | Ready | Climbing | Break | 
+|:---:|:---:|:---:|:---:|:---:|
+| ![Setup](screenshots/setup.png) | ![Project](screenshots/setup-project.png) | ![Ready](screenshots/ready.png) | ![Climbing](screenshots/climbing.png) | ![Break](screenshots/break-sent.png) |
+
 ## Screen Flow
 
 ```
