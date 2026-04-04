@@ -410,8 +410,7 @@ function getSummaryOutputs(input, output) {
   return [
     { id: 0, name: "Routes", format: "Count_Fourdigits", value: routes.length },
     { id: 1, name: "Sends", format: "Count_Fourdigits", value: sends },
-    { id: 2, name: "Send %", format: "Count_Fourdigits", value: routes.length > 0 ? Math.round(sends * 100 / routes.length) : 0 },
-    { id: 3, name: "Session Time", format: "Duration_FourdigitsFixed", value: sessionSeconds },
-    { id: 4, name: "Best Grade", format: "Count_Fourdigits", value: best >= 0 ? best : 0 }
+    { id: 2, name: "Session Time", format: "Duration_FourdigitsFixed", value: sessionSeconds },
+    { id: 3, name: "Best Grade", format: "Count_Fourdigits", value: best >= 0 ? best : 0 }
   ];
 }
