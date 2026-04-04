@@ -35,7 +35,7 @@
   ],
   "settings": [
     {
-      "shownName": "Grade System (0-8)",
+      "shownName": "Grade System (0-7)",
       "path": "appSettings.gradeSystem",
       "type": "int",
       "min": 0,

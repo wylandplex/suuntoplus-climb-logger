@@ -159,6 +159,7 @@ Phone settings are used as defaults on first launch. After the first on-watch se
 | Setup | Tap NEXT/OK (steps 1-5) | Advance / finish |
 | Ready | Swipe up/down | Cycle grade (free) or project (proj) |
 | Ready | Tap START | Begin climbing |
+| Ready | Tap title bar | Toggle free/project mode |
 | Ready | Double-tap system label | Cycle grade system |
 | Climbing | Tap SEND | Log send + lap |
 | Climbing | Tap FAIL | Log fail + lap |
@@ -175,6 +176,7 @@ Phone settings are used as defaults on first launch. After the first on-watch se
 | Setup | Down long | CLIMB / SKIP |
 | Ready | Up | Cycle grade/project up |
 | Ready | Up long | Toggle free/project mode |
+| Ready | Down | Cycle grade/project down |
 | Ready | Down long | Start climbing |
 | Climbing | Down | Send + lap |
 | Climbing | Down long | Fail + lap |
@@ -187,8 +189,8 @@ At the end of the workout, the app reports:
 - **Routes** — total routes logged
 - **Sends** — successful sends
 - **Send %** — send rate
-- **On Wall** — total climbing time
-- **Avg HR** — duration-weighted average heart rate
+- **Session Time** — total session duration
+- **Best Grade** — highest grade sent (as index)
 
 ## Data Storage
 
@@ -217,4 +219,7 @@ code climb-logger/
 
 ## Version History
 
-- **v1.0** — Initial release: 8 grade systems, on-watch setup, free/project mode, session stats
+- **v2.2** — Refactored main.js, fixed watch font rendering (f-num → sp-t for text)
+- **v2.1** — Real climbing grade systems (8 systems), flick gestures
+- **v2.0** — Redesigned UI, simpler lap flow, project routes
+- **v1.0** — Initial release
