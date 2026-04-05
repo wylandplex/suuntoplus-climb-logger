@@ -18,19 +18,6 @@ SETUP → READY → CLIMBING → BREAK → READY → ...
 
 Configure your grade system and up to 5 project routes on the watch before climbing.
 
-```
-┌─────────────────┐       ┌─────────────────┐
-│   GRADE SYSTEM  │       │   PROJECT 1     │
-│  French Sport   │       │  French Sport   │
-│      6a         │       │      7a+        │
-│                 │       │                 │
-│ [CLIMB] [PROJ]  │       │ [SKIP]  [NEXT]  │
-│                 │       │                 │
-│  swipe to change│       │  swipe to change│
-└─────────────────┘       └─────────────────┘
-  Step 0: System            Steps 1-5: Projects
-```
-
 - **Swipe up/down** or **buttons up/down**: cycle through options
 - **Tap CLIMB** (step 0): skip projects, go straight to ready
 - **Tap PROJECTS** (step 0): configure project routes (steps 1-5)
@@ -42,20 +29,6 @@ Set a project grade to **OFF** to disable that project slot.
 ### Ready
 
 Pick your grade and start climbing.
-
-```
-┌─────────────────┐       ┌─────────────────┐
-│    ROUTE 1      │       │   PROJECT 2     │
-│                 │       │                 │
-│      6b         │       │      7a+        │
-│       FR        │       │       FR        │
-│   [ START ]     │       │   [ START ]     │
-│                 │       │ TRIES SENDS BEST│
-│    SESSION      │       │   3     1   2:45│
-│     0'17        │       │    SESSION      │
-└─────────────────┘       └─────────────────┘
-  Free mode                 Project mode
-```
 
 **Free mode** (default):
 - **Swipe up/down** or **buttons up/down**: cycle grades
@@ -76,20 +49,6 @@ Pick your grade and start climbing.
 
 Timer runs. Log the result when done.
 
-```
-┌─────────────────┐
-│    ROUTE 1      │
-│                 │
-│     1:23        │  ← route timer
-│                 │
-│  HR      GRADE  │
-│  145       6b   │
-│                 │
-│ [ SEND ] [ FAIL]│
-│  SESSION 12:30  │
-└─────────────────┘
-```
-
 - **Tap SEND** or **down button**: log a send
 - **Tap FAIL** or **long press down**: log a fail
 - Both trigger a lap marker in the workout
@@ -97,21 +56,6 @@ Timer runs. Log the result when done.
 ### Break
 
 Review the result, correct the grade if needed, then continue.
-
-```
-┌─────────────────┐
-│    ROUTE 1      │
-│                 │
-│     SENT!       │
-│ GRADE    TIME   │
-│  6b      1:23   │
-│   AVG ♥ 145     │
-│ ROUTES SENDS  % │
-│   3      2    67│
-│    [ NEXT ]     │
-│      ♥ 120      │  ← recovery HR
-└─────────────────┘
-```
 
 - **Swipe up/down**: correct the grade of the route just logged
 - **Tap NEXT** or **down button**: return to ready screen
@@ -224,6 +168,7 @@ code climb-logger/
 
 ## Version History
 
+- **v2.3** — Fix font classes (sp-t/sp-b), layout spacing, summary outputs (max 4), screenshots
 - **v2.2** — Refactored main.js, fixed watch font rendering (f-num → sp-t for text)
 - **v2.1** — Real climbing grade systems (8 systems), flick gestures
 - **v2.0** — Redesigned UI, simpler lap flow, project routes
