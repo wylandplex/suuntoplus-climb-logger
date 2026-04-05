@@ -1,32 +1,34 @@
-# Climb Log — App Store Description
+# Climb Log
 
-## Name
-Climb Log
+Route logger for climbing sessions on Suunto watches.
 
-## Short Description
-Route logger for climbing sessions with real grade systems, project tracking, and session stats.
+## Features
 
-## Description
-Track every route in your climbing session. Log sends and fails with a single tap, track time on wall, and review your session stats — all from your wrist.
+- 8 grade systems: French, UIAA, YDS, British, Ice (WI), Mixed, V-Scale, Fontainebleau
+- Log sends and fails with a single tap — each logs a lap marker in your workout
+- Pre-save up to 5 project routes with attempt, send, and best time tracking
+- Freely switch between project routes and free grade selection mid-session
+- Correct the grade on the break screen before moving on
+- Switch grade systems on the fly with a double-tap
+- Project stats persist across sessions within the same exercise
+- Session summary: total routes, sends, session time, best grade
+- Designed for the wall — touch gestures and physical buttons work with gloves
 
-**8 Grade Systems:**
-French, UIAA, YDS, British, Ice (WI), Mixed, V-Scale, Fontainebleau
+## How to use
 
-**Two Climbing Modes:**
-- **Free Mode** — Pick any grade, climb, log. Quick and flexible for varied sessions.
-- **Project Mode** — Track up to 5 project routes. See your attempts, sends, and best time for each project.
+1. Start a climbing activity on your watch and select Climb Log.
+2. **Setup:** Pick your grade system (swipe or buttons up/down). Tap PROJECTS or long press up to configure up to 5 project routes. Tap CLIMB or long press down to skip straight to climbing.
+3. **Ready:** Swipe or use buttons to pick a grade. Long press up to toggle between free and project mode. Tap START or long press down to begin.
+4. **Climbing:** Tap SEND or press down to log a send. Tap FAIL or long press down to log a fail. Both trigger a lap marker.
+5. **Break:** Review your stats. Swipe up/down to correct the grade. Tap NEXT or press down to continue.
+6. End the activity to see your session summary.
 
-**Session Flow:**
-Set up your grade system and projects on the watch, then cycle through: pick a grade, start climbing, log the result. The break screen shows your route stats and lets you correct the grade before moving on.
+*Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
 
-**Session Summary:**
-At the end of your workout, see total routes, sends, send percentage, time on wall, and average heart rate.
+## Latest (v2.3)
 
-**Designed for the Wall:**
-Works with touch gestures and physical buttons. Swipe to change grades, tap to log. Physical buttons work with gloves for ice and mixed climbing.
+- Fixed layout spacing on all screens
+- Optimized memory usage for watch stability
+- Session summary: Routes, Sends, Session Time, Best Grade
 
-## Keywords
-climbing, bouldering, route logger, grade tracker, sport climbing, ice climbing, project tracking
-
-## Compatibility
-Suunto Vertical 2
+*[More info & source code on GitHub](https://github.com/wylandplex/suuntoplus-climb-logger)*
