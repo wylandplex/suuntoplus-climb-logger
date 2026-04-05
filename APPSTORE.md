@@ -11,8 +11,8 @@ Route logger for climbing sessions on Suunto watches.
 - Correct the grade on the break screen before moving on
 - Switch grade systems on the fly with a double-tap
 - Project stats persist across sessions within the same exercise
-- Session summary: total routes, sends, session time, best grade
 - Designed for the wall — touch gestures and physical buttons work with gloves
+- Works on all Suunto display sizes
 
 ## How to use
 
@@ -21,14 +21,14 @@ Route logger for climbing sessions on Suunto watches.
 3. **Ready:** Swipe or use buttons to pick a grade. Long press up to toggle between free and project mode. Tap START or long press down to begin.
 4. **Climbing:** Tap SEND or press down to log a send. Tap FAIL or long press down to log a fail. Both trigger a lap marker.
 5. **Break:** Review your stats. Swipe up/down to correct the grade. Tap NEXT or press down to continue.
-6. End the activity to see your session summary.
+6. End the activity. Your routes are tracked via lap markers in the workout log.
 
 *Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
 
 ## Latest (v2.3)
 
-- Fixed layout spacing on all screens
+- Fixed layout for all display sizes (small and large)
 - Optimized memory usage for watch stability
-- Session summary: Routes, Sends, Session Time, Best Grade
+- Shortened stat labels for better readability on small screens
 
 *[More info & source code on GitHub](https://github.com/wylandplex/suuntoplus-climb-logger)*
