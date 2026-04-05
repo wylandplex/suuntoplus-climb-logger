@@ -1,6 +1,6 @@
 # Climb Log
 
-> **Note:** This is a test version. You may encounter issues enabling the app in your activity due to a known firmware memory limitation. Feedback welcome!
+> **Note:** This is a test version. You may encounter issues enabling the app in your activity — this is a known bug and is being investigated. Feedback welcome!
 
 Route logger for climbing sessions on Suunto watches.
 
