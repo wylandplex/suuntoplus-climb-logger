@@ -1,6 +1,6 @@
 # Climb Log
 
-Route logger for climbing sessions on Suunto Vertical 2. Tracks grades across 8 systems, logs sends and fails with time and heart rate, and supports project tracking for repeat attempts on specific routes.
+Route logger for climbing sessions on Suunto watches. Tracks grades across 8 systems, logs sends and fails with time and heart rate, and supports project tracking for repeat attempts on specific routes.
 
 ## Screenshots
 
@@ -84,17 +84,9 @@ In project mode, the app tracks per-project:
 
 Stats persist across sessions within the same exercise.
 
-## Settings (Phone App)
+## Settings
 
-| Setting | Range | Default | Description |
-|---------|-------|---------|-------------|
-| Grade System | 0–7 | 0 (French) | Initial grade system |
-| Difficulty | 1–9 | 5 | Starting grade (mapped to system) |
-| Project 1 | 0–9 | 0 (off) | Pre-set project difficulty |
-| Project 2 | 0–9 | 0 (off) | Pre-set project difficulty |
-| Project 3 | 0–9 | 0 (off) | Pre-set project difficulty |
-
-Phone settings are used as defaults on first launch. After the first on-watch setup, the watch configuration takes priority.
+All configuration is done on the watch via the setup screen. Phone app settings are planned for a future version (see [#1](https://github.com/wylandplex/suuntoplus-climb-logger/issues/1)).
 
 ## Controls Reference
 
@@ -163,7 +155,7 @@ code climb-logger/
 
 ## Version History
 
-- **v2.3** — Fix font classes (sp-t/sp-b), layout spacing, summary outputs (max 4), screenshots
+- **v2.3** — Fix layout for all display sizes, memory optimization, removed phone settings
 - **v2.2** — Refactored main.js, fixed watch font rendering (f-num → sp-t for text)
 - **v2.1** — Real climbing grade systems (8 systems), flick gestures
 - **v2.0** — Redesigned UI, simpler lap flow, project routes

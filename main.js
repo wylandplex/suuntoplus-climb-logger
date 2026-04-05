@@ -43,13 +43,6 @@ var projStats = {};
 // (grade strings are decoded in HTML templates via inline outputFormat)
 var GRADES = [41, 24, 29, 11, 11, 12, 14, 30];
 
-// Pre-allocated summary output (avoids object creation in getSummaryOutputs)
-var summaryOut = [
-  { id: 0, name: "Routes", format: "Count_Fourdigits", value: 0 },
-  { id: 1, name: "Sends", format: "Count_Fourdigits", value: 0 },
-  { id: 2, name: "Time", format: "Duration_FourdigitsFixed", value: 0 },
-  { id: 3, name: "Best", format: "Count_Fourdigits", value: 0 }
-];
 var DEFAULT_IDX = [18, 6, 5, 5, 3, 5, 4, 12];
 var gradeSystem = 0;
 
@@ -399,16 +392,4 @@ function onEvent(_input, output, eventId) {
       }
       break;
   }
-}
-function getSummaryOutputs(input, output) {
-  var s = countSends();
-  var b = -1;
-  for (var i = 0; i < routes.length; i++) {
-    if (routes[i].send && routes[i].grade > b) b = routes[i].grade;
-  }
-  summaryOut[0].value = routes.length;
-  summaryOut[1].value = s;
-  summaryOut[2].value = sessionSeconds;
-  summaryOut[3].value = b >= 0 ? b : 0;
-  return summaryOut;
 }
