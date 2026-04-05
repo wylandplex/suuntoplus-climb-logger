@@ -1,5 +1,7 @@
 # Climb Log
 
+> **Note:** This is a test version. You may encounter issues enabling the app in your activity. If you get a "maximum SuuntoPlus apps" error, try removing other SuuntoPlus apps first. Feedback welcome!
+
 Route logger for climbing sessions on Suunto watches.
 
 ## Features
