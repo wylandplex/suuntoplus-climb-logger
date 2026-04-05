@@ -33,46 +33,5 @@
     { "name": "climb.html" },
     { "name": "break.html" }
   ],
-  "settings": [
-    {
-      "shownName": "Grade System (0-7)",
-      "path": "appSettings.gradeSystem",
-      "type": "int",
-      "min": 0,
-      "max": 7,
-      "inputType": "slider"
-    },
-    {
-      "shownName": "Difficulty (1-9)",
-      "path": "appSettings.defaultGrade",
-      "type": "int",
-      "min": 1,
-      "max": 9,
-      "inputType": "slider"
-    },
-    {
-      "shownName": "Project 1 (0=off)",
-      "path": "appSettings.proj1",
-      "type": "int",
-      "min": 0,
-      "max": 9,
-      "inputType": "slider"
-    },
-    {
-      "shownName": "Project 2 (0=off)",
-      "path": "appSettings.proj2",
-      "type": "int",
-      "min": 0,
-      "max": 9,
-      "inputType": "slider"
-    },
-    {
-      "shownName": "Project 3 (0=off)",
-      "path": "appSettings.proj3",
-      "type": "int",
-      "min": 0,
-      "max": 9,
-      "inputType": "slider"
-    }
-  ]
+  "settings": []
 }

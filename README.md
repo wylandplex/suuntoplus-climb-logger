@@ -134,12 +134,7 @@ Phone settings are used as defaults on first launch. After the first on-watch se
 
 ## Session Summary
 
-At the end of the workout, the app reports:
-
-- **Routes** — total routes logged
-- **Sends** — successful sends
-- **Session Time** — total session duration
-- **Best Grade** — highest grade sent (as index)
+Not available — `getSummaryOutputs` causes memory exhaustion on the watch ("max apps" error). Session stats are shown on the break screen during the workout instead.
 
 ## Data Storage
 
