@@ -34,6 +34,7 @@ var lastGradeIdx = -1;
 var lastGradeSys = 0;
 var lastHrAvg = 0;
 
+
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
@@ -166,11 +167,6 @@ var goReady = function() {
 
 function onLoad(_input, output) {
   var settings = localStorage.getObject("appSettings");
-  if (settings) {
-    gradeSystem = settings.gradeSystem || 0;
-    if (gradeSystem < 0) gradeSystem = 0;
-    if (gradeSystem > 7) gradeSystem = 7;
-  }
 
   var ws = localStorage.getObject("watchSetup");
   if (ws) {
@@ -180,20 +176,23 @@ function onLoad(_input, output) {
   loadProjects(gradeSystem);
 
   if (!ws && settings) {
-    projGradeIdx[0] = settings.proj1 ? diffToIdx(settings.proj1) : -1;
-    projGradeIdx[1] = settings.proj2 ? diffToIdx(settings.proj2) : -1;
-    projGradeIdx[2] = settings.proj3 ? diffToIdx(settings.proj3) : -1;
+    var prefixes = ['fr', 'uiaa', 'yds', 'uk', 'wi', 'mx', 'vs', 'fb'];
+    for (var s = 0; s < 8; s++) {
+      var sp = [];
+      for (var p = 1; p <= 5; p++) {
+        var v = settings[prefixes[s] + '_p' + p];
+        sp.push(v > 0 ? v - 1 : -1);
+      }
+      allProjects[s] = sp;
+    }
+    loadProjects(gradeSystem);
   }
 
   var defDiff = (settings && settings.defaultGrade) || 5;
   currentGrade = diffToIdx(defDiff);
   if (currentGrade < 0) currentGrade = DEFAULT_IDX[gradeSystem];
 
-  var saved = localStorage.getObject("climbRoutes");
-  if (saved && saved.length) {
-    routes = saved;
-    routeNumber = routes.length + 1;
-  }
+  localStorage.setObject("climbRoutes", []);
 
   projStats = localStorage.getObject("climbProjStats") || {};
 

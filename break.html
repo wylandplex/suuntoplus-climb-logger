@@ -76,7 +76,7 @@
     <!-- Physical: down=NEXT -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
-      <pushButton name="down"
+      <pushButton name="down" type="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
     </userInput>
     </:if>

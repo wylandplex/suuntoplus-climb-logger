@@ -1,9 +1,13 @@
 {
   "appSettings": {
-    "gradeSystem": 0,
     "defaultGrade": 5,
-    "proj1": 7,
-    "proj2": 0,
-    "proj3": 5
+    "fr_p1": 0, "fr_p2": 0, "fr_p3": 0, "fr_p4": 0, "fr_p5": 0,
+    "uiaa_p1": 0, "uiaa_p2": 0, "uiaa_p3": 0, "uiaa_p4": 0, "uiaa_p5": 0,
+    "yds_p1": 0, "yds_p2": 0, "yds_p3": 0, "yds_p4": 0, "yds_p5": 0,
+    "uk_p1": 0, "uk_p2": 0, "uk_p3": 0, "uk_p4": 0, "uk_p5": 0,
+    "wi_p1": 0, "wi_p2": 0, "wi_p3": 0, "wi_p4": 0, "wi_p5": 0,
+    "mx_p1": 0, "mx_p2": 0, "mx_p3": 0, "mx_p4": 0, "mx_p5": 0,
+    "vs_p1": 0, "vs_p2": 0, "vs_p3": 0, "vs_p4": 0, "vs_p5": 0,
+    "fb_p1": 0, "fb_p2": 0, "fb_p3": 0, "fb_p4": 0, "fb_p5": 0
   }
 }
