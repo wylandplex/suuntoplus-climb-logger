@@ -174,7 +174,7 @@ function onLoad(_input, output) {
 
   var ws = localStorage.getObject("watchSetup");
   if (ws) {
-    gradeSystem = ws.sys;
+    gradeSystem = (ws.sys >= 0 && ws.sys <= 7) ? ws.sys : 0;
     allProjects = ws.proj || {};
   }
   loadProjects(gradeSystem);
