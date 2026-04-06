@@ -32,6 +32,8 @@ var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastGradeSys = 0;
 var lastHrAvg = 0;
+var bestSendEnc = -1;
+var bestName = '--';
 
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
@@ -124,6 +126,12 @@ var finishRoute = function(output, isSend) {
   lastDuration = routeSeconds;
   // HR stored in Hz — HeartRate_Fourdigits converts to BPM for display
   lastHrAvg = routeHrCount > 0 ? routeHrSum / routeHrCount : 0;
+  if (isSend && encGrade(lastGradeSys, lastGradeIdx) > bestSendEnc) {
+    bestSendEnc = encGrade(lastGradeSys, lastGradeIdx);
+    var g = evalFile('{file_path}/ext' + lastGradeSys + '.js');
+    bestName = g[lastGradeIdx] || '?';
+    g = undefined;
+  }
 
   routes.push({
     grade: lastGradeIdx, sys: lastGradeSys, duration: lastDuration,
@@ -202,7 +210,7 @@ function onLoad(_input, output) {
   output.projSends = -1;
   output.projBest = -1;
   output.totalSends = countSends();
-  output.sendPct = 0;
+  output.bestSend = -1;
 }
 
 function evaluate(input, output) {
@@ -249,7 +257,7 @@ function evaluate(input, output) {
 
   var sends = countSends();
   output.totalSends = sends;
-  output.sendPct = routes.length > 0 ? Math.round(sends * 100 / routes.length) : 0;
+  output.bestSend = bestSendEnc;
 
   if (climbMode > 0) {
     var sk = gradeSystem + "_" + climbMode;
@@ -376,3 +384,9 @@ function onEvent(_input, output, eventId) {
   }
 }
 
+function getSummaryOutputs(input, output) {
+  return [
+    { id: 'r', name: 'Sends / Routes', format: 'Count_Fourdigits', value: output.totalSends, postfix: '/ ' + output.totalRoutes },
+    { id: 'h', name: 'Best Send', format: 'Count_Fourdigits', value: 0, postfix: bestName }
+  ];
+}

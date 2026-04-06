@@ -19,7 +19,7 @@
     { "name": "lastDuration" },
     { "name": "routeHrAvg" },
     { "name": "totalSends" },
-    { "name": "sendPct" },
+    { "name": "bestSend" },
     { "name": "lastResult" },
     { "name": "climbMode" },
     { "name": "projTries" },
