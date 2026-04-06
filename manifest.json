@@ -1,7 +1,7 @@
 {
   "name": "Climb Log",
-  "description": "Route logger for climbing sessions",
-  "version": "2.3",
+  "description": "Log sends, track projects, crush grades",
+  "version": "2.2",
   "author": "skyfi",
   "modificationTime": 1773792000,
   "type": "feature",
@@ -33,5 +33,46 @@
     { "name": "climb.html" },
     { "name": "break.html" }
   ],
-  "settings": []
+  "settings": [
+    {
+      "shownName": "Grade System (0-7)",
+      "path": "appSettings.gradeSystem",
+      "type": "int",
+      "min": 0,
+      "max": 7,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Difficulty (1-9)",
+      "path": "appSettings.defaultGrade",
+      "type": "int",
+      "min": 1,
+      "max": 9,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Project 1 (0=off)",
+      "path": "appSettings.proj1",
+      "type": "int",
+      "min": 0,
+      "max": 9,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Project 2 (0=off)",
+      "path": "appSettings.proj2",
+      "type": "int",
+      "min": 0,
+      "max": 9,
+      "inputType": "slider"
+    },
+    {
+      "shownName": "Project 3 (0=off)",
+      "path": "appSettings.proj3",
+      "type": "int",
+      "min": 0,
+      "max": 9,
+      "inputType": "slider"
+    }
+  ]
 }
