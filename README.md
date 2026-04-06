@@ -4,7 +4,7 @@ Route logger for climbing sessions on Suunto watches. Tracks grades across 8 sys
 
 ## Screenshots
 
-| Setup | Project Config | Ready | Climbing | Break | 
+| Setup | Project Config | Ready | Climbing | Break |
 |:---:|:---:|:---:|:---:|:---:|
 | ![Setup](screenshots/setup.png) | ![Project](screenshots/setup-project.png) | ![Ready](screenshots/ready.png) | ![Climbing](screenshots/climbing.png) | ![Break](screenshots/break-sent.png) |
 
@@ -49,44 +49,50 @@ Pick your grade and start climbing.
 
 Timer runs. Log the result when done.
 
-- **Tap SEND** or **down button**: log a send
-- **Tap FAIL** or **long press down**: log a fail
-- Both trigger a lap marker in the workout
+- **Tap SEND**: log a send
+- **Tap FAIL**: log a fail
+- **Long press up**: log a fail (physical button)
+- **Long press down**: log a send (physical button)
+- All actions trigger a silent lap marker in the workout
 
 ### Break
 
 Review the result, correct the grade if needed, then continue.
 
-- **Swipe up/down**: correct the grade of the route just logged
-- **Tap NEXT** or **down button**: return to ready screen
+- **Swipe up/down** or **buttons up/down**: correct the grade of the route just logged
+- **Tap NEXT** or **long press down**: return to ready screen
 
 ## Grade Systems
 
 | # | System | Example Grades | Typical Use |
 |---|--------|----------------|-------------|
-| 0 | French | 3a … 9c | Sport climbing (Europe) |
-| 1 | UIAA | 4 … 12- | Sport/trad (Central Europe) |
-| 2 | YDS | 5.5 … 5.15d | Sport/trad (North America) |
-| 3 | British | 4a … 7b | Trad climbing (UK) |
-| 4 | Ice (WI) | WI2 … WI7+ | Ice climbing |
-| 5 | Mixed | M1 … M12 | Mixed climbing |
-| 6 | V-Scale | VB … V12 | Bouldering (North America) |
-| 7 | Fontainebleau | 4A … 8C+ | Bouldering (Europe) |
+| 0 | French | 3a ... 9c | Sport climbing (Europe) |
+| 1 | UIAA | 4 ... 12- | Sport/trad (Central Europe) |
+| 2 | YDS | 5.5 ... 5.15d | Sport/trad (North America) |
+| 3 | British | 4a ... 7b | Trad climbing (UK) |
+| 4 | Ice (WI) | WI2 ... WI7+ | Ice climbing |
+| 5 | Mixed | M1 ... M12 | Mixed climbing |
+| 6 | V-Scale | VB ... V12 | Bouldering (North America) |
+| 7 | Fontainebleau | 4A ... 8C+ | Bouldering (Europe) |
+
+## Phone App Settings
+
+Projects can be pre-configured in the Suunto mobile app under the Climb Log settings. Each grade system has 5 project slots with a dropdown showing the actual grades (e.g. "6b", "WI4+", "V5"). Set to "OFF" to disable a slot.
+
+The grade system itself is configured on the watch during setup, not in the phone settings.
+
+A starting difficulty slider (1-9) sets the initial grade when the app loads.
 
 ## Project Tracking
 
-Each grade system has 5 independent project slots. Projects are configured during setup and persisted on the watch.
+Each grade system has 5 independent project slots. Projects are configured during setup on the watch or via phone app settings, and persist across sessions.
 
 In project mode, the app tracks per-project:
 - **Attempts** (sends + fails)
 - **Sends**
 - **Best time** (fastest send)
 
-Stats persist across sessions within the same exercise.
-
-## Settings
-
-All configuration is done on the watch via the setup screen. Phone app settings are planned for a future version (see [#1](https://github.com/wylandplex/suuntoplus-climb-logger/issues/1)).
+Project stats persist across sessions. Route logs reset each new activity.
 
 ## Controls Reference
 
@@ -110,6 +116,8 @@ All configuration is done on the watch via the setup screen. Phone app settings 
 
 ### Physical Buttons
 
+All buttons are locked (`type="lock" longType="lock"`) to prevent native watch actions.
+
 | Screen | Button | Action |
 |--------|--------|--------|
 | Setup | Up | Cycle up |
@@ -120,17 +128,27 @@ All configuration is done on the watch via the setup screen. Phone app settings 
 | Ready | Up long | Toggle free/project mode |
 | Ready | Down | Cycle grade/project down |
 | Ready | Down long | Start climbing |
-| Climbing | Down | Send + lap |
-| Climbing | Down long | Fail + lap |
-| Break | Down | Next (back to ready) |
+| Climbing | Up long | Fail + lap |
+| Climbing | Down long | Send + lap |
+| Break | Up | Grade up |
+| Break | Down | Grade down |
+| Break | Down long | Next (back to ready) |
+
+## Data Logging
+
+`totalRoutes` is logged as a time-series graph visible in the Suunto mobile app after the workout. Shows a staircase curve that can be compared against heart rate.
 
 ## Session Summary
 
-Not available — `getSummaryOutputs` causes memory exhaustion on the watch ("max apps" error). Session stats are shown on the break screen during the workout instead.
+Not available — `getSummaryOutputs` causes memory exhaustion on the watch ("max apps" error) due to the app's size (4 templates, 16 outputs, 41 settings with grade enums). A minimal test app confirms getSummaryOutputs works on the watch in principle, but our app is at the memory ceiling. See [#10](https://github.com/wylandplex/suuntoplus-climb-logger/issues/10).
+
+## Memory Optimization
+
+Grade strings (~200 objects) are not kept in JavaScript memory. Only grade counts (`GRADE_LENS`) are stored. Full grade arrays are available in `ext0.js`-`ext7.js` (loaded from flash on demand via `evalFile`). HTML templates maintain their own copy for display.
 
 ## Data Storage
 
-Routes are saved to `localStorage` and persist within the exercise:
+Routes are saved to `localStorage` during a session but cleared on each new activity start:
 
 ```json
 [
@@ -139,7 +157,7 @@ Routes are saved to `localStorage` and persist within the exercise:
 ]
 ```
 
-Project stats and watch setup (grade system + project grades) are stored separately and persist across app restarts.
+Project stats (`climbProjStats`) and watch setup (grade system + project grades) persist across sessions.
 
 ## Development
 
@@ -155,8 +173,9 @@ code climb-logger/
 
 ## Version History
 
+- **v2.4** — Button lock (prevents native actions), long press for send/fail, break screen grade buttons, memory optimization (GRADES to evalFile), route reset per session, phone settings with real grades per system, totalRoutes graph logging, removed ignoreEvent throttle
 - **v2.3** — Fix layout for all display sizes, memory optimization, removed phone settings
-- **v2.2** — Refactored main.js, fixed watch font rendering (f-num → sp-t for text)
+- **v2.2** — Refactored main.js, fixed watch font rendering (f-num to sp-t for text)
 - **v2.1** — Real climbing grade systems (8 systems), flick gestures
 - **v2.0** — Redesigned UI, simpler lap flow, project routes
 - **v1.0** — Initial release

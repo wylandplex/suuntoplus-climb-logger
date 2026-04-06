@@ -70,13 +70,13 @@
       </div>
     </:if>
 
-    <!-- Physical: up=FAIL+lap, down=SEND+lap -->
+    <!-- Physical: up long=FAIL+lap, down long=SEND+lap -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
-      <pushButton name="up" type="lock"
-        onClick="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
-      <pushButton name="down" type="lock"
-        onClick="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+      <pushButton name="up" type="lock" longType="lock"
+        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
+      <pushButton name="down" type="lock" longType="lock"
+        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
     </userInput>
     </:if>
 
