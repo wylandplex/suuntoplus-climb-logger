@@ -38,4 +38,4 @@ Route logger for climbing sessions on Suunto watches.
 - Memory optimized: grade strings loaded from flash on demand
 - Faster grade cycling — removed 1-second input throttle
 
-*[More info & source code on GitHub](https://github.com/wylandplex/suuntoplus-climb-logger)*
+Feedback welcome! Leave a comment or open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger) — contributions and ideas are appreciated.
