@@ -26,38 +26,21 @@ var sessionSeconds = 0;
 var routes = [];
 var lastResult = 0;
 
+var routeHrSum = 0;
+var routeHrCount = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastGradeSys = 0;
+var lastHrAvg = 0;
 var bestSendEnc = -1;
 var bestName = '--';
 var bestSendCount = 0;
-
-var lastLapAvg = 0;
-var lastLapMax = 0;
-var routeHrSum = 0;
-var routeHrCount = 0;
-var routeMaxHrVal = 0;
-var breakTicks = 0;
-var maxHrSum = 0;
-var maxHrN = 0;
-var hrBuf = new Array(180);
-var hrBufIdx = 0;
-var hrBufN = 0;
-var routePeak1min = 0;
-var routePeak3min = 0;
-var lastPeak1min = 0;
-var lastPeak3min = 0;
-var peak1minSum = 0;
-var peak1minN = 0;
-var peak3minSum = 0;
-var peak3minN = 0;
 
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
-var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, avgHr: 0, avgMaxHr: 0, avgPk1: 0, avgPk3: 0 };
+var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
 
 var SYS_NAMES = ['French', 'UIAA', 'YDS', 'British', 'Ice (WI)', 'Mixed', 'V-Scale', 'Font'];
 
@@ -67,6 +50,7 @@ var GRADE_LENS = [41, 24, 29, 11, 11, 12, 14, 30];
 
 var DEFAULT_IDX = [18, 6, 5, 5, 3, 5, 4, 12];
 var gradeSystem = 0;
+var firstTick = true;
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -98,55 +82,14 @@ var saveSetup = function() {
   updateProjectVars();
 };
 
-var STAT_KEYS = ['french','uiaa','yds','british','ice','mixed','vscale','font'];
-
 var updateProjectVars = function() {
+  var g = evalFile('{file_path}/ext' + gradeSystem + '.js');
   var sv = localStorage.getObject("stats") || {};
   sv.system = SYS_NAMES[gradeSystem] || 'Unknown';
-  for (var s = 0; s < 8; s++) {
-    var sp = allProjects[s];
-    if (!sp) { sv[STAT_KEYS[s]] = '--'; continue; }
-    var hasAny = false;
-    for (var j = 0; j < 5; j++) { if (sp[j] >= 0) hasAny = true; }
-    if (!hasAny) { sv[STAT_KEYS[s]] = '--'; continue; }
-    var g = evalFile('{file_path}/ext' + s + '.js');
-    var parts = [];
-    for (var j = 0; j < 5; j++) {
-      if (sp[j] >= 0) parts.push(g[sp[j]] || '?');
-    }
-    g = undefined;
-    sv[STAT_KEYS[s]] = parts.join(', ');
+  for (var i = 0; i < 5; i++) {
+    sv['p' + (i + 1)] = projGradeIdx[i] >= 0 ? (g[projGradeIdx[i]] || '?') : 'OFF';
   }
-  localStorage.setObject("stats", sv);
-};
-
-var SYS_SHORT = ['FR','UIAA','YDS','UK','WI','MXD','V','FB'];
-
-var fmtTime = function(sec) {
-  if (sec <= 0) return '--';
-  return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2);
-};
-
-var updateProjStatVars = function() {
-  var sv = localStorage.getObject("stats") || {};
-  var idx = 0;
-  for (var s = 0; s < 8 && idx < 10; s++) {
-    var sp = allProjects[s];
-    if (!sp) continue;
-    var g = null;
-    for (var p = 0; p < 5 && idx < 10; p++) {
-      if (sp[p] < 0) continue;
-      var sk = s + '_' + (p + 1);
-      var ps = projStats[sk];
-      if (!ps || ps.attempts <= 0) continue;
-      if (!g) g = evalFile('{file_path}/ext' + s + '.js');
-      var name = g[sp[p]] || '?';
-      sv['ps' + (idx + 1)] = SYS_SHORT[s] + ' ' + name + ' | ' + ps.attempts + 'T ' + ps.sends + 'S ' + fmtTime(ps.bestTime);
-      idx++;
-    }
-    g = undefined;
-  }
-  for (var i = idx; i < 10; i++) sv['ps' + (i + 1)] = '--';
+  g = undefined;
   localStorage.setObject("stats", sv);
 };
 
@@ -156,10 +99,6 @@ var updateAllTimeStats = function() {
   sv.totalSends = allTimeStats.totalSends;
   sv.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
   sv.sessions = allTimeStats.sessions;
-  sv.avgHr = allTimeStats.avgHr;
-  sv.avgMaxHr = allTimeStats.avgMaxHr;
-  sv.avgPk1 = allTimeStats.avgPk1;
-  sv.avgPk3 = allTimeStats.avgPk3;
   localStorage.setObject("stats", sv);
 };
 
@@ -206,7 +145,7 @@ var finishRoute = function(output, isSend) {
   lastGradeSys = gradeSystem;
   lastDuration = routeSeconds;
   // HR stored in Hz — HeartRate_Fourdigits converts to BPM for display
-
+  lastHrAvg = routeHrCount > 0 ? routeHrSum / routeHrCount : 0;
   if (isSend) {
     var enc = encGrade(lastGradeSys, lastGradeIdx);
     if (enc > bestSendEnc) {
@@ -222,7 +161,7 @@ var finishRoute = function(output, isSend) {
 
   routes.push({
     grade: lastGradeIdx, sys: lastGradeSys, duration: lastDuration,
-    send: isSend ? 1 : 0, proj: climbMode
+    send: isSend ? 1 : 0, hr: lastHrAvg, proj: climbMode
   });
   localStorage.setObject("climbRoutes", routes);
 
@@ -238,25 +177,10 @@ var finishRoute = function(output, isSend) {
     localStorage.setObject("climbProjStats", projStats);
   }
 
-
-  if (routePeak1min > 0) { peak1minSum += routePeak1min; peak1minN++; }
-  if (routePeak3min > 0) { peak3minSum += routePeak3min; peak3minN++; }
-  allTimeStats.avgPk1 = peak1minN > 0 ? Math.round(peak1minSum / peak1minN * 60) : 0;
-  allTimeStats.avgPk3 = peak3minN > 0 ? Math.round(peak3minSum / peak3minN * 60) : 0;
-  lastPeak1min = routePeak1min;
-  lastPeak3min = routePeak3min;
-  routePeak1min = 0;
-  routePeak3min = 0;
-  hrBufIdx = 0;
-  hrBufN = 0;
-  lastLapAvg = 0;
-  lastLapMax = 0;
-  breakTicks = 0;
   allTimeStats.totalRoutes++;
   if (isSend) allTimeStats.totalSends++;
   allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
   updateAllTimeStats();
-  updateProjStatVars();
 
   routeNumber++;
   routeSeconds = 0;
@@ -284,29 +208,14 @@ function onLoad(_input, output) {
 
   projStats = localStorage.getObject("climbProjStats") || {};
 
-  var savedStats = localStorage.getObject("stats");
-  if (savedStats) {
-    allTimeStats.totalRoutes = savedStats.totalRoutes || 0;
-    allTimeStats.totalSends = savedStats.totalSends || 0;
-    allTimeStats.sendPct = savedStats.sendPct || 0;
-    allTimeStats.sessions = savedStats.sessions || 0;
-    allTimeStats.avgHr = savedStats.avgHr || 0;
-    allTimeStats.avgMaxHr = savedStats.avgMaxHr || 0;
-    allTimeStats.avgPk1 = savedStats.avgPk1 || 0;
-    allTimeStats.avgPk3 = savedStats.avgPk3 || 0;
-  }
-  allTimeStats.sessions++;
-  updateAllTimeStats();
-  updateProjStatVars();
-
   output.routeNum = gradeSystem + 1;
   output.grade = encGrade(gradeSystem, currentGrade);
   output.routeTime = 0;
-  output.routeCount = routes.length;
-  output.totalRoutes = (state === 1) ? 1 : 0;
+  output.totalRoutes = routes.length;
   output.sessionTime = 0;
   output.lastGrade = -1;
   output.lastDuration = 0;
+  output.routeHrAvg = 0;
   output.lastResult = 0;
   output.climbMode = 0;
   output.modeSub = 0;
@@ -314,13 +223,23 @@ function onLoad(_input, output) {
   output.projSends = -1;
   output.projBest = -1;
   output.totalSends = countSends();
-  output.routeCount = 0;
   output.bestSend = -1;
-  output.routePk1 = -1;
-  output.routePk3 = -1;
 }
 
 function evaluate(input, output) {
+  if (firstTick) {
+    var savedStats = localStorage.getObject("stats");
+    if (savedStats) {
+      allTimeStats.totalRoutes = savedStats.totalRoutes || 0;
+      allTimeStats.totalSends = savedStats.totalSends || 0;
+      allTimeStats.sendPct = savedStats.sendPct || 0;
+      allTimeStats.sessions = savedStats.sessions || 0;
+    }
+    allTimeStats.sessions++;
+    updateAllTimeStats();
+    updateProjectVars();
+    firstTick = false;
+  }
   if (setupDone) sessionSeconds++;
 
   if (state === 1) {
@@ -329,51 +248,15 @@ function evaluate(input, output) {
     if (input.Heartrate > 0) {
       routeHrSum += input.Heartrate;
       routeHrCount++;
-      if (input.Heartrate > routeMaxHrVal) routeMaxHrVal = input.Heartrate;
-      hrBuf[hrBufIdx] = input.Heartrate;
-      hrBufIdx = (hrBufIdx + 1) % 180;
-      if (hrBufN < 180) hrBufN++;
-      if (hrBufN >= 60) {
-        var s1 = 0;
-        for (var h = 0; h < 60; h++) s1 += hrBuf[(hrBufIdx - 60 + 180 + h) % 180];
-        var a1 = s1 / 60;
-        if (a1 > routePeak1min) routePeak1min = a1;
-      }
-      if (hrBufN >= 180) {
-        var s3 = 0;
-        for (var h = 0; h < 180; h++) s3 += hrBuf[h];
-        var a3 = s3 / 180;
-        if (a3 > routePeak3min) routePeak3min = a3;
-      }
     }
   }
 
   output.routeTime = routeSeconds;
-  output.routeCount = routes.length;
-  output.totalRoutes = (state === 1) ? 1 : 0;
+  output.totalRoutes = routes.length;
   output.sessionTime = sessionSeconds;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
-  if (state === 2) breakTicks++;
-  if (state === 2 && lastLapAvg === 0) {
-    if (input.lapHrAvg > 0) {
-      lastLapAvg = input.lapHrAvg;
-      lastLapMax = input.lapHrMax || 0;
-    } else if (breakTicks > 3 && routeHrCount > 0) {
-      lastLapAvg = routeHrSum / routeHrCount;
-      lastLapMax = routeMaxHrVal;
-    }
-  }
-  if (state === 2 && lastLapAvg > 0 && maxHrN < allTimeStats.totalRoutes) {
-    maxHrSum += lastLapMax; maxHrN++;
-    allTimeStats.avgHr = maxHrN > 0 ? Math.round((allTimeStats.avgHr * (maxHrN - 1) + lastLapAvg * 60) / maxHrN) : 0;
-    allTimeStats.avgMaxHr = maxHrN > 0 ? Math.round(maxHrSum / maxHrN * 60) : 0;
-    updateAllTimeStats();
-  }
-  output.routeHrAvg = lastLapAvg;
-  output.routeMaxHr = lastLapMax;
-  output.routePk1 = lastPeak1min > 0 ? lastPeak1min : -1;
-  output.routePk3 = lastPeak3min > 0 ? lastPeak3min : -1;
+  output.routeHrAvg = lastHrAvg;
   output.lastResult = lastResult;
   output.climbMode = climbMode;
 
@@ -446,23 +329,6 @@ function onEvent(_input, output, eventId) {
         currentGrade = lastGradeIdx;
         output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
         output.grade = encGrade(gradeSystem, currentGrade);
-        if (lastResult === 1) {
-          bestSendEnc = -1;
-          bestSendCount = 0;
-          for (var r = 0; r < routes.length; r++) {
-            if (routes[r].send) {
-              var re = encGrade(routes[r].sys, routes[r].grade);
-              if (re > bestSendEnc) { bestSendEnc = re; bestSendCount = 1; }
-              else if (re === bestSendEnc) bestSendCount++;
-            }
-          }
-          if (bestSendEnc >= 0) {
-            var g = evalFile('{file_path}/ext' + Math.floor(bestSendEnc / 100) + '.js');
-            bestName = g[bestSendEnc % 100] || '?';
-            g = undefined;
-          }
-          output.bestSend = bestSendEnc;
-        }
       }
       break;
 
@@ -481,12 +347,8 @@ function onEvent(_input, output, eventId) {
       } else if (state === 0) {
         state = 1;
         routeSeconds = 0;
-        lastLapAvg = 0;
-  lastLapMax = 0;
-        hrBufIdx = 0;
-  hrBufN = 0;
-        routePeak1min = 0;
-        routePeak3min = 0;
+        routeHrSum = 0;
+        routeHrCount = 0;
         currentTemplate = "climb";
         unload('_cm');
       } else if (state === 1) {
@@ -550,7 +412,7 @@ function onEvent(_input, output, eventId) {
 
 function getSummaryOutputs(input, output) {
   return [
-    { id: 'r', name: 'Sends / Routes', format: 'Count_Fourdigits', value: output.totalSends, postfix: '/ ' + routes.length },
+    { id: 'r', name: 'Sends / Routes', format: 'Count_Fourdigits', value: output.totalSends, postfix: '/ ' + output.totalRoutes },
     { id: 'h', name: 'Highest Send', format: 'Count_Fourdigits', value: bestSendCount, postfix: '* ' + bestName }
   ];
 }
