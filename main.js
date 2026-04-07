@@ -297,7 +297,7 @@ function onLoad(_input, output) {
   output.routeNum = gradeSystem + 1;
   output.grade = encGrade(gradeSystem, currentGrade);
   output.routeTime = 0;
-  output.totalRoutes = routes.length;
+  output.totalRoutes = (state === 1) ? 1 : 0;
   output.sessionTime = 0;
   output.lastGrade = -1;
   output.lastDuration = 0;
@@ -339,7 +339,7 @@ function evaluate(input, output) {
   }
 
   output.routeTime = routeSeconds;
-  output.totalRoutes = routes.length;
+  output.totalRoutes = (state === 1) ? 1 : 0;
   output.sessionTime = sessionSeconds;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
@@ -514,7 +514,7 @@ function onEvent(_input, output, eventId) {
 
 function getSummaryOutputs(input, output) {
   return [
-    { id: 'r', name: 'Sends / Routes', format: 'Count_Fourdigits', value: output.totalSends, postfix: '/ ' + output.totalRoutes },
+    { id: 'r', name: 'Sends / Routes', format: 'Count_Fourdigits', value: output.totalSends, postfix: '/ ' + routes.length },
     { id: 'h', name: 'Highest Send', format: 'Count_Fourdigits', value: bestSendCount, postfix: '* ' + bestName }
   ];
 }
