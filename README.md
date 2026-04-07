@@ -184,6 +184,7 @@ code climb-logger/
 
 ## Version History
 
+- **v2.9** — Break screen HR dashboard with zone coloring, lap-based AVG/MAX, rolling 1'/3' peaks, session stats (sends/routes + highest grade), clean climbing-only laps
 - **v2.8** — Companion app becomes stats dashboard (remove project settings, add read-only variables for projects + cumulative stats)
 - **v2.7** — Fix companion app project settings sync, compatibility note for older watch models
 - **v2.6** — Session summary (sends/routes + highest send grade), Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens

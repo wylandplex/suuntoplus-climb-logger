@@ -32,9 +32,11 @@ Route logger for climbing sessions on Suunto watches.
 
 ## Latest changes
 
-- Companion app now shows project stats (tries, sends, best time), active projects per grade system, and cumulative session stats
-- All setup is on the watch — the Suunto platform only syncs phone → watch, so watch-side changes would be lost. The watch is the single source of truth.
-- Session summary after exercise with sends/routes and highest grade
-- Physical buttons locked to prevent accidental native watch actions
+- Break screen HR dashboard: AVG, MAX, 1-min peak, 3-min peak — color-coded by HR zone (green/yellow/orange/red)
+- Session stats on break screen: sends/routes ratio + highest send grade
+- Companion app dashboard: project stats per grade system, cumulative routes/sends/HR stats
+- Clean climbing-only laps for accurate Suunto workout log
+- Grade correction on break screen updates highest grade in real-time
+- All setup on the watch — no phone needed
 
 Feedback welcome! Leave a comment or open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger) — contributions and ideas are appreciated.
