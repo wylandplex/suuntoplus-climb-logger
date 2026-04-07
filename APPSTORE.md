@@ -1,6 +1,6 @@
 # Climb Log
 
-> **Note:** If you have trouble enabling the app in your activity, an updated app file is being published by Suunto and should be available within a few days. This will fix the issue.
+> **Note:** If you have trouble enabling the app in your activity, an update was pushed on April 7th that fixes the problem.
 
 Route logger for climbing sessions on Suunto watches.
 
