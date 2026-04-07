@@ -49,25 +49,23 @@
     <!-- Separator -->
     <div class="p-hc" style="top:36%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-    <!-- HR section: left=icons (20%), right=values (80%) -->
-    <div style="position:absolute;top:38%;left:8%;width:18%;height:16%;display:flex;align-items:center;justify-content:center;">
+    <!-- HR section -->
+    <div style="position:absolute;top:calc(43% - 50%e);left:calc(14% - 50%e);">
       <span class="f-ico" style="font-size:150%">&#xF101;</span>
       <span class="f-ico" style="font-size:150%;padding-left:2px">&#xF107;</span>
     </div>
-    <div style="position:absolute;top:37%;left:30%;width:65%;height:18%;">
-      <div class="sp-vertical-center" style="top:calc(20% - 50%e);">
-        <span class="sp-b-s" style="width:30px;display:inline-block">AVG</span>
-        <span id="hrAvgVal" class="sp-b-s f-num" style="width:32px;display:inline-block;text-align:right"><eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-        <span class="sp-b-s" style="padding-left:8px;width:16px;display:inline-block">1'</span>
-        <span id="hrPk1Val" class="sp-b-s f-num" style="width:32px;display:inline-block;text-align:right"><eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-      </div>
-      <div class="sp-vertical-center" style="top:calc(80% - 50%e);">
-        <span class="sp-b-s" style="width:30px;display:inline-block">MAX</span>
-        <span id="hrMaxVal" class="sp-b-s f-num" style="width:32px;display:inline-block;text-align:right"><eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-        <span class="sp-b-s" style="padding-left:8px;width:16px;display:inline-block">3'</span>
-        <span id="hrPk3Val" class="sp-b-s f-num" style="width:32px;display:inline-block;text-align:right"><eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-      </div>
-    </div>
+    <div class="sp-b-s" style="position:absolute;top:calc(39% - 50%e);left:30%;">AVG</div>
+    <div id="hrAvgVal" class="sp-b-s f-num" style="position:absolute;top:calc(39% - 50%e);right:52%;">
+      <eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+    <div class="sp-b-s" style="position:absolute;top:calc(39% - 50%e);left:62%;">1'</div>
+    <div id="hrPk1Val" class="sp-b-s f-num" style="position:absolute;top:calc(39% - 50%e);right:12%;">
+      <eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+    <div class="sp-b-s" style="position:absolute;top:calc(47% - 50%e);left:30%;">MAX</div>
+    <div id="hrMaxVal" class="sp-b-s f-num" style="position:absolute;top:calc(47% - 50%e);right:52%;">
+      <eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+    <div class="sp-b-s" style="position:absolute;top:calc(47% - 50%e);left:62%;">3'</div>
+    <div id="hrPk3Val" class="sp-b-s f-num" style="position:absolute;top:calc(47% - 50%e);right:12%;">
+      <eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></div>
 
     <!-- Separator -->
     <div class="p-hc" style="top:54%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
