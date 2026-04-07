@@ -30,7 +30,7 @@ Route logger for climbing sessions on Suunto watches.
 
 *Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
 
-## Latest (v2.8)
+## Latest changes
 
 - **Companion app is now a stats dashboard**: see your active grade system, project grades, cumulative routes/sends/send rate, and session count
 - **All setup is done on the watch** — no phone needed at the crag. Project settings were moved to watch-only because the Suunto platform only syncs settings from phone to watch, not back. Watch-side changes would be overwritten on next sync, so the watch is now the single source of truth for your setup.
