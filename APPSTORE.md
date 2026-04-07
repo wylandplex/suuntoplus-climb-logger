@@ -32,11 +32,9 @@ Route logger for climbing sessions on Suunto watches.
 
 ## Latest (v2.8)
 
-- Companion app is now a stats dashboard: see active projects, cumulative routes/sends/send rate
-- All setup is done on the watch — no phone needed at the crag
-- Physical buttons locked to prevent accidental native watch actions
+- **Companion app is now a stats dashboard**: see your active grade system, project grades, cumulative routes/sends/send rate, and session count
+- **All setup is done on the watch** — no phone needed at the crag. Project settings were moved to watch-only because the Suunto platform only syncs settings from phone to watch, not back. Watch-side changes would be overwritten on next sync, so the watch is now the single source of truth for your setup.
 - Session summary after exercise: sends/routes and highest send grade
 - Total routes logged as a graph in the Suunto app
-- Memory optimized: removed 40+ enum settings, grade strings loaded from flash
 
 Feedback welcome! Leave a comment or open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger) — contributions and ideas are appreciated.
