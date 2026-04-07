@@ -187,7 +187,7 @@ function onLoad(_input, output) {
   }
   loadProjects(gradeSystem);
 
-  if (!ws && settings) {
+  if (settings) {
     allProjects = evalFile('{file_path}/ext-load.js')(settings);
     loadProjects(gradeSystem);
   }

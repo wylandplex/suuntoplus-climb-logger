@@ -165,6 +165,10 @@ Routes are saved to `localStorage` during a session but cleared on each new acti
 
 Project stats (`climbProjStats`) and watch setup (grade system + project grades) persist across sessions.
 
+## Compatibility
+
+Developed and tested on **Suunto Vertical 2**. Users with older models (e.g. Suunto Vertical Solar) have reported issues activating the app. The developer can only test on Vertical 2 — if you have a different Suunto watch and encounter problems, please [open an issue](https://github.com/wylandplex/suuntoplus-climb-logger/issues) with your watch model and firmware version.
+
 ## Development
 
 Requires [SuuntoPlus Editor](https://marketplace.visualstudio.com/items?itemName=Suunto.suuntoplus-editor) for VS Code.
@@ -179,6 +183,7 @@ code climb-logger/
 
 ## Version History
 
+- **v2.7** — Fix companion app project settings sync, compatibility note for older watch models
 - **v2.6** — Session summary (sends/routes + highest send grade), custom project names via phone settings, Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens
 - **v2.4** — Button lock (prevents native actions), long press for send/fail, break screen grade buttons, memory optimization (GRADES to evalFile), route reset per session, phone settings with real grades per system, totalRoutes graph logging, removed ignoreEvent throttle
 - **v2.3** — Fix layout for all display sizes, memory optimization, removed phone settings

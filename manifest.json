@@ -1,7 +1,7 @@
 {
   "name": "Climb Log",
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
-  "version": "2.6",
+  "version": "2.7",
   "author": "skyfi",
   "modificationTime": 1775521965,
   "type": "feature",

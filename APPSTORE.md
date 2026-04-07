@@ -1,6 +1,6 @@
 # Climb Log
 
-> **Note:** If you have trouble enabling the app in your activity, an update was pushed on April 7th that fixes the problem.
+> **Compatibility:** Developed and tested on Suunto Vertical 2. Users with older models (e.g. Vertical Solar) have reported issues activating the app. If you have a different watch and encounter problems, please report your watch model and firmware version on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger/issues) — your feedback helps make the app work for everyone!
 
 Route logger for climbing sessions on Suunto watches.
 
@@ -29,8 +29,9 @@ Route logger for climbing sessions on Suunto watches.
 
 *Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
 
-## Latest (v2.6)
+## Latest (v2.7)
 
+- Companion app project settings now sync to watch on every start
 - Physical buttons locked to prevent native watch actions during climbing
 - Send/fail on climbing screen require long press to prevent accidental triggers
 - Break screen now supports grade correction with physical buttons
