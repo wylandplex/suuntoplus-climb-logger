@@ -13,7 +13,7 @@
           $.subscribe('/Zapp/{zapp_index}/Output/routeHrAvg',function(v){
             setStyle('#hrAvgVal','color',zoneCol(v));
           });
-          $.subscribe('/Activity/Lap/-1/HeartRate/Max',function(v){
+          $.subscribe('/Activity/Lap/-2/HeartRate/Max',function(v){
             setStyle('#hrMaxVal','color',zoneCol(v));
           });
           $.subscribe('/Zapp/{zapp_index}/Output/routePk1',function(v){
@@ -59,7 +59,7 @@
     <div class="sp-vertical-center" style="top:calc(46% - 50%e); left:calc(28% - 50%e);">
       <span class="sp-b-s">MAX</span>
       <span class="f-ico" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
-      <span id="hrMaxVal" class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span id="hrMaxVal" class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <div class="p-hc" style="top:35%;width:2px;height:16%;background:rgba(255,255,255,0.2)"></div>
