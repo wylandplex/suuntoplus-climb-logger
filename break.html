@@ -51,30 +51,30 @@
 
     <!-- HR stats: icons left, 2x2 grid right -->
     <div style="top:calc(38% - 50%e); left:calc(12% - 50%e); position:absolute;">
-      <span class="f-ico" style="font-size:150%">&#xF101;</span>
+      <span class="f-ico" style="font-size:130%">&#xF101;</span>
     </div>
     <div style="top:calc(47% - 50%e); left:calc(12% - 50%e); position:absolute;">
-      <span class="f-ico" style="font-size:150%">&#xF107;</span>
+      <span class="f-ico" style="font-size:130%">&#xF107;</span>
     </div>
 
     <div class="sp-vertical-center" style="top:calc(38% - 50%e); left:calc(38% - 50%e);">
       <span class="sp-b-s">AVG</span>
-      <span id="hrAvgVal" class="sp-b-m f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span id="hrAvgVal" class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <div class="sp-vertical-center" style="top:calc(38% - 50%e); left:calc(72% - 50%e);">
       <span class="sp-b-s">1'</span>
-      <span id="hrPk1Val" class="sp-b-m f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span id="hrPk1Val" class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <div class="sp-vertical-center" style="top:calc(47% - 50%e); left:calc(38% - 50%e);">
       <span class="sp-b-s">MAX</span>
-      <span id="hrMaxVal" class="sp-b-m f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span id="hrMaxVal" class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <div class="sp-vertical-center" style="top:calc(47% - 50%e); left:calc(72% - 50%e);">
       <span class="sp-b-s">3'</span>
-      <span id="hrPk3Val" class="sp-b-m f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span id="hrPk3Val" class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Separator -->
@@ -83,7 +83,7 @@
     <!-- Routes + Sends compact row -->
     <div class="p-hc sp-vertical-center" style="top:calc(58% - 50%e);">
       <span class="f-ico" style="padding-right:3px">&#xF124;</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/totalRoutes" outputFormat="Count_Threedigits" default="0" /></span>
+      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeCount" outputFormat="Count_Threedigits" default="0" /></span>
       <span style="padding-left:12px;padding-right:3px" class="f-ico">&#xF200;</span>
       <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span>
     </div>

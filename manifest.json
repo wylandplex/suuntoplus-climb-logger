@@ -15,6 +15,7 @@
     { "name": "routeNum" },
     { "name": "grade" },
     { "name": "routeTime" },
+    { "name": "routeCount" },
     { "name": "totalRoutes", "log": true, "shownName": "Climbing", "format": "Count_Fourdigits" },
     { "name": "sessionTime" },
     { "name": "lastGrade" },

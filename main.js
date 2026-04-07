@@ -302,6 +302,7 @@ function onLoad(_input, output) {
   output.routeNum = gradeSystem + 1;
   output.grade = encGrade(gradeSystem, currentGrade);
   output.routeTime = 0;
+  output.routeCount = routes.length;
   output.totalRoutes = (state === 1) ? 1 : 0;
   output.sessionTime = 0;
   output.lastGrade = -1;
@@ -313,6 +314,7 @@ function onLoad(_input, output) {
   output.projSends = -1;
   output.projBest = -1;
   output.totalSends = countSends();
+  output.routeCount = 0;
   output.bestSend = -1;
   output.routePk1 = -1;
   output.routePk3 = -1;
@@ -347,6 +349,7 @@ function evaluate(input, output) {
   }
 
   output.routeTime = routeSeconds;
+  output.routeCount = routes.length;
   output.totalRoutes = (state === 1) ? 1 : 0;
   output.sessionTime = sessionSeconds;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
