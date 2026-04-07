@@ -29,15 +29,20 @@ Route logger for climbing sessions on Suunto watches.
 
 *Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
 
-## Latest (v2.4)
+## Latest (v2.6)
 
 - Physical buttons locked to prevent native watch actions during climbing
 - Send/fail on climbing screen require long press to prevent accidental triggers
 - Break screen now supports grade correction with physical buttons
 - Pre-configure all 5 projects per grade system from the Suunto app with real grade names
+- Give each project a custom name (max 8 chars) shown in the title bar
 - Total routes logged as a graph in the Suunto app
 - Routes reset on each new activity, project stats persist
 - Memory optimized: grade strings loaded from flash on demand
 - Faster grade cycling — removed 1-second input throttle
+- Session summary after exercise: sends/routes and highest send grade
+- Custom project names via phone app settings
+- Suunto icon font for cleaner UI labels
+- Improved layouts with separator lines
 
 Feedback welcome! Leave a comment or open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger) — contributions and ideas are appreciated.

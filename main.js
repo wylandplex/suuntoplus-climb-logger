@@ -34,6 +34,9 @@ var lastGradeSys = 0;
 var lastHrAvg = 0;
 var bestSendEnc = -1;
 var bestName = '--';
+var bestSendCount = 0;
+
+var projNames = ['', '', '', '', ''];
 
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
@@ -81,19 +84,18 @@ var saveSetup = function() {
   localStorage.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
 };
 
-// Wrap grade index within system range
 var wrapIdx = function(idx, len) {
   if (idx >= len) return 0;
   if (idx < 0) return len - 1;
   return idx;
 };
 
-// Wrap grade index with OFF support (-1 = OFF)
 var wrapIdxOff = function(idx, len) {
   if (idx >= len) return -1;
   if (idx < -1) return len - 1;
   return idx;
 };
+
 
 // Cycle grade system in direction +1/-1
 var cycleSystem = function(dir) {
@@ -126,11 +128,17 @@ var finishRoute = function(output, isSend) {
   lastDuration = routeSeconds;
   // HR stored in Hz — HeartRate_Fourdigits converts to BPM for display
   lastHrAvg = routeHrCount > 0 ? routeHrSum / routeHrCount : 0;
-  if (isSend && encGrade(lastGradeSys, lastGradeIdx) > bestSendEnc) {
-    bestSendEnc = encGrade(lastGradeSys, lastGradeIdx);
-    var g = evalFile('{file_path}/ext' + lastGradeSys + '.js');
-    bestName = g[lastGradeIdx] || '?';
-    g = undefined;
+  if (isSend) {
+    var enc = encGrade(lastGradeSys, lastGradeIdx);
+    if (enc > bestSendEnc) {
+      bestSendEnc = enc;
+      var g = evalFile('{file_path}/ext' + lastGradeSys + '.js');
+      bestName = g[lastGradeIdx] || '?';
+      g = undefined;
+      bestSendCount = 1;
+    } else if (enc === bestSendEnc) {
+      bestSendCount++;
+    }
   }
 
   routes.push({
@@ -166,6 +174,11 @@ var goReady = function() {
 
 function onLoad(_input, output) {
   var settings = localStorage.getObject("appSettings");
+  if (settings) {
+    for (var i = 1; i <= 5; i++) {
+      projNames[i - 1] = settings['pn' + i] || '';
+    }
+  }
 
   var ws = localStorage.getObject("watchSetup");
   if (ws) {
@@ -175,15 +188,7 @@ function onLoad(_input, output) {
   loadProjects(gradeSystem);
 
   if (!ws && settings) {
-    var prefixes = ['fr', 'uiaa', 'yds', 'uk', 'wi', 'mx', 'vs', 'fb'];
-    for (var s = 0; s < 8; s++) {
-      var sp = [];
-      for (var p = 1; p <= 5; p++) {
-        var v = settings[prefixes[s] + '_p' + p];
-        sp.push(v > 0 ? v - 1 : -1);
-      }
-      allProjects[s] = sp;
-    }
+    allProjects = evalFile('{file_path}/ext-load.js')(settings);
     loadProjects(gradeSystem);
   }
 
@@ -248,6 +253,8 @@ function evaluate(input, output) {
     output.grade = encGrade(gradeSystem, currentGrade);
     if (climbMode > 0) {
       output.modeSub = -climbMode;
+      var pn = projNames[climbMode - 1];
+      if (pn) setText('#title', pn);
     } else if (state === 2) {
       output.modeSub = routes.length;
     } else {
@@ -387,6 +394,6 @@ function onEvent(_input, output, eventId) {
 function getSummaryOutputs(input, output) {
   return [
     { id: 'r', name: 'Sends / Routes', format: 'Count_Fourdigits', value: output.totalSends, postfix: '/ ' + output.totalRoutes },
-    { id: 'h', name: 'Best Send', format: 'Count_Fourdigits', value: 0, postfix: bestName }
+    { id: 'h', name: 'Highest Send', format: 'Count_Fourdigits', value: bestSendCount, postfix: '* ' + bestName }
   ];
 }

@@ -1,9 +1,9 @@
 {
   "name": "Climb Log",
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
-  "version": "2.5",
+  "version": "2.6",
   "author": "skyfi",
-  "modificationTime": 1775515508,
+  "modificationTime": 1775521965,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -81,6 +81,11 @@
     { "shownName": "Font P2", "path": "appSettings.fb_p2", "type": "enum", "values": ["OFF","4A","4A+","4B","4B+","4C","4C+","5A","5A+","5B","5B+","5C","5C+","6A","6A+","6B","6B+","6C","6C+","7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+"] },
     { "shownName": "Font P3", "path": "appSettings.fb_p3", "type": "enum", "values": ["OFF","4A","4A+","4B","4B+","4C","4C+","5A","5A+","5B","5B+","5C","5C+","6A","6A+","6B","6B+","6C","6C+","7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+"] },
     { "shownName": "Font P4", "path": "appSettings.fb_p4", "type": "enum", "values": ["OFF","4A","4A+","4B","4B+","4C","4C+","5A","5A+","5B","5B+","5C","5C+","6A","6A+","6B","6B+","6C","6C+","7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+"] },
-    { "shownName": "Font P5", "path": "appSettings.fb_p5", "type": "enum", "values": ["OFF","4A","4A+","4B","4B+","4C","4C+","5A","5A+","5B","5B+","5C","5C+","6A","6A+","6B","6B+","6C","6C+","7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+"] }
+    { "shownName": "Font P5", "path": "appSettings.fb_p5", "type": "enum", "values": ["OFF","4A","4A+","4B","4B+","4C","4C+","5A","5A+","5B","5B+","5C","5C+","6A","6A+","6B","6B+","6C","6C+","7A","7A+","7B","7B+","7C","7C+","8A","8A+","8B","8B+","8C","8C+"] },
+    { "shownName": "Project 1 Name", "path": "appSettings.pn1", "type": "string", "maxLength": 8 },
+    { "shownName": "Project 2 Name", "path": "appSettings.pn2", "type": "string", "maxLength": 8 },
+    { "shownName": "Project 3 Name", "path": "appSettings.pn3", "type": "string", "maxLength": 8 },
+    { "shownName": "Project 4 Name", "path": "appSettings.pn4", "type": "string", "maxLength": 8 },
+    { "shownName": "Project 5 Name", "path": "appSettings.pn5", "type": "string", "maxLength": 8 }
   ]
 }

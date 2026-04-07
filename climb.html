@@ -6,58 +6,60 @@
 
     <!-- Title bar -->
     <div class="cm-fg" style="width:100%;height:16%">
-      <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
+      <div id="title" class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
         <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
       </div>
     </div>
 
     <!-- Route timer (hero) -->
-    <div class="sp-d-l p-hc" style="top:calc(34% - 50%e);">
+    <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/routeTime" outputFormat="Duration_FourdigitsFixed" default="0:00" />
     </div>
 
     <!-- Separator -->
-    <div class="cm-mid p-hc" style="top:48%;width:70%;height:1px;opacity:0.4"></div>
+    <div class="p-hc" style="top:44%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
     <!-- HR + Grade side by side -->
-    <div class="sp-b-s" style="top:calc(51% - 50%e); left:calc(30% - 50%e);">HR</div>
-    <div class="sp-b-m" style="top:calc(60% - 50%e); left:calc(30% - 50%e);">
-      <eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" />
+    <div class="sp-vertical-center" style="top:calc(55% - 50%e); left:calc(30% - 50%e);">
+      <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
+      <span class="sp-b-m f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Vertical separator -->
-    <div class="cm-mid p-hc" style="top:51%;width:1px;height:16%;opacity:0.3"></div>
+    <div class="p-hc" style="top:49%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
 
-    <div class="sp-b-s" style="top:calc(51% - 50%e); left:calc(70% - 50%e);">GRADE</div>
-    <div class="sp-b-m" style="top:calc(60% - 50%e); left:calc(70% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
+    <div class="sp-vertical-center" style="top:calc(55% - 50%e); left:calc(70% - 50%e);">
+      <span class="f-ico" style="padding-right:4px">&#xF144;</span>
+      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
 
     <!-- Separator -->
-    <div class="cm-mid p-hc" style="top:67%;width:70%;height:1px;opacity:0.4"></div>
+    <div class="p-hc" style="top:63%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
     <!-- SEND + FAIL buttons (trigger lap + event) -->
     <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
-      style="top:70%;left:5%;width:44%;height:14%;position:absolute;">
+      style="top:65%;left:5%;width:44%;height:17%;position:absolute;">
       <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:65%;position:absolute;
+                  width:88%;height:70%;position:absolute;
                   background:rgba(255,255,255,0.15);border-radius:6px;">
-        <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">SEND</div>
+        <div class="sp-t-s sp-vertical-center" style="top:calc(50% - 50%e); left:calc(50% - 50%e);"><span class="f-ico" style="padding-right:3px">&#xF200;</span><span>SEND</span></div>
       </div>
     </div>
 
     <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
-      style="top:70%;left:51%;width:44%;height:14%;position:absolute;">
+      style="top:65%;left:51%;width:44%;height:17%;position:absolute;">
       <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:65%;position:absolute;
+                  width:88%;height:70%;position:absolute;
                   background:rgba(255,255,255,0.06);border-radius:6px;">
-        <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">FAIL</div>
+        <div class="sp-t-s sp-vertical-center" style="top:calc(50% - 50%e); left:calc(50% - 50%e);"><span class="f-ico" style="padding-right:3px">&#xF110;</span><span>FAIL</span></div>
       </div>
     </div>
 
     <!-- Session time -->
-    <div class="sp-b-s p-hc" style="top:calc(88% - 50%e);">
-      SESSION <eval input="/Zapp/{zapp_index}/Output/sessionTime" outputFormat="Duration_FourdigitsFixed" default="0:00" />
+    <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
+      <span class="sp-b-s">SES</span>
+      <span class="f-ico" style="padding-left:3px;padding-right:3px">&#xF100;</span>
+      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/sessionTime" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
 
     <!-- Button hints -->
@@ -74,8 +76,10 @@
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
+        onClick=""
         onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
+        onClick=""
         onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
     </userInput>
     </:if>

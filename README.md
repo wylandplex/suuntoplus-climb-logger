@@ -83,6 +83,8 @@ The grade system itself is configured on the watch during setup, not in the phon
 
 A starting difficulty slider (1-9) sets the initial grade when the app loads.
 
+Each project can have a custom name (max 8 characters) that replaces "PROJECT 1" etc. in the title bar.
+
 ## Project Tracking
 
 Each grade system has 5 independent project slots. Projects are configured during setup on the watch or via phone app settings, and persist across sessions.
@@ -140,7 +142,11 @@ All buttons are locked (`type="lock" longType="lock"`) to prevent native watch a
 
 ## Session Summary
 
-Not available — `getSummaryOutputs` causes memory exhaustion on the watch ("max apps" error) due to the app's size (4 templates, 16 outputs, 41 settings with grade enums). A minimal test app confirms getSummaryOutputs works on the watch in principle, but our app is at the memory ceiling. See [#10](https://github.com/wylandplex/suuntoplus-climb-logger/issues/10).
+After ending the exercise, the watch and Suunto app show:
+- **Sends / Routes**: e.g. "3 / 10"
+- **Highest Send**: e.g. "2* M6" (2 sends at grade M6)
+
+Grade names are loaded from flash (`evalFile`) during the session to stay within memory limits. See [#10](https://github.com/wylandplex/suuntoplus-climb-logger/issues/10).
 
 ## Memory Optimization
 
@@ -173,6 +179,7 @@ code climb-logger/
 
 ## Version History
 
+- **v2.6** — Session summary (sends/routes + highest send grade), custom project names via phone settings, Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens
 - **v2.4** — Button lock (prevents native actions), long press for send/fail, break screen grade buttons, memory optimization (GRADES to evalFile), route reset per session, phone settings with real grades per system, totalRoutes graph logging, removed ignoreEvent throttle
 - **v2.3** — Fix layout for all display sizes, memory optimization, removed phone settings
 - **v2.2** — Refactored main.js, fixed watch font rendering (f-num to sp-t for text)

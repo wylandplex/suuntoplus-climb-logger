@@ -8,58 +8,69 @@
 
     <!-- Title bar -->
     <div class="cm-fg" style="width:100%;height:16%">
-      <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
+      <div id="title" class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
         <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
       </div>
     </div>
 
     <!-- Grade + Time of completed route -->
-    <div class="sp-b-s" style="top:calc(24% - 50%e); left:calc(30% - 50%e);">GRADE</div>
-    <div class="sp-t-m" style="top:calc(32% - 50%e); left:calc(30% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
+    <div class="sp-vertical-center" style="top:calc(27% - 50%e); left:calc(30% - 50%e);">
+      <span class="f-ico" style="padding-right:4px">&#xF144;</span>
+      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
 
-    <div class="sp-b-s" style="top:calc(24% - 50%e); left:calc(70% - 50%e);">TIME</div>
-    <div class="sp-b-m" style="top:calc(32% - 50%e); left:calc(70% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/lastDuration" outputFormat="Duration_FourdigitsFixed" default="0:00" />
+    <!-- Vertical separator -->
+    <div class="p-hc" style="top:22%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
+
+    <div class="sp-vertical-center" style="top:calc(27% - 50%e); left:calc(70% - 50%e);">
+      <span class="f-ico" style="padding-right:4px">&#xF100;</span>
+      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/lastDuration" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
+
+    <!-- Separator -->
+    <div class="p-hc" style="top:36%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
     <!-- Avg HR -->
-    <div class="sp-b-s p-hc" style="top:calc(40% - 50%e);">
-      AVG &#x2665; <eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" />
+    <div class="p-hc sp-vertical-center" style="top:calc(42% - 50%e);">
+      <span class="sp-b-m">AVG</span>
+      <span class="f-ico sp-c-red" style="padding-left:4px;padding-right:4px">&#xF101;</span>
+      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Separator -->
-    <div class="cm-mid p-hc" style="top:52%;width:70%;height:1px;opacity:0.4"></div>
+    <div class="p-hc" style="top:48%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-    <!-- 3-column stats -->
-    <div class="sp-b-s" style="top:calc(55% - 50%e); left:calc(18% - 50%e);">RTE</div>
-    <div class="sp-b-m" style="top:calc(63% - 50%e); left:calc(18% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/totalRoutes" outputFormat="Count_Threedigits" default="0" />
+    <!-- 2-column stats -->
+    <div class="sp-vertical-center" style="top:calc(56% - 50%e); left:calc(30% - 50%e);">
+      <span class="f-ico" style="padding-right:4px">&#xF124;</span>
+      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/totalRoutes" outputFormat="Count_Threedigits" default="0" /></span>
     </div>
 
-    <div class="sp-b-s" style="top:calc(55% - 50%e); left:calc(50% - 50%e);">SND</div>
-    <div class="sp-b-m" style="top:calc(63% - 50%e); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" />
-    </div>
+    <!-- Vertical separator -->
+    <div class="p-hc" style="top:50%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
 
+    <div class="sp-vertical-center" style="top:calc(56% - 50%e); left:calc(70% - 50%e);">
+      <span class="f-ico" style="padding-right:4px">&#xF200;</span>
+      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span>
+    </div>
 
     <!-- Separator -->
-    <div class="cm-mid p-hc" style="top:70%;width:70%;height:1px;opacity:0.4"></div>
+    <div class="p-hc" style="top:64%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
     <!-- NEXT button -->
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
-      style="top:73%;left:15%;width:70%;height:14%;position:absolute;">
+      style="top:66%;left:15%;width:70%;height:16%;position:absolute;">
       <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:80%;height:65%;position:absolute;
+                  width:80%;height:70%;position:absolute;
                   background:rgba(255,255,255,0.15);border-radius:8px;">
         <div class="sp-t-m" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">NEXT</div>
       </div>
     </div>
 
     <!-- Recovery HR -->
-    <div class="sp-b-s p-hc" style="top:calc(88% - 50%e);">
-      &#x2665; <eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" />
+    <div class="p-hc sp-vertical-center" style="top:calc(88% - 50%e);">
+      <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
+      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Button hints -->
