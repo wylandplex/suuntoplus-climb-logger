@@ -103,6 +103,36 @@ var updateProjectVars = function() {
   localStorage.setObject("stats", sv);
 };
 
+var SYS_SHORT = ['FR','UIAA','YDS','UK','WI','MXD','V','FB'];
+
+var fmtTime = function(sec) {
+  if (sec <= 0) return '--';
+  return Math.floor(sec / 60) + ':' + ('0' + (sec % 60)).slice(-2);
+};
+
+var updateProjStatVars = function() {
+  var sv = localStorage.getObject("stats") || {};
+  var idx = 0;
+  for (var s = 0; s < 8 && idx < 10; s++) {
+    var sp = allProjects[s];
+    if (!sp) continue;
+    var g = null;
+    for (var p = 0; p < 5 && idx < 10; p++) {
+      if (sp[p] < 0) continue;
+      var sk = s + '_' + (p + 1);
+      var ps = projStats[sk];
+      if (!ps || ps.attempts <= 0) continue;
+      if (!g) g = evalFile('{file_path}/ext' + s + '.js');
+      var name = g[sp[p]] || '?';
+      sv['ps' + (idx + 1)] = SYS_SHORT[s] + ' ' + name + ' | ' + ps.attempts + 'T ' + ps.sends + 'S ' + fmtTime(ps.bestTime);
+      idx++;
+    }
+    g = undefined;
+  }
+  for (var i = idx; i < 10; i++) sv['ps' + (i + 1)] = '--';
+  localStorage.setObject("stats", sv);
+};
+
 var updateAllTimeStats = function() {
   var sv = localStorage.getObject("stats") || {};
   sv.totalRoutes = allTimeStats.totalRoutes;
@@ -191,6 +221,7 @@ var finishRoute = function(output, isSend) {
   if (isSend) allTimeStats.totalSends++;
   allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
   updateAllTimeStats();
+  updateProjStatVars();
 
   routeNumber++;
   routeSeconds = 0;
@@ -227,6 +258,7 @@ function onLoad(_input, output) {
   }
   allTimeStats.sessions++;
   updateAllTimeStats();
+  updateProjStatVars();
 
   output.routeNum = gradeSystem + 1;
   output.grade = encGrade(gradeSystem, currentGrade);
