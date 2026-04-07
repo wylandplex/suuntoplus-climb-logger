@@ -32,27 +32,21 @@ var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastGradeSys = 0;
 var lastHrAvg = 0;
-var lastPeak1min = 0;
-var lastPeak3min = 0;
 var bestSendEnc = -1;
 var bestName = '--';
 var bestSendCount = 0;
 
-var hrWindow = [];
-var routePeak1min = 0;
-var routePeak3min = 0;
 var totalHrSum = 0;
 var totalHrCount = 0;
-var peak1minSum = 0;
-var peak1minN = 0;
-var peak3minSum = 0;
-var peak3minN = 0;
+var maxHrSum = 0;
+var maxHrN = 0;
+var lastLapMax = 0;
 
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
-var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, avgHr: 0, avgPeak1min: 0, avgPeak3min: 0 };
+var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, avgHr: 0, avgMaxHr: 0 };
 
 var SYS_NAMES = ['French', 'UIAA', 'YDS', 'British', 'Ice (WI)', 'Mixed', 'V-Scale', 'Font'];
 
@@ -152,8 +146,7 @@ var updateAllTimeStats = function() {
   sv.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
   sv.sessions = allTimeStats.sessions;
   sv.avgHr = allTimeStats.avgHr;
-  sv.avgPeak1min = allTimeStats.avgPeak1min;
-  sv.avgPeak3min = allTimeStats.avgPeak3min;
+  sv.avgMaxHr = allTimeStats.avgMaxHr;
   localStorage.setObject("stats", sv);
 };
 
@@ -235,15 +228,7 @@ var finishRoute = function(output, isSend) {
   totalHrSum += routeHrSum;
   totalHrCount += routeHrCount;
   allTimeStats.avgHr = totalHrCount > 0 ? Math.round(totalHrSum / totalHrCount * 60) : 0;
-  if (routePeak1min > 0) { peak1minSum += routePeak1min; peak1minN++; }
-  if (routePeak3min > 0) { peak3minSum += routePeak3min; peak3minN++; }
-  allTimeStats.avgPeak1min = peak1minN > 0 ? Math.round(peak1minSum / peak1minN * 60) : 0;
-  allTimeStats.avgPeak3min = peak3minN > 0 ? Math.round(peak3minSum / peak3minN * 60) : 0;
-  lastPeak1min = routePeak1min;
-  lastPeak3min = routePeak3min;
-  routePeak1min = 0;
-  routePeak3min = 0;
-  hrWindow = [];
+  lastLapMax = 0;
   allTimeStats.totalRoutes++;
   if (isSend) allTimeStats.totalSends++;
   allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
@@ -283,8 +268,7 @@ function onLoad(_input, output) {
     allTimeStats.sendPct = savedStats.sendPct || 0;
     allTimeStats.sessions = savedStats.sessions || 0;
     allTimeStats.avgHr = savedStats.avgHr || 0;
-    allTimeStats.avgPeak1min = savedStats.avgPeak1min || 0;
-    allTimeStats.avgPeak3min = savedStats.avgPeak3min || 0;
+    allTimeStats.avgMaxHr = savedStats.avgMaxHr || 0;
   }
   allTimeStats.sessions++;
   updateAllTimeStats();
@@ -306,8 +290,7 @@ function onLoad(_input, output) {
   output.projBest = -1;
   output.totalSends = countSends();
   output.bestSend = -1;
-  output.routePk1 = 0;
-  output.routePk3 = 0;
+  output.routeMaxHr = 0;
 }
 
 function evaluate(input, output) {
@@ -319,19 +302,6 @@ function evaluate(input, output) {
     if (input.Heartrate > 0) {
       routeHrSum += input.Heartrate;
       routeHrCount++;
-      hrWindow.push(input.Heartrate);
-      if (hrWindow.length >= 60) {
-        var s1 = 0;
-        for (var h = hrWindow.length - 60; h < hrWindow.length; h++) s1 += hrWindow[h];
-        var a1 = s1 / 60;
-        if (a1 > routePeak1min) routePeak1min = a1;
-      }
-      if (hrWindow.length >= 180) {
-        var s3 = 0;
-        for (var h = hrWindow.length - 180; h < hrWindow.length; h++) s3 += hrWindow[h];
-        var a3 = s3 / 180;
-        if (a3 > routePeak3min) routePeak3min = a3;
-      }
     }
   }
 
@@ -341,8 +311,13 @@ function evaluate(input, output) {
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
   output.routeHrAvg = lastHrAvg;
-  output.routePk1 = lastPeak1min;
-  output.routePk3 = lastPeak3min;
+  if (state === 2 && input.lapHrMax > 0 && lastLapMax === 0) {
+    lastLapMax = input.lapHrMax;
+    if (lastLapMax > 0) { maxHrSum += lastLapMax; maxHrN++; }
+    allTimeStats.avgMaxHr = maxHrN > 0 ? Math.round(maxHrSum / maxHrN * 60) : 0;
+    updateAllTimeStats();
+  }
+  output.routeMaxHr = lastLapMax;
   output.lastResult = lastResult;
   output.climbMode = climbMode;
 
@@ -435,9 +410,7 @@ function onEvent(_input, output, eventId) {
         routeSeconds = 0;
         routeHrSum = 0;
         routeHrCount = 0;
-        hrWindow = [];
-        routePeak1min = 0;
-        routePeak3min = 0;
+        lastLapMax = 0;
         currentTemplate = "climb";
         unload('_cm');
       } else if (state === 1) {

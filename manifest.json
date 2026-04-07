@@ -3,11 +3,13 @@
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
   "version": "2.8",
   "author": "skyfi",
-  "modificationTime": 1775568363,
+  "modificationTime": 1775569230,
   "type": "feature",
   "usage": "workout",
   "in": [
-    { "name": "Heartrate", "source": "Activity/Move/-1/Heartrate/Current", "type": "subscribe" }
+    { "name": "Heartrate", "source": "Activity/Move/-1/Heartrate/Current", "type": "subscribe" },
+    { "name": "lapHrAvg", "source": "Activity/Lap/-1/HeartRate/Avg", "type": "subscribe" },
+    { "name": "lapHrMax", "source": "Activity/Lap/-1/HeartRate/Max", "type": "subscribe" }
   ],
   "out": [
     { "name": "routeNum" },
@@ -26,8 +28,7 @@
     { "name": "projSends" },
     { "name": "projBest" },
     { "name": "modeSub" },
-    { "name": "routePk1" },
-    { "name": "routePk3" }
+    { "name": "routeMaxHr" }
   ],
   "template": [
     { "name": "setup.html" },
@@ -60,8 +61,7 @@
     {"shownName": "Send Rate [%]", "path": "stats.sendPct", "type": "int"},
     {"shownName": "Sessions", "path": "stats.sessions", "type": "int"},
     {"shownName": "Avg HR [bpm]", "path": "stats.avgHr", "type": "int"},
-    {"shownName": "Avg Peak 1min HR [bpm]", "path": "stats.avgPeak1min", "type": "int"},
-    {"shownName": "Avg Peak 3min HR [bpm]", "path": "stats.avgPeak3min", "type": "int"}
+    {"shownName": "Avg Max HR [bpm]", "path": "stats.avgMaxHr", "type": "int"}
   ],
   "settings": []
 }

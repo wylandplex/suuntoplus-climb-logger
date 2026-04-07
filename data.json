@@ -24,7 +24,6 @@
     "sendPct": "0",
     "sessions": "0",
     "avgHr": "0",
-    "avgPeak1min": "0",
-    "avgPeak3min": "0"
+    "avgMaxHr": "0"
   }
 }
