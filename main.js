@@ -314,8 +314,8 @@ function onLoad(_input, output) {
   output.projBest = -1;
   output.totalSends = countSends();
   output.bestSend = -1;
-  output.routePk1 = 0;
-  output.routePk3 = 0;
+  output.routePk1 = -1;
+  output.routePk3 = -1;
 }
 
 function evaluate(input, output) {
@@ -369,8 +369,8 @@ function evaluate(input, output) {
   }
   output.routeHrAvg = lastLapAvg;
   output.routeMaxHr = lastLapMax;
-  output.routePk1 = lastPeak1min;
-  output.routePk3 = lastPeak3min;
+  output.routePk1 = lastPeak1min > 0 ? lastPeak1min : -1;
+  output.routePk3 = lastPeak3min > 0 ? lastPeak3min : -1;
   output.lastResult = lastResult;
   output.climbMode = climbMode;
 
