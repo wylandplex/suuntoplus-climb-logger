@@ -8,12 +8,12 @@
           function zoneCol(hz){
             if(maxHR<=0||hz<=0)return getStyle('css:.cm-fg','color');
             var pct=hz*60/maxHR*100;
-            return getStyle(pct>85?'css:.c-red':(pct>70?'css:.cm-mid':'css:.c-green'),'color');
+            return getStyle(pct>85?'css:.c-red':(pct>70?'css:.sp-c-yellow':'css:.c-green'),'color');
           }
           $.subscribe('/Zapp/{zapp_index}/Output/routeHrAvg',function(v){
             setStyle('#hrAvgVal','color',zoneCol(v));
           });
-          $.subscribe('/Activity/Lap/-2/HeartRate/Max',function(v){
+          $.subscribe('/Zapp/{zapp_index}/Output/routeMaxHr',function(v){
             setStyle('#hrMaxVal','color',zoneCol(v));
           });
           $.subscribe('/Zapp/{zapp_index}/Output/routePk1',function(v){
@@ -59,7 +59,7 @@
     <div class="sp-vertical-center" style="top:calc(46% - 50%e); left:calc(28% - 50%e);">
       <span class="sp-b-s">MAX</span>
       <span class="f-ico" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
-      <span id="hrMaxVal" class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span id="hrMaxVal" class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <div class="p-hc" style="top:35%;width:2px;height:16%;background:rgba(255,255,255,0.2)"></div>

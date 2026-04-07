@@ -7,9 +7,7 @@
   "type": "feature",
   "usage": "workout",
   "in": [
-    { "name": "Heartrate", "source": "Activity/Move/-1/Heartrate/Current", "type": "subscribe" },
-    { "name": "lapHrAvg", "source": "Activity/Lap/-2/HeartRate/Avg", "type": "subscribe" },
-    { "name": "lapHrMax", "source": "Activity/Lap/-2/HeartRate/Max", "type": "subscribe" }
+    { "name": "Heartrate", "source": "Activity/Move/-1/Heartrate/Current", "type": "subscribe" }
   ],
   "out": [
     { "name": "routeNum" },
