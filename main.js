@@ -40,6 +40,9 @@ var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
+var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
+
+var SYS_NAMES = ['French', 'UIAA', 'YDS', 'British', 'Ice (WI)', 'Mixed', 'V-Scale', 'Font'];
 
 // Grade count per system: FR=41 UIAA=24 YDS=29 UK=11 WI=11 MXD=12 V=14 FB=30
 // Grade strings are in ext0.js-ext7.js (loaded from flash on demand)
@@ -80,6 +83,27 @@ var loadProjects = function(sys) {
 var saveSetup = function() {
   allProjects[gradeSystem] = projGradeIdx.slice();
   localStorage.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
+  updateProjectVars();
+};
+
+var updateProjectVars = function() {
+  var g = evalFile('{file_path}/ext' + gradeSystem + '.js');
+  var sv = localStorage.getObject("stats") || {};
+  sv.system = SYS_NAMES[gradeSystem] || 'Unknown';
+  for (var i = 0; i < 5; i++) {
+    sv['p' + (i + 1)] = projGradeIdx[i] >= 0 ? (g[projGradeIdx[i]] || '?') : 'OFF';
+  }
+  g = undefined;
+  localStorage.setObject("stats", sv);
+};
+
+var updateAllTimeStats = function() {
+  var sv = localStorage.getObject("stats") || {};
+  sv.totalRoutes = allTimeStats.totalRoutes;
+  sv.totalSends = allTimeStats.totalSends;
+  sv.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
+  sv.sessions = allTimeStats.sessions;
+  localStorage.setObject("stats", sv);
 };
 
 var wrapIdx = function(idx, len) {
@@ -157,6 +181,11 @@ var finishRoute = function(output, isSend) {
     localStorage.setObject("climbProjStats", projStats);
   }
 
+  allTimeStats.totalRoutes++;
+  if (isSend) allTimeStats.totalSends++;
+  allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
+  updateAllTimeStats();
+
   routeNumber++;
   routeSeconds = 0;
   state = 2;
@@ -179,11 +208,6 @@ function onLoad(_input, output) {
   }
   loadProjects(gradeSystem);
 
-  if (settings) {
-    allProjects = evalFile('{file_path}/ext-load.js')(settings);
-    loadProjects(gradeSystem);
-  }
-
   var defDiff = (settings && settings.defaultGrade) || 5;
   currentGrade = diffToIdx(defDiff);
   if (currentGrade < 0) currentGrade = DEFAULT_IDX[gradeSystem];
@@ -191,6 +215,16 @@ function onLoad(_input, output) {
   localStorage.setObject("climbRoutes", []);
 
   projStats = localStorage.getObject("climbProjStats") || {};
+
+  var savedStats = localStorage.getObject("stats");
+  if (savedStats) {
+    allTimeStats.totalRoutes = savedStats.totalRoutes || 0;
+    allTimeStats.totalSends = savedStats.totalSends || 0;
+    allTimeStats.sendPct = savedStats.sendPct || 0;
+    allTimeStats.sessions = savedStats.sessions || 0;
+  }
+  allTimeStats.sessions++;
+  updateAllTimeStats();
 
   output.routeNum = gradeSystem + 1;
   output.grade = encGrade(gradeSystem, currentGrade);

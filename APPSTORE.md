@@ -8,8 +8,9 @@ Route logger for climbing sessions on Suunto watches.
 
 - 8 grade systems: French, UIAA, YDS, British, Ice (WI), Mixed, V-Scale, Fontainebleau
 - Log sends and fails with long press — each logs a silent lap marker in your workout
-- Pre-save up to 5 project routes per grade system from the Suunto app, with real grade dropdowns
+- Configure up to 5 project routes per grade system directly on the watch — no phone needed
 - Attempt, send, and best time tracking per project (persists across sessions)
+- Companion app shows active projects, total routes, sends, send rate, and session count
 - Freely switch between project routes and free grade selection mid-session
 - Correct the grade on the break screen with buttons or swipe before moving on
 - Switch grade systems on the fly with a double-tap
@@ -29,19 +30,13 @@ Route logger for climbing sessions on Suunto watches.
 
 *Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
 
-## Latest (v2.7)
+## Latest (v2.8)
 
-- Companion app project settings now sync to watch on every start
-- Physical buttons locked to prevent native watch actions during climbing
-- Send/fail on climbing screen require long press to prevent accidental triggers
-- Break screen now supports grade correction with physical buttons
-- Pre-configure all 5 projects per grade system from the Suunto app with real grade names
-- Total routes logged as a graph in the Suunto app
-- Routes reset on each new activity, project stats persist
-- Memory optimized: grade strings loaded from flash on demand
-- Faster grade cycling — removed 1-second input throttle
+- Companion app is now a stats dashboard: see active projects, cumulative routes/sends/send rate
+- All setup is done on the watch — no phone needed at the crag
+- Physical buttons locked to prevent accidental native watch actions
 - Session summary after exercise: sends/routes and highest send grade
-- Suunto icon font for cleaner UI labels
-- Improved layouts with separator lines
+- Total routes logged as a graph in the Suunto app
+- Memory optimized: removed 40+ enum settings, grade strings loaded from flash
 
 Feedback welcome! Leave a comment or open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger) — contributions and ideas are appreciated.

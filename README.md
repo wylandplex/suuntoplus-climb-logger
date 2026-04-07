@@ -75,17 +75,20 @@ Review the result, correct the grade if needed, then continue.
 | 6 | V-Scale | VB ... V12 | Bouldering (North America) |
 | 7 | Fontainebleau | 4A ... 8C+ | Bouldering (Europe) |
 
-## Phone App Settings
+## Companion App Dashboard
 
-Projects can be pre-configured in the Suunto mobile app under the Climb Log settings. Each grade system has 5 project slots with a dropdown showing the actual grades (e.g. "6b", "WI4+", "V5"). Set to "OFF" to disable a slot.
+The Suunto mobile app shows read-only stats for the current state of the app:
 
-The grade system itself is configured on the watch during setup, not in the phone settings.
+- **Grade System** — which system is active (e.g. "French", "UIAA")
+- **Project 1-5** — active project grades (e.g. "6b+", "OFF")
+- **Total Routes / Sends / Send Rate** — cumulative across all sessions
+- **Sessions** — number of exercises started
 
-A starting difficulty slider (1-9) sets the initial grade when the app loads.
+All configuration is done on the watch via the setup screen. The companion app is a dashboard only.
 
 ## Project Tracking
 
-Each grade system has 5 independent project slots. Projects are configured during setup on the watch or via phone app settings, and persist across sessions.
+Each grade system has 5 independent project slots. Projects are configured during setup on the watch and persist across sessions.
 
 In project mode, the app tracks per-project:
 - **Attempts** (sends + fails)
@@ -181,6 +184,7 @@ code climb-logger/
 
 ## Version History
 
+- **v2.8** — Companion app becomes stats dashboard (remove project settings, add read-only variables for projects + cumulative stats)
 - **v2.7** — Fix companion app project settings sync, compatibility note for older watch models
 - **v2.6** — Session summary (sends/routes + highest send grade), Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens
 - **v2.4** — Button lock (prevents native actions), long press for send/fail, break screen grade buttons, memory optimization (GRADES to evalFile), route reset per session, phone settings with real grades per system, totalRoutes graph logging, removed ignoreEvent throttle
