@@ -83,8 +83,6 @@ The grade system itself is configured on the watch during setup, not in the phon
 
 A starting difficulty slider (1-9) sets the initial grade when the app loads.
 
-Each project can have a custom name (max 8 characters) that replaces "PROJECT 1" etc. in the title bar.
-
 ## Project Tracking
 
 Each grade system has 5 independent project slots. Projects are configured during setup on the watch or via phone app settings, and persist across sessions.
@@ -184,7 +182,7 @@ code climb-logger/
 ## Version History
 
 - **v2.7** — Fix companion app project settings sync, compatibility note for older watch models
-- **v2.6** — Session summary (sends/routes + highest send grade), custom project names via phone settings, Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens
+- **v2.6** — Session summary (sends/routes + highest send grade), Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens
 - **v2.4** — Button lock (prevents native actions), long press for send/fail, break screen grade buttons, memory optimization (GRADES to evalFile), route reset per session, phone settings with real grades per system, totalRoutes graph logging, removed ignoreEvent throttle
 - **v2.3** — Fix layout for all display sizes, memory optimization, removed phone settings
 - **v2.2** — Refactored main.js, fixed watch font rendering (f-num to sp-t for text)

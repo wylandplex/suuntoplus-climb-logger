@@ -36,8 +36,6 @@ var bestSendEnc = -1;
 var bestName = '--';
 var bestSendCount = 0;
 
-var projNames = ['', '', '', '', ''];
-
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
@@ -174,12 +172,6 @@ var goReady = function() {
 
 function onLoad(_input, output) {
   var settings = localStorage.getObject("appSettings");
-  if (settings) {
-    for (var i = 1; i <= 5; i++) {
-      projNames[i - 1] = settings['pn' + i] || '';
-    }
-  }
-
   var ws = localStorage.getObject("watchSetup");
   if (ws) {
     gradeSystem = (ws.sys >= 0 && ws.sys <= 7) ? ws.sys : 0;
@@ -253,8 +245,6 @@ function evaluate(input, output) {
     output.grade = encGrade(gradeSystem, currentGrade);
     if (climbMode > 0) {
       output.modeSub = -climbMode;
-      var pn = projNames[climbMode - 1];
-      if (pn) setText('#title', pn);
     } else if (state === 2) {
       output.modeSub = routes.length;
     } else {
