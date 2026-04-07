@@ -3,7 +3,7 @@
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
   "version": "2.8",
   "author": "skyfi",
-  "modificationTime": 1775570098,
+  "modificationTime": 1775570271,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -28,7 +28,9 @@
     { "name": "projSends" },
     { "name": "projBest" },
     { "name": "modeSub" },
-    { "name": "routeMaxHr" }
+    { "name": "routeMaxHr" },
+    { "name": "routePk1" },
+    { "name": "routePk3" }
   ],
   "template": [
     { "name": "setup.html" },
@@ -61,7 +63,9 @@
     {"shownName": "Send Rate [%]", "path": "stats.sendPct", "type": "int"},
     {"shownName": "Sessions", "path": "stats.sessions", "type": "int"},
     {"shownName": "Avg HR [bpm]", "path": "stats.avgHr", "type": "int"},
-    {"shownName": "Avg Max HR [bpm]", "path": "stats.avgMaxHr", "type": "int"}
+    {"shownName": "Avg Max HR [bpm]", "path": "stats.avgMaxHr", "type": "int"},
+    {"shownName": "Avg Peak 1min HR [bpm]", "path": "stats.avgPk1", "type": "int"},
+    {"shownName": "Avg Peak 3min HR [bpm]", "path": "stats.avgPk3", "type": "int"}
   ],
   "settings": []
 }
