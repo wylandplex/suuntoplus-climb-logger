@@ -50,7 +50,7 @@
 
     <!-- HR: centered wrapper, relative rows inside -->
     <div style="position:absolute;top:38%;left:calc(50% - 120px);width:240px;height:18%;">
-      <div style="position:absolute;top:0;left:0;">
+      <div style="position:absolute;top:25%;left:0;">
         <span class="f-ico" style="font-size:140%">&#xF101;</span>
       </div>
       <div class="sp-b-s" style="position:absolute;top:0;left:30px;">AVG</div>
@@ -74,7 +74,7 @@
     <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
       <span class="f-ico" style="font-size:140%;padding-right:8px">&#xF107;</span>
       <span class="f-ico" style="padding-right:3px">&#xF200;</span>
-      <span class="f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span><span class="f-num">/</span><span class="f-num"><eval input="/Zapp/{zapp_index}/Output/routeCount" outputFormat="Count_Threedigits" default="0" /></span>
+      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span><span class="sp-b-s f-num">/</span><span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeCount" outputFormat="Count_Threedigits" default="0" /></span>
       <span class="f-ico" style="padding-left:14px;padding-right:3px">&#xF118;</span>
       <span><eval input="/Zapp/{zapp_index}/Output/bestSend" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
