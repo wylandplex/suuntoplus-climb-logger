@@ -65,15 +65,18 @@
     <!-- Separator -->
     <div class="p-hc" style="top:57%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-    <!-- Routes + Sends compact row -->
-    <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
-      <span class="f-ico" style="padding-right:10px">&#xF107;</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span>
-      <span class="sp-b-s">/</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeCount" outputFormat="Count_Threedigits" default="0" /></span>
-      <span class="f-ico" style="padding-left:14px;padding-right:4px">&#xF118;</span>
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/bestSend" outputFormat="script x => dG(x)" default="--" /></span>
+    <!-- Stats row: icon left, values right (same layout as HR) -->
+    <div style="position:absolute;top:calc(64% - 50%e);left:calc(16% - 50%e);">
+      <span class="f-ico" style="font-size:200%">&#xF107;</span>
     </div>
+    <div class="sp-b-s f-num" style="position:absolute;top:calc(64% - 50%e);left:30%;">
+      <eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></div>
+    <div class="sp-b-s" style="position:absolute;top:calc(64% - 50%e);left:40%;">/</div>
+    <div class="sp-b-s f-num" style="position:absolute;top:calc(64% - 50%e);left:44%;">
+      <eval input="/Zapp/{zapp_index}/Output/routeCount" outputFormat="Count_Threedigits" default="0" /></div>
+    <div class="f-ico" style="position:absolute;top:calc(64% - 50%e);left:58%;">&#xF118;</div>
+    <div class="sp-b-s" style="position:absolute;top:calc(64% - 50%e);left:66%;">
+      <eval input="/Zapp/{zapp_index}/Output/bestSend" outputFormat="script x => dG(x)" default="--" /></div>
 
     <!-- Separator -->
 
