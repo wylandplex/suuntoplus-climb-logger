@@ -49,30 +49,27 @@
     <!-- Separator -->
     <div class="p-hc" style="top:36%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-    <!-- HR stats row 1: avg | max -->
-    <div class="sp-vertical-center" style="top:calc(39% - 50%e); left:calc(30% - 50%e);">
+    <!-- HR stats: left=AVG/MAX, right=1'/3' -->
+    <div class="sp-vertical-center" style="top:calc(39% - 50%e); left:calc(28% - 50%e);">
       <span class="sp-b-s">AVG</span>
       <span class="f-ico" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
       <span id="hrAvgVal" class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
-    <div class="p-hc" style="top:34%;width:2px;height:10%;background:rgba(255,255,255,0.2)"></div>
-
-    <div class="sp-vertical-center" style="top:calc(39% - 50%e); left:calc(70% - 50%e);">
+    <div class="sp-vertical-center" style="top:calc(46% - 50%e); left:calc(28% - 50%e);">
       <span class="sp-b-s">MAX</span>
       <span class="f-ico" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
       <span id="hrMaxVal" class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
-    <!-- HR stats row 2: 1min peak | 3min peak -->
-    <div class="sp-vertical-center" style="top:calc(46% - 50%e); left:calc(30% - 50%e);">
+    <div class="p-hc" style="top:35%;width:2px;height:16%;background:rgba(255,255,255,0.2)"></div>
+
+    <div class="sp-vertical-center" style="top:calc(39% - 50%e); left:calc(72% - 50%e);">
       <span class="sp-b-s">1'</span>
       <span id="hrPk1Val" class="sp-b-s f-num" style="padding-left:2px"><eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
-    <div class="p-hc" style="top:42%;width:2px;height:10%;background:rgba(255,255,255,0.2)"></div>
-
-    <div class="sp-vertical-center" style="top:calc(46% - 50%e); left:calc(70% - 50%e);">
+    <div class="sp-vertical-center" style="top:calc(46% - 50%e); left:calc(72% - 50%e);">
       <span class="sp-b-s">3'</span>
       <span id="hrPk3Val" class="sp-b-s f-num" style="padding-left:2px"><eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
