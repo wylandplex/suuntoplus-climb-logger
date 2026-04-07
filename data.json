@@ -10,8 +10,5 @@
     "totalSends": 0,
     "sendPct": 0,
     "sessions": 0
-  },
-  "appSettings": {
-    "defaultGrade": 5
   }
 }

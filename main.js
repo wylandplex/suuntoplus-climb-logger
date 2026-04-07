@@ -60,11 +60,6 @@ var encGrade = function(sys, idx) {
   return sys * 100 + idx;
 };
 
-var diffToIdx = function(diff) {
-  if (diff <= 0) return -1;
-  return Math.round((diff - 1) * (GRADE_LENS[gradeSystem] - 1) / 8);
-};
-
 var countSends = function() {
   var s = 0;
   for (var i = 0; i < routes.length; i++) {
@@ -200,17 +195,13 @@ var goReady = function() {
 };
 
 function onLoad(_input, output) {
-  var settings = localStorage.getObject("appSettings");
   var ws = localStorage.getObject("watchSetup");
   if (ws) {
     gradeSystem = (ws.sys >= 0 && ws.sys <= 7) ? ws.sys : 0;
     allProjects = ws.proj || {};
   }
   loadProjects(gradeSystem);
-
-  var defDiff = (settings && settings.defaultGrade) || 5;
-  currentGrade = diffToIdx(defDiff);
-  if (currentGrade < 0) currentGrade = DEFAULT_IDX[gradeSystem];
+  currentGrade = DEFAULT_IDX[gradeSystem];
 
   localStorage.setObject("climbRoutes", []);
 
