@@ -447,13 +447,19 @@ function onEvent(_input, output, eventId) {
         output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
         output.grade = encGrade(gradeSystem, currentGrade);
         if (lastResult === 1) {
-          var enc = encGrade(lastGradeSys, lastGradeIdx);
-          if (enc > bestSendEnc) {
-            bestSendEnc = enc;
-            var g = evalFile('{file_path}/ext' + lastGradeSys + '.js');
-            bestName = g[lastGradeIdx] || '?';
+          bestSendEnc = -1;
+          bestSendCount = 0;
+          for (var r = 0; r < routes.length; r++) {
+            if (routes[r].send) {
+              var re = encGrade(routes[r].sys, routes[r].grade);
+              if (re > bestSendEnc) { bestSendEnc = re; bestSendCount = 1; }
+              else if (re === bestSendEnc) bestSendCount++;
+            }
+          }
+          if (bestSendEnc >= 0) {
+            var g = evalFile('{file_path}/ext' + Math.floor(bestSendEnc / 100) + '.js');
+            bestName = g[bestSendEnc % 100] || '?';
             g = undefined;
-            bestSendCount = 1;
           }
           output.bestSend = bestSendEnc;
         }
