@@ -10,14 +10,10 @@
             var pct=hz*60/maxHR*100;
             return getStyle(pct>90?'css:.c-red':(pct>80?'css:.sp-c-orange':(pct>70?'css:.sp-c-yellow':'css:.c-green')),'color');
           }
-          function colorAll(){
-            $.get('/Zapp/{zapp_index}/Output/routeHrAvg',function(v){setStyle('#hrAvgVal','color',zoneCol(v))});
-            $.get('/Zapp/{zapp_index}/Output/routeMaxHr',function(v){setStyle('#hrMaxVal','color',zoneCol(v))});
-            $.get('/Zapp/{zapp_index}/Output/routePk1',function(v){setStyle('#hrPk1Val','color',zoneCol(v))});
-            $.get('/Zapp/{zapp_index}/Output/routePk3',function(v){setStyle('#hrPk3Val','color',zoneCol(v))});
-          }
-          $.subscribe('/Zapp/{zapp_index}/Output/routeHrAvg',function(){colorAll()});
-          $.subscribe('/Zapp/{zapp_index}/Output/routeMaxHr',function(){colorAll()});
+          $.subscribe('/Zapp/{zapp_index}/Output/routeHrAvg',function(v){if(v>0)setStyle('#hrAvgVal','color',zoneCol(v))});
+          $.subscribe('/Zapp/{zapp_index}/Output/routeMaxHr',function(v){if(v>0)setStyle('#hrMaxVal','color',zoneCol(v))});
+          $.subscribe('/Zapp/{zapp_index}/Output/routePk1',function(v){if(v>0)setStyle('#hrPk1Val','color',zoneCol(v))});
+          $.subscribe('/Zapp/{zapp_index}/Output/routePk3',function(v){if(v>0)setStyle('#hrPk3Val','color',zoneCol(v))});
         ">
   <div id="climblogger">
 
