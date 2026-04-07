@@ -36,11 +36,21 @@ var bestSendEnc = -1;
 var bestName = '--';
 var bestSendCount = 0;
 
+var hrWindow = [];
+var routePeak1min = 0;
+var routePeak3min = 0;
+var totalHrSum = 0;
+var totalHrCount = 0;
+var peak1minSum = 0;
+var peak1minN = 0;
+var peak3minSum = 0;
+var peak3minN = 0;
+
 var climbMode = 0; // 0=free, 1-5=project
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
-var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
+var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, avgHr: 0, avgPeak1min: 0, avgPeak3min: 0 };
 
 var SYS_NAMES = ['French', 'UIAA', 'YDS', 'British', 'Ice (WI)', 'Mixed', 'V-Scale', 'Font'];
 
@@ -139,6 +149,9 @@ var updateAllTimeStats = function() {
   sv.totalSends = allTimeStats.totalSends;
   sv.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
   sv.sessions = allTimeStats.sessions;
+  sv.avgHr = allTimeStats.avgHr;
+  sv.avgPeak1min = allTimeStats.avgPeak1min;
+  sv.avgPeak3min = allTimeStats.avgPeak3min;
   localStorage.setObject("stats", sv);
 };
 
@@ -217,6 +230,16 @@ var finishRoute = function(output, isSend) {
     localStorage.setObject("climbProjStats", projStats);
   }
 
+  totalHrSum += routeHrSum;
+  totalHrCount += routeHrCount;
+  allTimeStats.avgHr = totalHrCount > 0 ? Math.round(totalHrSum / totalHrCount * 60) : 0;
+  if (routePeak1min > 0) { peak1minSum += routePeak1min; peak1minN++; }
+  if (routePeak3min > 0) { peak3minSum += routePeak3min; peak3minN++; }
+  allTimeStats.avgPeak1min = peak1minN > 0 ? Math.round(peak1minSum / peak1minN * 60) : 0;
+  allTimeStats.avgPeak3min = peak3minN > 0 ? Math.round(peak3minSum / peak3minN * 60) : 0;
+  routePeak1min = 0;
+  routePeak3min = 0;
+  hrWindow = [];
   allTimeStats.totalRoutes++;
   if (isSend) allTimeStats.totalSends++;
   allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
@@ -255,6 +278,9 @@ function onLoad(_input, output) {
     allTimeStats.totalSends = savedStats.totalSends || 0;
     allTimeStats.sendPct = savedStats.sendPct || 0;
     allTimeStats.sessions = savedStats.sessions || 0;
+    allTimeStats.avgHr = savedStats.avgHr || 0;
+    allTimeStats.avgPeak1min = savedStats.avgPeak1min || 0;
+    allTimeStats.avgPeak3min = savedStats.avgPeak3min || 0;
   }
   allTimeStats.sessions++;
   updateAllTimeStats();
@@ -287,6 +313,19 @@ function evaluate(input, output) {
     if (input.Heartrate > 0) {
       routeHrSum += input.Heartrate;
       routeHrCount++;
+      hrWindow.push(input.Heartrate);
+      if (hrWindow.length >= 60) {
+        var s1 = 0;
+        for (var h = hrWindow.length - 60; h < hrWindow.length; h++) s1 += hrWindow[h];
+        var a1 = s1 / 60;
+        if (a1 > routePeak1min) routePeak1min = a1;
+      }
+      if (hrWindow.length >= 180) {
+        var s3 = 0;
+        for (var h = hrWindow.length - 180; h < hrWindow.length; h++) s3 += hrWindow[h];
+        var a3 = s3 / 180;
+        if (a3 > routePeak3min) routePeak3min = a3;
+      }
     }
   }
 
@@ -388,6 +427,9 @@ function onEvent(_input, output, eventId) {
         routeSeconds = 0;
         routeHrSum = 0;
         routeHrCount = 0;
+        hrWindow = [];
+        routePeak1min = 0;
+        routePeak3min = 0;
         currentTemplate = "climb";
         unload('_cm');
       } else if (state === 1) {
