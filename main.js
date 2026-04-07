@@ -41,7 +41,9 @@ var totalHrCount = 0;
 var maxHrSum = 0;
 var maxHrN = 0;
 var lastLapMax = 0;
-var hrWindow = [];
+var hrBuf = new Array(180);
+var hrBufIdx = 0;
+var hrBufN = 0;
 var routePeak1min = 0;
 var routePeak3min = 0;
 var lastPeak1min = 0;
@@ -247,7 +249,8 @@ var finishRoute = function(output, isSend) {
   lastPeak3min = routePeak3min;
   routePeak1min = 0;
   routePeak3min = 0;
-  hrWindow = [];
+  hrBufIdx = 0;
+  hrBufN = 0;
   lastLapMax = 0;
   allTimeStats.totalRoutes++;
   if (isSend) allTimeStats.totalSends++;
@@ -326,16 +329,18 @@ function evaluate(input, output) {
     if (input.Heartrate > 0) {
       routeHrSum += input.Heartrate;
       routeHrCount++;
-      hrWindow.push(input.Heartrate);
-      if (hrWindow.length >= 60) {
+      hrBuf[hrBufIdx] = input.Heartrate;
+      hrBufIdx = (hrBufIdx + 1) % 180;
+      if (hrBufN < 180) hrBufN++;
+      if (hrBufN >= 60) {
         var s1 = 0;
-        for (var h = hrWindow.length - 60; h < hrWindow.length; h++) s1 += hrWindow[h];
+        for (var h = 0; h < 60; h++) s1 += hrBuf[(hrBufIdx - 60 + 180 + h) % 180];
         var a1 = s1 / 60;
         if (a1 > routePeak1min) routePeak1min = a1;
       }
-      if (hrWindow.length >= 180) {
+      if (hrBufN >= 180) {
         var s3 = 0;
-        for (var h = hrWindow.length - 180; h < hrWindow.length; h++) s3 += hrWindow[h];
+        for (var h = 0; h < 180; h++) s3 += hrBuf[h];
         var a3 = s3 / 180;
         if (a3 > routePeak3min) routePeak3min = a3;
       }
@@ -450,7 +455,8 @@ function onEvent(_input, output, eventId) {
         routeHrSum = 0;
         routeHrCount = 0;
         lastLapMax = 0;
-        hrWindow = [];
+        hrBufIdx = 0;
+  hrBufN = 0;
         routePeak1min = 0;
         routePeak3min = 0;
         currentTemplate = "climb";
