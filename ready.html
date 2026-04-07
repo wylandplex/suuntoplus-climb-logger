@@ -20,7 +20,7 @@
     </div>
 
     <!-- START button -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
+    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
       style="top:44%;left:10%;width:80%;height:19%;position:absolute;">
       <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
                   width:85%;height:75%;position:absolute;
@@ -76,7 +76,7 @@
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
     </userInput>
     </:if>
 
