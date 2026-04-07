@@ -9,9 +9,9 @@
     "mixed": "--",
     "vscale": "--",
     "font": "--",
-    "totalRoutes": 0,
-    "totalSends": 0,
-    "sendPct": 0,
-    "sessions": 0
+    "totalRoutes": "0",
+    "totalSends": "0",
+    "sendPct": "0",
+    "sessions": "0"
   }
 }
