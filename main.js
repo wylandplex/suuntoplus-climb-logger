@@ -446,6 +446,17 @@ function onEvent(_input, output, eventId) {
         currentGrade = lastGradeIdx;
         output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
         output.grade = encGrade(gradeSystem, currentGrade);
+        if (lastResult === 1) {
+          var enc = encGrade(lastGradeSys, lastGradeIdx);
+          if (enc > bestSendEnc) {
+            bestSendEnc = enc;
+            var g = evalFile('{file_path}/ext' + lastGradeSys + '.js');
+            bestName = g[lastGradeIdx] || '?';
+            g = undefined;
+            bestSendCount = 1;
+          }
+          output.bestSend = bestSendEnc;
+        }
       }
       break;
 
