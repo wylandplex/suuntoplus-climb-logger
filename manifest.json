@@ -3,7 +3,7 @@
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
   "version": "2.8",
   "author": "skyfi",
-  "modificationTime": 1775566050,
+  "modificationTime": 1775566203,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -25,7 +25,9 @@
     { "name": "projTries" },
     { "name": "projSends" },
     { "name": "projBest" },
-    { "name": "modeSub" }
+    { "name": "modeSub" },
+    { "name": "routePk1" },
+    { "name": "routePk3" }
   ],
   "template": [
     { "name": "setup.html" },
