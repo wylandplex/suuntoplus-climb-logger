@@ -26,20 +26,15 @@ var sessionSeconds = 0;
 var routes = [];
 var lastResult = 0;
 
-var routeHrSum = 0;
-var routeHrCount = 0;
-var routeMaxHrVal = 0;
-var lastMaxHr = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastGradeSys = 0;
-var lastHrAvg = 0;
 var bestSendEnc = -1;
 var bestName = '--';
 var bestSendCount = 0;
 
-var totalHrSum = 0;
-var totalHrCount = 0;
+var lastLapAvg = 0;
+var lastLapMax = 0;
 var maxHrSum = 0;
 var maxHrN = 0;
 var hrBuf = new Array(180);
@@ -207,7 +202,7 @@ var finishRoute = function(output, isSend) {
   lastGradeSys = gradeSystem;
   lastDuration = routeSeconds;
   // HR stored in Hz — HeartRate_Fourdigits converts to BPM for display
-  lastHrAvg = routeHrCount > 0 ? routeHrSum / routeHrCount : 0;
+
   if (isSend) {
     var enc = encGrade(lastGradeSys, lastGradeIdx);
     if (enc > bestSendEnc) {
@@ -223,7 +218,7 @@ var finishRoute = function(output, isSend) {
 
   routes.push({
     grade: lastGradeIdx, sys: lastGradeSys, duration: lastDuration,
-    send: isSend ? 1 : 0, hr: lastHrAvg, proj: climbMode
+    send: isSend ? 1 : 0, proj: climbMode
   });
   localStorage.setObject("climbRoutes", routes);
 
@@ -239,9 +234,7 @@ var finishRoute = function(output, isSend) {
     localStorage.setObject("climbProjStats", projStats);
   }
 
-  totalHrSum += routeHrSum;
-  totalHrCount += routeHrCount;
-  allTimeStats.avgHr = totalHrCount > 0 ? Math.round(totalHrSum / totalHrCount * 60) : 0;
+
   if (routePeak1min > 0) { peak1minSum += routePeak1min; peak1minN++; }
   if (routePeak3min > 0) { peak3minSum += routePeak3min; peak3minN++; }
   allTimeStats.avgPk1 = peak1minN > 0 ? Math.round(peak1minSum / peak1minN * 60) : 0;
@@ -252,10 +245,8 @@ var finishRoute = function(output, isSend) {
   routePeak3min = 0;
   hrBufIdx = 0;
   hrBufN = 0;
-  lastMaxHr = routeMaxHrVal;
-  if (routeMaxHrVal > 0) { maxHrSum += routeMaxHrVal; maxHrN++; }
-  allTimeStats.avgMaxHr = maxHrN > 0 ? Math.round(maxHrSum / maxHrN * 60) : 0;
-  routeMaxHrVal = 0;
+  lastLapAvg = 0;
+  lastLapMax = 0;
   allTimeStats.totalRoutes++;
   if (isSend) allTimeStats.totalSends++;
   allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
@@ -310,7 +301,6 @@ function onLoad(_input, output) {
   output.sessionTime = 0;
   output.lastGrade = -1;
   output.lastDuration = 0;
-  output.routeHrAvg = 0;
   output.lastResult = 0;
   output.climbMode = 0;
   output.modeSub = 0;
@@ -319,7 +309,6 @@ function onLoad(_input, output) {
   output.projBest = -1;
   output.totalSends = countSends();
   output.bestSend = -1;
-  output.routeMaxHr = 0;
   output.routePk1 = 0;
   output.routePk3 = 0;
 }
@@ -331,9 +320,6 @@ function evaluate(input, output) {
     routeSeconds++;
     // HR arrives in Hz; accumulate raw for precise averaging
     if (input.Heartrate > 0) {
-      routeHrSum += input.Heartrate;
-      routeHrCount++;
-      if (input.Heartrate > routeMaxHrVal) routeMaxHrVal = input.Heartrate;
       hrBuf[hrBufIdx] = input.Heartrate;
       hrBufIdx = (hrBufIdx + 1) % 180;
       if (hrBufN < 180) hrBufN++;
@@ -357,8 +343,16 @@ function evaluate(input, output) {
   output.sessionTime = sessionSeconds;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
-  output.routeHrAvg = lastHrAvg;
-  output.routeMaxHr = lastMaxHr;
+  if (state === 2 && lastLapAvg === 0 && input.lapHrAvg > 0) {
+    lastLapAvg = input.lapHrAvg;
+    lastLapMax = input.lapHrMax || 0;
+    maxHrSum += lastLapMax; maxHrN++;
+    allTimeStats.avgHr = maxHrN > 0 ? Math.round((allTimeStats.avgHr * (maxHrN - 1) + lastLapAvg * 60) / maxHrN) : 0;
+    allTimeStats.avgMaxHr = maxHrN > 0 ? Math.round(maxHrSum / maxHrN * 60) : 0;
+    updateAllTimeStats();
+  }
+  output.routeHrAvg = lastLapAvg;
+  output.routeMaxHr = lastLapMax;
   output.routePk1 = lastPeak1min;
   output.routePk3 = lastPeak3min;
   output.lastResult = lastResult;
@@ -451,12 +445,8 @@ function onEvent(_input, output, eventId) {
       } else if (state === 0) {
         state = 1;
         routeSeconds = 0;
-        routeHrSum = 0;
-        routeHrCount = 0;
-        lastMaxHr = routeMaxHrVal;
-  if (routeMaxHrVal > 0) { maxHrSum += routeMaxHrVal; maxHrN++; }
-  allTimeStats.avgMaxHr = maxHrN > 0 ? Math.round(maxHrSum / maxHrN * 60) : 0;
-  routeMaxHrVal = 0;
+        lastLapAvg = 0;
+  lastLapMax = 0;
         hrBufIdx = 0;
   hrBufN = 0;
         routePeak1min = 0;
