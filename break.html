@@ -8,7 +8,7 @@
           function zoneCol(hz){
             if(maxHR<=0||hz<=0)return getStyle('css:.cm-fg','color');
             var pct=hz*60/maxHR*100;
-            return getStyle(pct>85?'css:.c-red':(pct>70?'css:.sp-c-yellow':'css:.c-green'),'color');
+            return getStyle(pct>90?'css:.c-red':(pct>80?'css:.sp-c-orange':(pct>70?'css:.sp-c-yellow':'css:.c-green')),'color');
           }
           $.subscribe('/Zapp/{zapp_index}/Output/routeHrAvg',function(v){
             setStyle('#hrAvgVal','color',zoneCol(v));
