@@ -32,6 +32,8 @@ var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastGradeSys = 0;
 var lastHrAvg = 0;
+var lastPeak1min = 0;
+var lastPeak3min = 0;
 var bestSendEnc = -1;
 var bestName = '--';
 var bestSendCount = 0;
@@ -237,8 +239,8 @@ var finishRoute = function(output, isSend) {
   if (routePeak3min > 0) { peak3minSum += routePeak3min; peak3minN++; }
   allTimeStats.avgPeak1min = peak1minN > 0 ? Math.round(peak1minSum / peak1minN * 60) : 0;
   allTimeStats.avgPeak3min = peak3minN > 0 ? Math.round(peak3minSum / peak3minN * 60) : 0;
-  output.routePk1 = routePeak1min;
-  output.routePk3 = routePeak3min;
+  lastPeak1min = routePeak1min;
+  lastPeak3min = routePeak3min;
   routePeak1min = 0;
   routePeak3min = 0;
   hrWindow = [];
@@ -339,8 +341,8 @@ function evaluate(input, output) {
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
   output.routeHrAvg = lastHrAvg;
-  output.routePk1 = routePeak1min;
-  output.routePk3 = routePeak3min;
+  output.routePk1 = lastPeak1min;
+  output.routePk3 = lastPeak3min;
   output.lastResult = lastResult;
   output.climbMode = climbMode;
 
