@@ -10,7 +10,7 @@ Route logger for climbing sessions on Suunto watches.
 - Log sends and fails with long press — each logs a silent lap marker in your workout
 - Configure up to 5 project routes per grade system directly on the watch — no phone needed
 - Attempt, send, and best time tracking per project (persists across sessions)
-- Companion app shows active projects, total routes, sends, send rate, and session count
+- Companion app shows projects for all configured grade systems, total routes, sends, send rate, and session count
 - Freely switch between project routes and free grade selection mid-session
 - Correct the grade on the break screen with buttons or swipe before moving on
 - Switch grade systems on the fly with a double-tap
@@ -32,7 +32,7 @@ Route logger for climbing sessions on Suunto watches.
 
 ## Latest changes
 
-- **Companion app is now a stats dashboard**: see your active grade system, project grades, cumulative routes/sends/send rate, and session count
+- **Companion app is now a stats dashboard**: see projects for every configured grade system, active system, cumulative routes/sends/send rate, and session count
 - **All setup is done on the watch** — no phone needed at the crag. Project settings were moved to watch-only because the Suunto platform only syncs settings from phone to watch, not back. Watch-side changes would be overwritten on next sync, so the watch is now the single source of truth for your setup.
 - Session summary after exercise: sends/routes and highest send grade
 - Total routes logged as a graph in the Suunto app

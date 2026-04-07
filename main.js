@@ -81,14 +81,25 @@ var saveSetup = function() {
   updateProjectVars();
 };
 
+var STAT_KEYS = ['french','uiaa','yds','british','ice','mixed','vscale','font'];
+
 var updateProjectVars = function() {
-  var g = evalFile('{file_path}/ext' + gradeSystem + '.js');
   var sv = localStorage.getObject("stats") || {};
   sv.system = SYS_NAMES[gradeSystem] || 'Unknown';
-  for (var i = 0; i < 5; i++) {
-    sv['p' + (i + 1)] = projGradeIdx[i] >= 0 ? (g[projGradeIdx[i]] || '?') : 'OFF';
+  for (var s = 0; s < 8; s++) {
+    var sp = allProjects[s];
+    if (!sp) { sv[STAT_KEYS[s]] = '--'; continue; }
+    var hasAny = false;
+    for (var j = 0; j < 5; j++) { if (sp[j] >= 0) hasAny = true; }
+    if (!hasAny) { sv[STAT_KEYS[s]] = '--'; continue; }
+    var g = evalFile('{file_path}/ext' + s + '.js');
+    var parts = [];
+    for (var j = 0; j < 5; j++) {
+      if (sp[j] >= 0) parts.push(g[sp[j]] || '?');
+    }
+    g = undefined;
+    sv[STAT_KEYS[s]] = parts.join(', ');
   }
-  g = undefined;
   localStorage.setObject("stats", sv);
 };
 
