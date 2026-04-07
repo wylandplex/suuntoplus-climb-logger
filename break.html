@@ -52,7 +52,7 @@
     <!-- HR stats row 1: avg | max -->
     <div class="sp-vertical-center" style="top:calc(39% - 50%e); left:calc(30% - 50%e);">
       <span class="sp-b-s">AVG</span>
-      <span class="f-ico sp-c-red" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
+      <span class="f-ico" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
       <span id="hrAvgVal" class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
@@ -60,7 +60,7 @@
 
     <div class="sp-vertical-center" style="top:calc(39% - 50%e); left:calc(70% - 50%e);">
       <span class="sp-b-s">MAX</span>
-      <span class="f-ico sp-c-red" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
+      <span class="f-ico" style="padding-left:2px;padding-right:2px;font-size:80%">&#xF101;</span>
       <span id="hrMaxVal" class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
@@ -109,7 +109,7 @@
 
     <!-- Recovery HR -->
     <div class="p-hc sp-vertical-center" style="top:calc(88% - 50%e);">
-      <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
+      <span class="f-ico" style="padding-right:4px">&#xF101;</span>
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
