@@ -35,6 +35,10 @@ var bestSendCount = 0;
 
 var lastLapAvg = 0;
 var lastLapMax = 0;
+var routeHrSum = 0;
+var routeHrCount = 0;
+var routeMaxHrVal = 0;
+var breakTicks = 0;
 var maxHrSum = 0;
 var maxHrN = 0;
 var hrBuf = new Array(180);
@@ -247,6 +251,7 @@ var finishRoute = function(output, isSend) {
   hrBufN = 0;
   lastLapAvg = 0;
   lastLapMax = 0;
+  breakTicks = 0;
   allTimeStats.totalRoutes++;
   if (isSend) allTimeStats.totalSends++;
   allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes);
@@ -320,6 +325,9 @@ function evaluate(input, output) {
     routeSeconds++;
     // HR arrives in Hz; accumulate raw for precise averaging
     if (input.Heartrate > 0) {
+      routeHrSum += input.Heartrate;
+      routeHrCount++;
+      if (input.Heartrate > routeMaxHrVal) routeMaxHrVal = input.Heartrate;
       hrBuf[hrBufIdx] = input.Heartrate;
       hrBufIdx = (hrBufIdx + 1) % 180;
       if (hrBufN < 180) hrBufN++;
@@ -343,9 +351,17 @@ function evaluate(input, output) {
   output.sessionTime = sessionSeconds;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
-  if (state === 2 && lastLapAvg === 0 && input.lapHrAvg > 0) {
-    lastLapAvg = input.lapHrAvg;
-    lastLapMax = input.lapHrMax || 0;
+  if (state === 2) breakTicks++;
+  if (state === 2 && lastLapAvg === 0) {
+    if (input.lapHrAvg > 0) {
+      lastLapAvg = input.lapHrAvg;
+      lastLapMax = input.lapHrMax || 0;
+    } else if (breakTicks > 3 && routeHrCount > 0) {
+      lastLapAvg = routeHrSum / routeHrCount;
+      lastLapMax = routeMaxHrVal;
+    }
+  }
+  if (state === 2 && lastLapAvg > 0 && maxHrN < allTimeStats.totalRoutes) {
     maxHrSum += lastLapMax; maxHrN++;
     allTimeStats.avgHr = maxHrN > 0 ? Math.round((allTimeStats.avgHr * (maxHrN - 1) + lastLapAvg * 60) / maxHrN) : 0;
     allTimeStats.avgMaxHr = maxHrN > 0 ? Math.round(maxHrSum / maxHrN * 60) : 0;
