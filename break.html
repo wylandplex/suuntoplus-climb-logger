@@ -49,21 +49,21 @@
     <div class="p-hc" style="top:36%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
     <!-- HR: centered wrapper, relative rows inside -->
-    <div style="position:absolute;top:38%;left:calc(50% - 50%e);height:18%;">
+    <div style="position:absolute;top:38%;left:calc(50% - 120px);width:240px;height:18%;">
       <div style="position:absolute;top:0;left:0;">
         <span class="f-ico" style="font-size:140%">&#xF101;</span>
       </div>
-      <div class="sp-b-s" style="position:absolute;top:0;left:40px;">AVG</div>
-      <div id="hrAvgVal" class="sp-b-s f-num" style="position:absolute;top:0;left:80px;">
+      <div class="sp-b-s" style="position:absolute;top:0;left:30px;">AVG</div>
+      <div id="hrAvgVal" class="sp-b-s f-num" style="position:absolute;top:0;left:90px;">
         <eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-      <div class="sp-b-s" style="position:absolute;top:0;left:130px;">1'</div>
-      <div id="hrPk1Val" class="sp-b-s f-num" style="position:absolute;top:0;left:152px;">
+      <div class="sp-b-s" style="position:absolute;top:0;left:150px;">1'</div>
+      <div id="hrPk1Val" class="sp-b-s f-num" style="position:absolute;top:0;left:175px;">
         <eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-      <div class="sp-b-s" style="position:absolute;top:50%;left:40px;">MAX</div>
-      <div id="hrMaxVal" class="sp-b-s f-num" style="position:absolute;top:50%;left:80px;">
+      <div class="sp-b-s" style="position:absolute;top:50%;left:30px;">MAX</div>
+      <div id="hrMaxVal" class="sp-b-s f-num" style="position:absolute;top:50%;left:90px;">
         <eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-      <div class="sp-b-s" style="position:absolute;top:50%;left:130px;">3'</div>
-      <div id="hrPk3Val" class="sp-b-s f-num" style="position:absolute;top:50%;left:152px;">
+      <div class="sp-b-s" style="position:absolute;top:50%;left:150px;">3'</div>
+      <div id="hrPk3Val" class="sp-b-s f-num" style="position:absolute;top:50%;left:175px;">
         <eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></div>
     </div>
 
