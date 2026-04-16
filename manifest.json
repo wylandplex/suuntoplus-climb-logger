@@ -1,9 +1,9 @@
 {
   "name": "Climb Log",
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
-  "version": "2.81",
+  "version": "2.82",
   "author": "skyfi",
-  "modificationTime": 1775597478,
+  "modificationTime": 1776175222,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -28,10 +28,10 @@
     { "name": "modeSub" }
   ],
   "template": [
-    { "name": "setup.html" },
-    { "name": "ready.html" },
-    { "name": "climb.html" },
-    { "name": "break.html" }
+    { "name": "setup.html", "displays": ["n", "o", "q"] },
+    { "name": "ready.html", "displays": ["n", "o", "q"] },
+    { "name": "climb.html", "displays": ["n", "o", "q"] },
+    { "name": "break.html", "displays": ["n", "o", "q"] }
   ],
   "variables": [
     {"shownName": "Grade System", "path": "stats.system", "type": "string"},
