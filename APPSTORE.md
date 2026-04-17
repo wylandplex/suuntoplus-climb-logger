@@ -32,6 +32,7 @@ Route logger for climbing sessions on Suunto watches.
 
 ## Latest changes
 
+- **v2.9 (pre-release):** HR peak tracking (1-min and 3-min sliding window peaks on break screen), HRR-1min heart-rate-recovery countdown, watch-native lap timers (session pauses properly pause logger), route max HR, live best-send correction on grade edit, climbing-state graph overlay in Suunto app for lining up HR with routes, UI2 watches only
 - v2.82: Restrict installation to UI2 watches (Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro) — older UI1 models that couldn't run the app reliably no longer see it in the store
 - v2.81: Fix memory crash when companion app syncs settings — removed all editable settings, deferred heavy operations from app load phase
 - Companion app is now a stats dashboard: see active projects, cumulative routes/sends/send rate

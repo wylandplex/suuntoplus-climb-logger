@@ -1,49 +1,181 @@
 {
   "name": "Climb Log",
   "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
-  "version": "2.82",
+  "version": "2.9",
   "author": "skyfi",
-  "modificationTime": 1776175222,
+  "modificationTime": 1776421752,
   "type": "feature",
   "usage": "workout",
   "in": [
-    { "name": "Heartrate", "source": "Activity/Move/-1/Heartrate/Current", "type": "subscribe" }
+    {
+      "name": "Heartrate",
+      "source": "Activity/Move/-1/Heartrate/Current",
+      "type": "subscribe"
+    },
+    {
+      "name": "LapAvg",
+      "source": "Activity/Lap/-2/HeartRate/Avg",
+      "type": "subscribe"
+    },
+    {
+      "name": "LapMax",
+      "source": "Activity/Lap/-2/HeartRate/Max",
+      "type": "subscribe"
+    },
+    {
+      "name": "LapDur",
+      "source": "Activity/Lap/-1/Duration/Current",
+      "type": "subscribe"
+    },
+    {
+      "name": "LapDur2",
+      "source": "Activity/Lap/-2/Duration/Current",
+      "type": "subscribe"
+    },
+    {
+      "name": "SesDur",
+      "source": "Activity/Move/-1/Duration/Current",
+      "type": "subscribe"
+    }
   ],
   "out": [
-    { "name": "routeNum" },
-    { "name": "grade" },
-    { "name": "routeTime" },
-    { "name": "totalRoutes", "log": true, "shownName": "Total Routes", "format": "Count_Fourdigits" },
-    { "name": "sessionTime" },
-    { "name": "lastGrade" },
-    { "name": "lastDuration" },
-    { "name": "routeHrAvg" },
-    { "name": "totalSends" },
-    { "name": "bestSend" },
-    { "name": "lastResult" },
-    { "name": "climbMode" },
-    { "name": "projTries" },
-    { "name": "projSends" },
-    { "name": "projBest" },
-    { "name": "modeSub" }
+    {
+      "name": "routeNum"
+    },
+    {
+      "name": "grade"
+    },
+    {
+      "name": "routeTime"
+    },
+    {
+      "name": "sessionTime"
+    },
+    {
+      "name": "lastGrade"
+    },
+    {
+      "name": "lastDuration"
+    },
+    {
+      "name": "routeHrAvg"
+    },
+    {
+      "name": "routeMaxHr"
+    },
+    {
+      "name": "routePk1"
+    },
+    {
+      "name": "routePk3"
+    },
+    {
+      "name": "totalSends"
+    },
+    {
+      "name": "bestSend"
+    },
+    {
+      "name": "lastResult"
+    },
+    {
+      "name": "climbMode"
+    },
+    {
+      "name": "modeSub"
+    },
+    {
+      "name": "climbing",
+      "log": true,
+      "shownName": "Climbing/Breaks",
+      "format": "Count_Fourdigits"
+    }
   ],
   "template": [
-    { "name": "setup.html", "displays": ["n", "o", "q"] },
-    { "name": "ready.html", "displays": ["n", "o", "q"] },
-    { "name": "climb.html", "displays": ["n", "o", "q"] },
-    { "name": "break.html", "displays": ["n", "o", "q"] }
+    {
+      "name": "setup.html",
+      "displays": [
+        "n",
+        "o",
+        "q"
+      ]
+    },
+    {
+      "name": "ready.html",
+      "displays": [
+        "n",
+        "o",
+        "q"
+      ]
+    },
+    {
+      "name": "climb.html",
+      "displays": [
+        "n",
+        "o",
+        "q"
+      ]
+    },
+    {
+      "name": "break.html",
+      "displays": [
+        "n",
+        "o",
+        "q"
+      ]
+    }
   ],
   "variables": [
-    {"shownName": "Grade System", "path": "stats.system", "type": "string"},
-    {"shownName": "Project 1", "path": "stats.p1", "type": "string"},
-    {"shownName": "Project 2", "path": "stats.p2", "type": "string"},
-    {"shownName": "Project 3", "path": "stats.p3", "type": "string"},
-    {"shownName": "Project 4", "path": "stats.p4", "type": "string"},
-    {"shownName": "Project 5", "path": "stats.p5", "type": "string"},
-    {"shownName": "Total Routes", "path": "stats.totalRoutes", "type": "int"},
-    {"shownName": "Total Sends", "path": "stats.totalSends", "type": "int"},
-    {"shownName": "Send Rate [%]", "path": "stats.sendPct", "type": "int"},
-    {"shownName": "Sessions", "path": "stats.sessions", "type": "int"}
+    {
+      "shownName": "Grade System",
+      "path": "stats.system",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 1",
+      "path": "stats.p1",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 2",
+      "path": "stats.p2",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 3",
+      "path": "stats.p3",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 4",
+      "path": "stats.p4",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 5",
+      "path": "stats.p5",
+      "type": "string"
+    },
+    {
+      "shownName": "Total Routes",
+      "path": "stats.totalRoutes",
+      "type": "int"
+    },
+    {
+      "shownName": "Total Sends",
+      "path": "stats.totalSends",
+      "type": "int"
+    },
+    {
+      "shownName": "Send Rate [%]",
+      "path": "stats.sendPct",
+      "type": "int"
+    },
+    {
+      "shownName": "Sessions",
+      "path": "stats.sessions",
+      "type": "int"
+    }
   ],
   "settings": []
 }

@@ -137,9 +137,60 @@ All buttons are locked (`type="lock" longType="lock"`) to prevent native watch a
 | Break | Down | Grade down |
 | Break | Down long | Next (back to ready) |
 
+## Heart Rate on the Break Screen
+
+After each route the break screen shows a compact HR summary for the climb just completed, plus a live recovery readout.
+
+### Route HR metrics (top block, zone-coloured)
+
+| Label | Meaning | Source |
+|---|---|---|
+| **AVG** | Average HR across the full route | Lap average from watch |
+| **MAX** | Peak HR during the route | Lap max from watch |
+| **1'** | Highest 1-minute rolling average HR during the route | Sliding 60-sample window in app |
+| **3'** | Highest 3-minute rolling average HR during the route | Sliding 180-sample window in app |
+
+Values are coloured by percentage of your personal MaxHR (from watch settings): green <70%, yellow 70–80%, orange 80–90%, red >90%. For routes under 1 minute, the 1' value falls back to AVG; for routes under 3 minutes, 3' falls back to AVG.
+
+The 1' and 3' peaks matter more than route MAX for climbing: a 30-second spike on a crux doesn't tell you how hard the full route hit you, whereas the highest sustained 1-minute and 3-minute HR does.
+
+### HRR — Heart Rate Recovery (bottom row)
+
+The small `HRR -25` readout next to the live HR shows how many beats per minute your HR has dropped from its peak after you tapped SEND/FAIL. It follows the **clinical HRR-1min protocol** rather than a naive live diff.
+
+**Measurement protocol:**
+1. **0–10 seconds after route end** — peak-capture window. The display tracks the highest HR seen, since HR often keeps climbing for a few seconds after you stop (aerobic lag). Whatever the highest reading is in these first 10 seconds becomes the "peak" reference.
+2. **10–60 seconds** — peak is locked. HRR updates live: `HRR = peak − current`, shown in bpm.
+3. **At the 60-second mark** — the value freezes. Everything after that is ignored until the next route. This is the standard clinical HRR-1min number.
+
+Example: you tap SEND at 170 bpm; over the next 8 seconds your HR climbs to 174 bpm → peak = 174. At 60 s you're at 146 → display freezes at `HRR -28`. That's your HRR-1min for this route.
+
+**Why this matters.** HRR is one of the most studied fitness markers in sports medicine. The drop in HR immediately after peak exertion reflects **parasympathetic (vagal) reactivation** — the nervous-system switch back from "fight-or-flight" to rest. A faster drop means better cardiac autonomic function, which correlates with:
+
+- **Aerobic fitness** — fit athletes recover faster. Cole et al. (1999, *NEJM*) showed a 1-minute HRR ≤ 12 bpm predicted a fourfold increase in all-cause mortality over 6 years; later studies (Nishime 2000, Shetler 2001) confirmed this as an independent fitness marker.
+- **Readiness for the next effort** — if HR is still elevated, you're still taxed. In climbing this matters directly: starting the next attempt too early usually means a weaker performance.
+- **Training load trends** — with consistent conditions (same route difficulty, same rest position) HRR gets bigger over weeks as you get fitter.
+
+**Typical 1-minute HRR values after a hard effort:**
+
+| Level | HRR at 1 min |
+|---|---|
+| Elite endurance athlete | 30–50+ bpm |
+| Well-trained recreational | 20–30 bpm |
+| Average active adult | 12–20 bpm |
+| Below-average / deconditioned | < 12 bpm |
+
+**How to read it on the watch.**
+- Watch it grow during the first minute of rest. A bigger final number = you're recovering faster.
+- The frozen value at 60 s is what matters — compare the same wall, same difficulty across sessions. Bigger HRR over time = better aerobic fitness.
+- If you leave the break screen before 60 s, no value is saved (this release only — see #42 for per-project avg HRR tracking planned for a later version).
+- Peak HR is the highest value in the first 10 seconds after SEND — this grace window accounts for the aerobic lag that normally lets HR climb a few seconds past the true top of the effort.
+
+**Caveats.** HRR is sensitive to hydration, stimulants, altitude, heat, and illness — all depress it. Use it as a relative trend indicator, not an absolute medical score. And remember climbing recovery differs from steady-state cycling/running: short, explosive efforts with heavy upper-body load produce different HRR curves than an endurance-test HRR would.
+
 ## Data Logging
 
-`totalRoutes` is logged as a time-series graph visible in the Suunto mobile app after the workout. Shows a staircase curve that can be compared against heart rate.
+`climbing` is a binary logged output (1 while a route is active, 0 during rest/setup). Visible as a graph overlay in the Suunto mobile app, it lets you line up HR spikes against exactly when each route happened.
 
 ## Session Summary
 
