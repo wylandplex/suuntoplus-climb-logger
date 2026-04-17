@@ -14,9 +14,29 @@
       </div>
     </div>
 
+    <!-- Minus button (left of grade) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+      style="top:24%;left:2%;width:18%;height:14%;position:absolute;">
+      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
+                  width:85%;height:75%;position:absolute;
+                  background:rgba(255,255,255,0.15);border-radius:8px;">
+        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">-</div>
+      </div>
+    </div>
+
     <!-- Grade display (hero) -->
     <div class="sp-t-l" style="top:calc(30% - 50%e); left:calc(50% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
+    </div>
+
+    <!-- Plus button (right of grade) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+      style="top:24%;left:80%;width:18%;height:14%;position:absolute;">
+      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
+                  width:85%;height:75%;position:absolute;
+                  background:rgba(255,255,255,0.15);border-radius:8px;">
+        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">+</div>
+      </div>
     </div>
 
     <!-- START button -->
@@ -55,7 +75,7 @@
     <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
       <span class="sp-b-s">SES</span>
       <span class="f-ico" style="padding-left:3px;padding-right:3px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/sessionTime" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
 
     <!-- Button hints -->

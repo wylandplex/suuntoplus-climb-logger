@@ -158,22 +158,19 @@ function evaluate(input, output) {
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
     var fn = evalFile('{file_path}/ext10.js');
-    var r = fn(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg,
+    var r = fn(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lastMaxHr, lastPk1, lastPk3,
       frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats);
     fn = undefined;
     bestSendEnc = r[0];
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
   }
 
-  output.routeTime = input.LapDur;
-  output.sessionTime = input.SesDur;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.lastDuration = lastDuration;
   output.routeHrAvg = lastHrAvg;
   output.routeMaxHr = lastMaxHr;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
-  output.lastResult = lastResult;
   output.climbMode = climbMode;
 
   if (!setupDone) {

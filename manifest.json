@@ -23,18 +23,8 @@
       "type": "subscribe"
     },
     {
-      "name": "LapDur",
-      "source": "Activity/Lap/-1/Duration/Current",
-      "type": "subscribe"
-    },
-    {
       "name": "LapDur2",
       "source": "Activity/Lap/-2/Duration/Current",
-      "type": "subscribe"
-    },
-    {
-      "name": "SesDur",
-      "source": "Activity/Move/-1/Duration/Current",
       "type": "subscribe"
     }
   ],
@@ -44,12 +34,6 @@
     },
     {
       "name": "grade"
-    },
-    {
-      "name": "routeTime"
-    },
-    {
-      "name": "sessionTime"
     },
     {
       "name": "lastGrade"
@@ -74,9 +58,6 @@
     },
     {
       "name": "bestSend"
-    },
-    {
-      "name": "lastResult"
     },
     {
       "name": "climbMode"
@@ -174,6 +155,26 @@
     {
       "shownName": "Sessions",
       "path": "stats.sessions",
+      "type": "int"
+    },
+    {
+      "shownName": "Avg HR [bpm]",
+      "path": "stats.avgHr",
+      "type": "int"
+    },
+    {
+      "shownName": "Avg Max HR [bpm]",
+      "path": "stats.avgMaxHr",
+      "type": "int"
+    },
+    {
+      "shownName": "Avg Peak 1min HR [bpm]",
+      "path": "stats.avgPk1",
+      "type": "int"
+    },
+    {
+      "shownName": "Avg Peak 3min HR [bpm]",
+      "path": "stats.avgPk3",
       "type": "int"
     }
   ],

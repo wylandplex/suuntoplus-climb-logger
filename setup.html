@@ -16,9 +16,29 @@
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x=>'French Sport,UIAA Sport,YDS Sport,British Trad,Ice (WI),Mixed,V-Scale Boulder,Font Boulder'.split(',')[Math.floor(x/100)]||'French Sport'" default="French Sport" />
     </div>
 
+    <!-- Minus button (left of grade) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+      style="top:38%;left:2%;width:18%;height:14%;position:absolute;">
+      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
+                  width:85%;height:75%;position:absolute;
+                  background:rgba(255,255,255,0.15);border-radius:8px;">
+        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">-</div>
+      </div>
+    </div>
+
     <!-- Grade preview / project grade / OFF -->
     <div class="sp-t-l" style="top:calc(44% - 50%e); left:calc(50% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
+    </div>
+
+    <!-- Plus button (right of grade) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+      style="top:38%;left:80%;width:18%;height:14%;position:absolute;">
+      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
+                  width:85%;height:75%;position:absolute;
+                  background:rgba(255,255,255,0.15);border-radius:8px;">
+        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">+</div>
+      </div>
     </div>
 
     <!-- CLIMB button (skip to ready) -->

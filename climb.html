@@ -13,7 +13,7 @@
 
     <!-- Route timer (hero) -->
     <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/routeTime" outputFormat="Duration_FourdigitsFixed" default="0:00" />
+      <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
     </div>
 
     <!-- Separator -->
@@ -59,7 +59,7 @@
     <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
       <span class="sp-b-s">SES</span>
       <span class="f-ico" style="padding-left:3px;padding-right:3px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/sessionTime" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
 
     <!-- Button hints -->

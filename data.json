@@ -9,6 +9,10 @@
     "totalRoutes": "0",
     "totalSends": "0",
     "sendPct": "0",
-    "sessions": "0"
+    "sessions": "0",
+    "avgHr": "0",
+    "avgMaxHr": "0",
+    "avgPk1": "0",
+    "avgPk3": "0"
   }
 }
