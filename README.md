@@ -168,7 +168,9 @@ Project stats (`climbProjStats`) and watch setup (grade system + project grades)
 
 ## Compatibility
 
-Developed and tested on **Suunto Vertical 2**. Users with older models (e.g. Suunto Vertical Solar) have reported issues activating the app. The developer can only test on Vertical 2 — if you have a different Suunto watch and encounter problems, please [open an issue](https://github.com/wylandplex/suuntoplus-climb-logger/issues) with your watch model and firmware version.
+Starting with v2.82, the app restricts itself to UI2 watches via the `displays: ["n", "o", "q"]` tag on all templates. Supported models: Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro. Older UI1 models (e.g. Vertical Solar) are excluded because the app couldn't run reliably on them.
+
+Developed and tested on **Suunto Vertical 2**. If your supported watch encounters problems, please [open an issue](https://github.com/wylandplex/suuntoplus-climb-logger/issues) with your watch model and firmware version.
 
 ## Development
 
@@ -184,6 +186,8 @@ code climb-logger/
 
 ## Version History
 
+- **v2.82** — Restrict to UI2 watches via `displays: ["n", "o", "q"]` on all templates (excludes UI1 models that couldn't run reliably)
+- **v2.81** — Fix memory crash on companion app settings sync
 - **v2.8** — Companion app becomes stats dashboard (remove project settings, add read-only variables for projects + cumulative stats)
 - **v2.7** — Fix companion app project settings sync, compatibility note for older watch models
 - **v2.6** — Session summary (sends/routes + highest send grade), Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens

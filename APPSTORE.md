@@ -1,6 +1,6 @@
 # Climb Log
 
-> **Compatibility:** Developed and tested on Suunto Vertical 2. Users with older models (e.g. Vertical Solar) have reported issues activating the app. If you have a different watch and encounter problems, please report your watch model and firmware version on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger/issues) — your feedback helps make the app work for everyone!
+> **Compatibility notice:** Climb Log packs a lot of functionality — 8 grade systems, 5 project slots, HR tracking, session stats, gesture + button controls — and has grown beyond what older Suunto watches can run reliably. Starting with v2.82, the app is restricted to UI2 watches only: **Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, and 9 Peak Pro**. Older models (9 Peak, 5 Peak, 5, 3, Vertical Solar, etc.) will not see the app in the store because they ran into memory limits and crashes. Developed and tested on Suunto Vertical 2 — if your supported watch has issues, please report your model and firmware version on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger/issues).
 
 Route logger for climbing sessions on Suunto watches.
 
@@ -32,7 +32,8 @@ Route logger for climbing sessions on Suunto watches.
 
 ## Latest changes
 
-- Fix: memory crash when companion app syncs settings — removed all editable settings, deferred heavy operations from app load phase
+- v2.82: Restrict installation to UI2 watches (Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro) — older UI1 models that couldn't run the app reliably no longer see it in the store
+- v2.81: Fix memory crash when companion app syncs settings — removed all editable settings, deferred heavy operations from app load phase
 - Companion app is now a stats dashboard: see active projects, cumulative routes/sends/send rate
 - All setup is done on the watch — no phone needed at the crag
 - Session summary after exercise: sends/routes and highest send grade
