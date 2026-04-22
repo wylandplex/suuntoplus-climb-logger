@@ -27,6 +27,7 @@ var bestSendEnc = -1;
 var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
+var editIdx = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -157,6 +158,47 @@ var toggleMode = function() {
   writeStats();
 };
 
+var toggleRouteSend = function() {
+  var r = routes[editIdx];
+  if (!r) return;
+  var wasSend = r.send;
+  r.send = wasSend ? 0 : 1;
+  if (r.send) { sendsCount++; allTimeStats.totalSends++; }
+  else { sendsCount--; allTimeStats.totalSends--; }
+  allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
+  if (r.proj > 0) {
+    var key = r.sys + "_" + r.proj;
+    var p = projStats[key];
+    if (p) {
+      if (r.send) p.sends++; else if (p.sends > 0) p.sends--;
+      LS.setObject("climbProjStats", projStats);
+    }
+  }
+  bestSendEnc = -1;
+  for (var i = 0; i < routes.length; i++) {
+    if (routes[i].send) {
+      var e = routes[i].sys * 100 + routes[i].grade;
+      if (e > bestSendEnc) bestSendEnc = e;
+    }
+  }
+  writeStats();
+};
+
+var editRouteGrade = function(dy) {
+  var r = routes[editIdx];
+  if (!r) return;
+  r.grade = wrap(r.grade + dy, GRADE_LENS[r.sys], 0);
+  if (r.send) {
+    bestSendEnc = -1;
+    for (var i = 0; i < routes.length; i++) {
+      if (routes[i].send) {
+        var e = routes[i].sys * 100 + routes[i].grade;
+        if (e > bestSendEnc) bestSendEnc = e;
+      }
+    }
+  }
+};
+
 var saveAsProject = function() {
   if (climbMode > 0) return;
   var sp = allProjects[lastGradeSys] || [-1,-1,-1,-1,-1];
@@ -238,12 +280,20 @@ function evaluate(input, output) {
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : lastHeight;
   output.climbMode = climbMode;
 
-  if (state === 4) {
+  if (state === 5) {
+    var rr = routes[editIdx] || {};
+    if (rr.sys !== undefined) output.lastGrade = encGrade(rr.sys, rr.grade);
+    output.routeNum = editIdx + 1;
+    output.modeSub = routes.length;
+    output.editSend = rr.send || 0;
+  } else if (state === 4) {
     renderSetup(output);
+    output.editSend = 0;
   } else {
     output.routeNum = state === 3 ? 0 : (state === 2 ? routes.length : routeNumber);
     writeG(output);
     output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
+    output.editSend = 0;
   }
 
   output.totalSends = sendsCount;
@@ -301,7 +351,17 @@ function onEvent(_input, output, eventId) {
     }
   } else if (state === 3) {
     if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
-    else if (eventId === 4 || eventId === 6) goState(0, "ready");
+    else if (eventId === 4) {
+      if (routes.length > 0) { editIdx = routes.length - 1; goState(5, "session"); }
+    }
+    else if (eventId === 6) goState(0, "ready");
+  } else if (state === 5) {
+    if (eventId === 1) editIdx = (editIdx - 1 + routes.length) % routes.length;
+    else if (eventId === 2) editIdx = (editIdx + 1) % routes.length;
+    else if (eventId === 3) toggleRouteSend();
+    else if (eventId === 5) editRouteGrade(1);
+    else if (eventId === 6) editRouteGrade(-1);
+    else if (eventId === 4) goState(3, "stats");
   } else if (state === 4) {
     if (dy) {
       if (setupStep === 0) {
