@@ -280,6 +280,12 @@ function onEvent(_input, output, eventId) {
     else {
       var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
       editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
+      var rr5 = routes[editIdx] || {};
+      if (rr5.sys !== undefined) output.lastGrade = encGrade(rr5.sys, rr5.grade);
+      output.routeNum = editIdx + 1;
+      output.editSend = rr5.send || 0;
+      output.totalSends = sendsCount;
+      output.bestSend = bestSendEnc;
       if (eventId === 3) writeStats();
     }
   } else if (state === 4) {
