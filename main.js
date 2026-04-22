@@ -284,7 +284,7 @@ function onEvent(_input, output, eventId) {
     } else {
       var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
       editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
-      if (eventId !== 1 && eventId !== 2) editDirty = 1;
+      if (eventId !== 5 && eventId !== 6) editDirty = 1;
       var rr5 = routes[editIdx] || {};
       if (rr5.sys !== undefined) output.lastGrade = encGrade(rr5.sys, rr5.grade);
       output.routeNum = editIdx + 1;
