@@ -28,6 +28,7 @@ var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
 var editIdx = 0;
+var editDirty = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -277,17 +278,19 @@ function onEvent(_input, output, eventId) {
     }
     else if (eventId === 6) goState(0, "ready");
   } else if (state === 5) {
-    if (eventId === 4) goState(3, "stats");
-    else {
+    if (eventId === 4) {
+      if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
+      goState(3, "stats");
+    } else {
       var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
       editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
+      if (eventId !== 1 && eventId !== 2) editDirty = 1;
       var rr5 = routes[editIdx] || {};
       if (rr5.sys !== undefined) output.lastGrade = encGrade(rr5.sys, rr5.grade);
       output.routeNum = editIdx + 1;
       output.editSend = rr5.send || 0;
       output.totalSends = sendsCount;
       output.bestSend = bestSendEnc;
-      if (eventId === 3) writeStats();
     }
   } else if (state === 4) {
     if (dy) {
