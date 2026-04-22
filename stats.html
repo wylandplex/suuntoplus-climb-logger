@@ -118,6 +118,19 @@
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
       style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
+    <!-- Middle-button: visible pill (→ session edit). -->
+    <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(55% - 50%e); left:6px;">&#xF111;</div>
+      </div>
+    </div>
+    <!-- Middle-button: invisible tap zone (tap = → session edit, consistent with mid-long). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
+      style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
     <!-- Down-button: visible pill (E365 = back/exit). -->
     <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
       <div style="top:0; left:0; width:100%;height:100%;position:absolute;
