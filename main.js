@@ -250,12 +250,13 @@ function evaluate(input, output) {
 }
 
 function onEvent(_input, output, eventId) {
+  var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : eventId === 7 ? 3 : eventId === 8 ? -3 : 0;
   if (state === 0) {
-    if (eventId === 1 || eventId === 2) {
+    if (dy) {
       if (climbMode === 0) {
-        currentGrade = wrap(currentGrade + (eventId === 1 ? 1 : -1), GRADE_LENS[gradeSystem], 0);
-      } else {
-        cycleActiveProject(eventId === 1 ? -1 : 1);
+        currentGrade = wrap(currentGrade + dy, GRADE_LENS[gradeSystem], 0);
+      } else if (dy === 1 || dy === -1) {
+        cycleActiveProject(-dy);
       }
       writeG(output);
       output.climbMode = climbMode;
@@ -274,8 +275,8 @@ function onEvent(_input, output, eventId) {
     if (eventId === 5) finishRoute(0);
     else if (eventId === 6) finishRoute(1);
   } else if (state === 2) {
-    if (eventId === 1 || eventId === 2) {
-      lastGradeIdx = wrap(lastGradeIdx + (eventId === 1 ? 1 : -1), GRADE_LENS[lastGradeSys], 0);
+    if (dy) {
+      lastGradeIdx = wrap(lastGradeIdx + dy, GRADE_LENS[lastGradeSys], 0);
       routes[routes.length - 1].grade = lastGradeIdx;
       currentGrade = lastGradeIdx;
       output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
@@ -299,12 +300,12 @@ function onEvent(_input, output, eventId) {
     if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
     else if (eventId === 4 || eventId === 6) goState(0, "ready");
   } else if (state === 4) {
-    if (eventId === 1 || eventId === 2) {
+    if (dy) {
       if (setupStep === 0) {
-        cycleSystem(eventId === 1 ? 1 : -1);
+        if (dy === 1 || dy === -1) cycleSystem(dy);
       } else {
         var pi = setupStep - 1;
-        projGradeIdx[pi] = wrap(projGradeIdx[pi] + (eventId === 1 ? 1 : -1), GRADE_LENS[gradeSystem], 1);
+        projGradeIdx[pi] = wrap(projGradeIdx[pi] + dy, GRADE_LENS[gradeSystem], 1);
       }
       renderSetup(output);
     } else if (eventId === 5) {
