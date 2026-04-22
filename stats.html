@@ -10,7 +10,6 @@
           setText('#s_pc',''+(sv.sendPct||0));
           setText('#s_se',''+(sv.sessions||0));
           setText('#s_th',''+(sv.totalHeight||0));
-          setText('#s_pk',sv.peakGrade>=0?dG(sv.peakGrade):'--');
           setText('#p_peak',sv.peakGrade>=0?dG(sv.peakGrade):'--');
           setText('#p_last',sv.lastSessionGrade>=0?dG(sv.lastSessionGrade):'--');
           setText('#p_at',''+(sv.sessionsAtPeak||0));
@@ -26,21 +25,17 @@
           setText('#j_triesG',sv.mostTriesGrade>=0?dG(sv.mostTriesGrade):'--');
           setText('#s_bha',''+(sv.bestSessionHm||0));
           setText('#s_bhr',''+(sv.bestSessionHmRecent||0));
-          var ps=localStorage.getObject('climbProjStats')||{};
-          var es=[];
-          for(var ky in ps) if(ps[ky].sends>0) es.push({k:ky,p:ps[ky]});
-          es.sort(function(a,b){
-            var ka=+a.k.split('_')[0], kb=+b.k.split('_')[0];
-            var na=(a.p.g||0)/(LENS[ka]-1), nb=(b.p.g||0)/(LENS[kb]-1);
-            if(na!==nb) return nb-na;
-            return (b.p.sends||0)-(a.p.sends||0);
+          // Top 10 best sessions by peak grade (from gradeHistory — works for freeflow + project).
+          var hs=(hist||[]).slice();
+          hs.sort(function(a,b){
+            var d=nm(b.g)-nm(a.g);
+            return d!==0?d:(b.v||0)-(a.v||0);
           });
           for(var i=0;i<10;i++){
-            var e=es[i];
+            var e=hs[i];
             if(e){
-              var kp=e.k.split('_');
-              setText('#r'+(i+1)+'_g', dG((+kp[0])*100+(e.p.g||0)));
-              setText('#r'+(i+1)+'_c', e.p.attempts+'/'+e.p.sends);
+              setText('#r'+(i+1)+'_g', dG(e.g));
+              setText('#r'+(i+1)+'_c', (e.v||0)+'/'+(e.r||0));
             } else {
               setText('#r'+(i+1)+'_g', '');
               setText('#r'+(i+1)+'_c', '');
@@ -71,12 +66,11 @@
         <div class="p-hc sp-vertical-center" style="top:calc(75% - 50%e);"><span id="j_triesG" class="sp-b-m">--</span><span class="sp-b-s" style="padding-left:8px">×</span><span id="j_tries" class="sp-b-m f-num" style="padding-left:6px">0</span></div>
       </div>
 
-      <!-- Page 3: Climbed (height-focused, 4 rows) -->
+      <!-- Page 3: Climbed (height-focused, 3 rows — peak grade lives on PROGRESSION) -->
       <div>
-        <div class="p-hc sp-vertical-center" style="top:calc(20% - 50%e);"><span class="sp-b-s">Total</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
-        <div class="p-hc sp-vertical-center" style="top:calc(42% - 50%e);"><span class="sp-b-s">Best ses</span><span id="s_bha" class="sp-b-m f-num" style="padding-left:6px">0</span><span class="sp-b-s">m</span></div>
-        <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);"><span class="sp-b-s">Best 200</span><span id="s_bhr" class="sp-b-m f-num" style="padding-left:6px">0</span><span class="sp-b-s">m</span></div>
-        <div class="p-hc sp-vertical-center" style="top:calc(86% - 50%e);"><span class="sp-b-s">Peak</span><span id="s_pk" class="sp-b-m" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(25% - 50%e);"><span class="sp-b-s">Total</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(50% - 50%e);"><span class="sp-b-s">Best ses</span><span id="s_bha" class="sp-b-m f-num" style="padding-left:6px">0</span><span class="sp-b-s">m</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(75% - 50%e);"><span class="sp-b-s">Best 200</span><span id="s_bhr" class="sp-b-m f-num" style="padding-left:6px">0</span><span class="sp-b-s">m</span></div>
       </div>
 
       <!-- Page 3: Top 10 (two columns, centered vertically) -->
