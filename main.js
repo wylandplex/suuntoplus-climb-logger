@@ -202,8 +202,8 @@ function evaluate(input, output) {
 
   if (state === 5) {
     var rr = routes[editIdx] || {};
-    if (rr.sys !== undefined) output.lastGrade = encGrade(rr.sys, rr.grade);
-    output.routeNum = editIdx + 1;
+    output.lastGrade = rr.sys !== undefined ? encGrade(rr.sys, rr.grade) : -1;
+    output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
     output.modeSub = routes.length;
     output.editSend = rr.send || 0;
   } else if (state === 4) {
@@ -272,7 +272,8 @@ function onEvent(_input, output, eventId) {
   } else if (state === 3) {
     if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
     else if (eventId === 4) {
-      if (routes.length > 0) { editIdx = routes.length - 1; goState(5, "session"); }
+      editIdx = routes.length > 0 ? routes.length - 1 : 0;
+      goState(5, "session");
     }
     else if (eventId === 6) goState(0, "ready");
   } else if (state === 5) {
