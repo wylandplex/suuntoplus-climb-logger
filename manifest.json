@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776898076,
+  "modificationTime": 1776898438,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -389,6 +389,36 @@
     {
       "shownName": "Last Session Grade",
       "path": "stats.lastSessionGrade",
+      "type": "int"
+    },
+    {
+      "shownName": "Longest Project [sessions to first send]",
+      "path": "stats.longestProjectSes",
+      "type": "int"
+    },
+    {
+      "shownName": "Longest Project Grade (sys*100+idx)",
+      "path": "stats.longestProjectGrade",
+      "type": "int"
+    },
+    {
+      "shownName": "Most Tries Project [attempts to first send]",
+      "path": "stats.mostTriesProject",
+      "type": "int"
+    },
+    {
+      "shownName": "Most Tries Project Grade (sys*100+idx)",
+      "path": "stats.mostTriesGrade",
+      "type": "int"
+    },
+    {
+      "shownName": "Best Session Height [m, all-time]",
+      "path": "stats.bestSessionHm",
+      "type": "int"
+    },
+    {
+      "shownName": "Best Session Height [m, recent 200 sessions]",
+      "path": "stats.bestSessionHmRecent",
       "type": "int"
     }
   ],

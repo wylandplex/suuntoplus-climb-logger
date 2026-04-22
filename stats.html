@@ -1,7 +1,7 @@
 <uiView onLoad="
           var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
           var LENS=[41,24,29,11,11,12,14,30];
-          var PAGES=['PROGRESSION','CLIMBED','TOP 10','VOLUME'];
+          var PAGES=['PROGRESSION','PROJECTS','CLIMBED','TOP 10','VOLUME'];
           function nm(e){return e<0?-1:(e%100)/(LENS[Math.floor(e/100)]-1)}
           function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
           var sv=localStorage.getObject('stats')||{};
@@ -20,6 +20,12 @@
             if(nm(hist[j].g)>nm(b5)) b5=hist[j].g;
           }
           setText('#p_b5',b5>=0?dG(b5):'--');
+          setText('#j_longSes',''+(sv.longestProjectSes||0));
+          setText('#j_longG',sv.longestProjectGrade>=0?dG(sv.longestProjectGrade):'--');
+          setText('#j_tries',''+(sv.mostTriesProject||0));
+          setText('#j_triesG',sv.mostTriesGrade>=0?dG(sv.mostTriesGrade):'--');
+          setText('#s_bha',''+(sv.bestSessionHm||0));
+          setText('#s_bhr',''+(sv.bestSessionHmRecent||0));
           var ps=localStorage.getObject('climbProjStats')||{};
           var es=[];
           for(var ky in ps) if(ps[ky].sends>0) es.push({k:ky,p:ps[ky]});
@@ -57,10 +63,20 @@
         <div class="p-hc sp-vertical-center" style="top:calc(86% - 50%e);"><span class="sp-b-s">@ peak</span><span id="p_at" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
       </div>
 
-      <!-- Page 2: Climbed -->
+      <!-- Page 2: Projects (fun achievements, persist across slot deletion) -->
       <div>
-        <div class="p-hc sp-vertical-center" style="top:calc(35% - 50%e);"><span class="sp-b-s">Total H</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
-        <div class="p-hc sp-vertical-center" style="top:calc(65% - 50%e);"><span class="sp-b-s">Peak</span><span id="s_pk" class="sp-b-m" style="padding-left:6px">--</span></div>
+        <div class="p-hc" style="top:calc(18% - 50%e);"><span class="sp-b-s">Longest (ses)</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(35% - 50%e);"><span id="j_longG" class="sp-b-m">--</span><span class="sp-b-s" style="padding-left:8px">in</span><span id="j_longSes" class="sp-b-m f-num" style="padding-left:6px">0</span></div>
+        <div class="p-hc" style="top:calc(58% - 50%e);"><span class="sp-b-s">Most tries</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(75% - 50%e);"><span id="j_triesG" class="sp-b-m">--</span><span class="sp-b-s" style="padding-left:8px">×</span><span id="j_tries" class="sp-b-m f-num" style="padding-left:6px">0</span></div>
+      </div>
+
+      <!-- Page 3: Climbed (height-focused, 4 rows) -->
+      <div>
+        <div class="p-hc sp-vertical-center" style="top:calc(20% - 50%e);"><span class="sp-b-s">Total</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(42% - 50%e);"><span class="sp-b-s">Best ses</span><span id="s_bha" class="sp-b-m f-num" style="padding-left:6px">0</span><span class="sp-b-s">m</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);"><span class="sp-b-s">Best 200</span><span id="s_bhr" class="sp-b-m f-num" style="padding-left:6px">0</span><span class="sp-b-s">m</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(86% - 50%e);"><span class="sp-b-s">Peak</span><span id="s_pk" class="sp-b-m" style="padding-left:6px">--</span></div>
       </div>
 
       <!-- Page 3: Top 10 (two columns, centered vertically) -->

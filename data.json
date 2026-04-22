@@ -89,7 +89,13 @@
     "peakGrade": -1,
     "peakSession": 0,
     "sessionsAtPeak": 0,
-    "lastSessionGrade": -1
+    "lastSessionGrade": -1,
+    "longestProjectSes": 0,
+    "longestProjectGrade": -1,
+    "mostTriesProject": 0,
+    "mostTriesGrade": -1,
+    "bestSessionHm": 0,
+    "bestSessionHmRecent": 0
   },
   "projName1": "",
   "projName2": "",
