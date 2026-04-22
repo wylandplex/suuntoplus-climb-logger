@@ -33,8 +33,8 @@
       <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
 
-    <!-- HR hero (big, between stats and session) -->
-    <div class="p-hc sp-vertical-center" style="top:calc(75% - 50%e);">
+    <!-- HR hero (big, between stats and session). Anchor shifted left to compensate for icon-on-left layout (number otherwise appears right-biased, especially at 3 digits). -->
+    <div class="sp-vertical-center" style="top:calc(75% - 50%e); left:calc(45% - 50%e);">
       <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
       <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
