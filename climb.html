@@ -54,8 +54,8 @@
         <div class="f-ico" style="top:calc(65% - 50%e); left:6px;color:#fff;">&#xF110;</div>
       </div>
     </div>
-    <!-- Up-button: large invisible tap zone (tap = FAIL). -->
-    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
+    <!-- Up-button: large invisible tap zone (tap = FAIL). Event fires BEFORE Trigger so main.js sets selfLapExpected and onLap doesn't double-process. -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32'); $.put('/Activity/Trigger', 23);"
       style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Down-button: visible pill (fixed size). -->
@@ -66,8 +66,8 @@
         <div class="f-ico" style="top:calc(45% - 50%e); left:6px;color:#fff;">&#xF200;</div>
       </div>
     </div>
-    <!-- Down-button: large invisible tap zone (tap = SEND). -->
-    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+    <!-- Down-button: large invisible tap zone (tap = SEND). Event-before-Trigger: see FAIL zone above. -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32'); $.put('/Activity/Trigger', 23);"
       style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Physical: up-long=FAIL+lap, down-long=SEND+lap, mid locked (no OS interrupt) -->
@@ -75,13 +75,13 @@
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
-        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32'); $.put('/Activity/Trigger', 23);" />
       <pushButton name="next" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
-        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32'); $.put('/Activity/Trigger', 23);" />
     </userInput>
     </:if>
 

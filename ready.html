@@ -83,8 +83,8 @@
              style="top:calc(45% - 50%e); left:6px;">&#xE373;</div>
       </div>
     </div>
-    <!-- Down-button: large invisible tap zone (tap = START). -->
-    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+    <!-- Down-button: large invisible tap zone (tap = START). Event-before-Trigger so main.js sets selfLapExpected first. -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32'); $.put('/Activity/Trigger', 23);"
       style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Project stats row (only in project mode) -->
@@ -114,7 +114,7 @@
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32'); $.put('/Activity/Trigger', 23);" />
     </userInput>
     </:if>
 

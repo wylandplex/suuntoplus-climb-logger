@@ -26,6 +26,7 @@ var lastHrAvg = 0;
 var bestSendEnc = -1;
 var frDirty = 0;
 var frSend = 0;
+var selfLapExpected = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -136,6 +137,7 @@ var finishRoute = function(send) {
   lastHeight = Math.max(0, Math.round(curAsc - startAsc));
   if (send) sendsCount++;
   frDirty = 1; frSend = send;
+  selfLapExpected = 1;
   routeNumber++;
   goState(2, "break");
 };
@@ -269,6 +271,7 @@ function onEvent(_input, output, eventId) {
     } else if (eventId === 6) {
       hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
       startAsc = curAsc;
+      selfLapExpected = 1;
       goState(1, "climb");
     }
   } else if (state === 1) {
@@ -323,8 +326,20 @@ function getSummaryOutputs(input, output) {
 }
 
 function onLap(_input, _output) {
-  // Only react on BREAK. CLIMB-state laps (auto-lap, stray button) are ambiguous — can't tell send from fail.
-  if (state === 2 && !frDirty) {
+  // Debounce: our own button taps fire /Activity/Trigger too. The onEvent handler sets
+  // selfLapExpected BEFORE the Trigger propagates, so self-laps are swallowed here.
+  if (selfLapExpected) { selfLapExpected = 0; return; }
+  // External laps drive state transitions: READY→CLIMB (start), CLIMB→BREAK (send),
+  // BREAK→CLIMB (next route). SEND is chosen as the CLIMB default — most climbers hit
+  // the lap button AFTER finishing a route successfully; for a fall they'd use the app's
+  // FAIL button before lap-pressing.
+  if (state === 0) {
+    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
+    startAsc = curAsc;
+    goState(1, "climb");
+  } else if (state === 1) {
+    finishRoute(1);
+  } else if (state === 2 && !frDirty) {
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
     startAsc = curAsc;
     goState(1, "climb");
