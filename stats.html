@@ -1,12 +1,7 @@
-<uiView onFlickUp="sB(-15)"
-        onFlickDown="sB(15)"
-        onLoad="
+<uiView onLoad="
           var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
           function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
           var sv=localStorage.getObject('stats')||{};
-          var y=0,maxY=-50;
-          function sB(dy){y=Math.max(maxY,Math.min(0,y+dy));setStyle('#sc','top',(18+y)+'%')}
-          setStyle('#sc','top','18%');
           setText('#s_r',''+(sv.totalRoutes||0));
           setText('#s_sn',''+(sv.totalSends||0));
           setText('#s_pc',''+(sv.sendPct||0));
@@ -24,31 +19,42 @@
         ">
   <div id="climblogger">
 
-    <!-- Scrollable content container -->
-    <div id="sc" style="position:absolute;left:0;width:100%;height:150%;top:18%">
-      <div class="p-hc sp-vertical-center" style="top:calc(2% - 50%e);"><span class="sp-b-s">Routes</span><span id="s_r" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(6% - 50%e);"><span class="sp-b-s">Sends</span><span id="s_sn" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(10% - 50%e);"><span class="sp-b-s">Rate %</span><span id="s_pc" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(14% - 50%e);"><span class="sp-b-s">Sessions</span><span id="s_se" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(18% - 50%e);"><span class="sp-b-s">Avg HR</span><span id="s_hr" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(22% - 50%e);"><span class="sp-b-s">Avg Max</span><span id="s_mx" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(26% - 50%e);"><span class="sp-b-s">Avg HRR</span><span id="s_hrr" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(30% - 50%e);"><span class="sp-b-s">Total H</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(34% - 50%e);"><span class="sp-b-s">Peak</span><span id="s_pk" class="sp-b-m" style="padding-left:6px">--</span></div>
-      <div class="sp-b-s p-hc" style="top:calc(40% - 50%e);">TOP 10</div>
-      <div class="p-hc sp-vertical-center" style="top:calc(44% - 50%e);"><span class="sp-b-s" style="padding-right:4px">1.</span><span id="r1_g" class="sp-b-s"></span><span id="r1_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(48% - 50%e);"><span class="sp-b-s" style="padding-right:4px">2.</span><span id="r2_g" class="sp-b-s"></span><span id="r2_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(52% - 50%e);"><span class="sp-b-s" style="padding-right:4px">3.</span><span id="r3_g" class="sp-b-s"></span><span id="r3_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(56% - 50%e);"><span class="sp-b-s" style="padding-right:4px">4.</span><span id="r4_g" class="sp-b-s"></span><span id="r4_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(60% - 50%e);"><span class="sp-b-s" style="padding-right:4px">5.</span><span id="r5_g" class="sp-b-s"></span><span id="r5_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);"><span class="sp-b-s" style="padding-right:4px">6.</span><span id="r6_g" class="sp-b-s"></span><span id="r6_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(68% - 50%e);"><span class="sp-b-s" style="padding-right:4px">7.</span><span id="r7_g" class="sp-b-s"></span><span id="r7_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(72% - 50%e);"><span class="sp-b-s" style="padding-right:4px">8.</span><span id="r8_g" class="sp-b-s"></span><span id="r8_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(76% - 50%e);"><span class="sp-b-s" style="padding-right:4px">9.</span><span id="r9_g" class="sp-b-s"></span><span id="r9_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-      <div class="p-hc sp-vertical-center" style="top:calc(80% - 50%e);"><span class="sp-b-s" style="padding-right:4px">10.</span><span id="r10_g" class="sp-b-s"></span><span id="r10_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
-    </div>
+    <!-- Pannable page stack (native Suunto scroll primitive) -->
+    <uiViewSet id="vs" orientation="vertical" rollOver="none"
+               transition.type="slide" transition.timing="ease" transition.duration="0.25"
+               style="position:absolute;top:14%;left:0;width:100%;height:86%">
 
-    <!-- Title bar (rendered AFTER content so it overlays top) -->
+      <!-- Page 1: Overall -->
+      <div class="selected">
+        <div class="p-hc sp-vertical-center" style="top:calc(10% - 50%e);"><span class="sp-b-s">Routes</span><span id="s_r" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(20% - 50%e);"><span class="sp-b-s">Sends</span><span id="s_sn" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(30% - 50%e);"><span class="sp-b-s">Rate %</span><span id="s_pc" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(40% - 50%e);"><span class="sp-b-s">Sessions</span><span id="s_se" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(50% - 50%e);"><span class="sp-b-s">Avg HR</span><span id="s_hr" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(60% - 50%e);"><span class="sp-b-s">Avg Max</span><span id="s_mx" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(70% - 50%e);"><span class="sp-b-s">Avg HRR</span><span id="s_hrr" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(80% - 50%e);"><span class="sp-b-s">Total H</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);"><span class="sp-b-s">Peak</span><span id="s_pk" class="sp-b-m" style="padding-left:6px">--</span></div>
+      </div>
+
+      <!-- Page 2: Top 10 -->
+      <div>
+        <div class="sp-b-s p-hc" style="top:calc(5% - 50%e);">TOP 10</div>
+        <div class="p-hc sp-vertical-center" style="top:calc(14% - 50%e);"><span class="sp-b-s" style="padding-right:4px">1.</span><span id="r1_g" class="sp-b-s"></span><span id="r1_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(23% - 50%e);"><span class="sp-b-s" style="padding-right:4px">2.</span><span id="r2_g" class="sp-b-s"></span><span id="r2_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(32% - 50%e);"><span class="sp-b-s" style="padding-right:4px">3.</span><span id="r3_g" class="sp-b-s"></span><span id="r3_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(41% - 50%e);"><span class="sp-b-s" style="padding-right:4px">4.</span><span id="r4_g" class="sp-b-s"></span><span id="r4_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(50% - 50%e);"><span class="sp-b-s" style="padding-right:4px">5.</span><span id="r5_g" class="sp-b-s"></span><span id="r5_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(59% - 50%e);"><span class="sp-b-s" style="padding-right:4px">6.</span><span id="r6_g" class="sp-b-s"></span><span id="r6_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(68% - 50%e);"><span class="sp-b-s" style="padding-right:4px">7.</span><span id="r7_g" class="sp-b-s"></span><span id="r7_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(77% - 50%e);"><span class="sp-b-s" style="padding-right:4px">8.</span><span id="r8_g" class="sp-b-s"></span><span id="r8_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(86% - 50%e);"><span class="sp-b-s" style="padding-right:4px">9.</span><span id="r9_g" class="sp-b-s"></span><span id="r9_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+        <div class="p-hc sp-vertical-center" style="top:calc(95% - 50%e);"><span class="sp-b-s" style="padding-right:4px">10.</span><span id="r10_g" class="sp-b-s"></span><span id="r10_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      </div>
+
+    </uiViewSet>
+
+    <!-- Title bar (rendered AFTER viewset so it overlays top) -->
     <div class="cm-fg" style="width:100%;height:14%">
       <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">STATS</div>
     </div>
@@ -79,16 +85,16 @@
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
       style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Physical: up-long = SETUP, mid-long = READY, flick = scroll -->
+    <!-- Physical: up-short=prev page, down-short=next page, long-press=navigate -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
-        onClick="sB(15)"
+        onClick="previous('vs')"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
       <pushButton name="next" longType="lock"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
-        onClick="sB(-15)"
+        onClick="next('vs')"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
     </userInput>
     </:if>
