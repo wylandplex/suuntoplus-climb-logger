@@ -27,9 +27,8 @@ var frDirty = 0;
 var frSend = 0;
 
 var climbMode = 0;
-var curAlt = 0;
-var startAlt = 0;
-var maxAlt = 0;
+var curAsc = 0;
+var startAsc = 0;
 var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
@@ -141,7 +140,7 @@ var renderSetup = function(o) {
 
 var finishRoute = function(send) {
   lastResult = send; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
-  lastHeight = Math.max(0, Math.round(maxAlt - startAlt));
+  lastHeight = Math.max(0, Math.round(curAsc - startAsc));
   frDirty = 1; frSend = send;
   routeNumber++;
   goState(2, "break");
@@ -213,7 +212,7 @@ function onLoad(_input, output) {
 }
 
 function evaluate(input, output) {
-  if (input.Alt !== undefined) { curAlt = input.Alt; if (state === 1 && curAlt > maxAlt) maxAlt = curAlt; }
+  if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     var h = input.H;
     if (h > 0) {
@@ -241,7 +240,7 @@ function evaluate(input, output) {
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
-  output.routeHeight = state === 1 ? Math.max(0, Math.round(maxAlt - startAlt)) : lastHeight;
+  output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : lastHeight;
   output.climbMode = climbMode;
 
   if (state === 4) {
@@ -275,7 +274,7 @@ function onEvent(_input, output, eventId) {
       output.climbMode = climbMode;
     } else if (eventId === 6) {
       hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
-      startAlt = maxAlt = curAlt;
+      startAsc = curAsc;
       goState(1, "climb");
     }
   } else if (state === 1) {
@@ -322,4 +321,12 @@ function onEvent(_input, output, eventId) {
 
 function getSummaryOutputs(input, output) {
   return evalFile('{file_path}/ext9.js')(routes, bestSendEnc);
+}
+
+function onLap(_input, _output) {
+  if (state === 2 && !frDirty) {
+    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
+    startAsc = curAsc;
+    goState(1, "climb");
+  }
 }

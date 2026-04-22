@@ -96,6 +96,21 @@ A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes 
 - **`gradeHistory`**: rolling 200-session snapshots `{s, g, r, v}` for multi-year ramp
 - **`climbRoutes`**: transient per-session route log, cleared on app load
 
+### Height tracking
+
+Route height uses `/Fusion/Altitude/Ascent` (cumulative ascent, meters) provided by the watch firmware. Per-route height = `ascentAtRouteEnd − ascentAtRouteStart`. This is "total vertical climbed this route" — matches the system's hardened noise filtering, and on up-down-up profiles it counts the re-ascents (unlike peak-altitude).
+
+### External lap integration
+
+The watch's physical lap button (and auto-lap, if enabled) is detected via the `onLap` lifecycle callback. On the BREAK screen, an external lap fires a state transition straight to CLIMB, skipping READY — useful for fast multi-route sessions. In CLIMB and READY states external laps are ignored (the app's own SEND/FAIL/START buttons manage laps there).
+
+### Work split: route-end vs session-end
+
+- **Route-end (ext10.js, runs per SEND/FAIL):** route push + persist, active project stat update, running HR aggregates, totals, peak-grade O(1) comparison, active-project mirror.
+- **Session-end (ext9.js, runs on activity finish):** top-10 sort across projStats, grade-history append, multi-year ramp recompute, summary tiles.
+
+Top-10 on the STATS screen therefore refreshes at activity end, not mid-session. This keeps the CLIMB → BREAK transition snappy.
+
 ---
 
 ## Development

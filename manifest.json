@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776880383,
+  "modificationTime": 1776886043,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -28,8 +28,8 @@
       "type": "subscribe"
     },
     {
-      "name": "Alt",
-      "source": "Activity/Move/-1/Altitude/Current",
+      "name": "Asc",
+      "source": "Fusion/Altitude/Ascent",
       "type": "subscribe"
     }
   ],
