@@ -2,7 +2,6 @@ function(lgi,lgs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,bsc,routes,ps,ats,h){
 if(isSend){var enc=lgs*100+lgi;
 if(enc>bse){bse=enc;bsc=1;}else if(enc===bse){bsc++;}}
 routes.push({grade:lgi,sys:lgs,duration:ld,send:isSend?1:0,hr:lha,mh:lmh,p1:lp1,p3:lp3,proj:cm,h:h||0});
-localStorage.setObject("climbRoutes",routes);
 if(cm>0){var sk=lgs+"_"+cm;
 var p=ps[sk]||{attempts:0,sends:0,bestTime:0};
 p.g=lgi;

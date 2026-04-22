@@ -7,6 +7,7 @@ var setupStep = 0;
 var currentGrade = 18;
 var routeNumber = 1;
 var routes = [];
+var sendsCount = 0;
 var lastResult = 0;
 
 var hrBuf = [];
@@ -46,14 +47,6 @@ function getUserInterface() {
 
 var encGrade = function(sys, idx) {
   return sys * 100 + idx;
-};
-
-var countSends = function() {
-  var s = 0;
-  for (var i = 0; i < routes.length; i++) {
-    if (routes[i].send) s++;
-  }
-  return s;
 };
 
 var loadProjects = function(sys) {
@@ -141,6 +134,7 @@ var renderSetup = function(o) {
 var finishRoute = function(send) {
   lastResult = send; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
   lastHeight = Math.max(0, Math.round(curAsc - startAsc));
+  if (send) sendsCount++;
   frDirty = 1; frSend = send;
   routeNumber++;
   goState(2, "break");
@@ -205,7 +199,6 @@ function onLoad(_input, output) {
 
   loadProjects(gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
-  LS.setObject("climbRoutes", []);
   projStats = LS.getObject("climbProjStats") || {};
   allTimeStats.sessions++;
   writeStats();
@@ -251,7 +244,7 @@ function evaluate(input, output) {
     output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
   }
 
-  output.totalSends = countSends();
+  output.totalSends = sendsCount;
   output.bestSend = bestSendEnc;
   output.climbing = state === 1 ? 1 : 0;
 }
@@ -284,12 +277,17 @@ function onEvent(_input, output, eventId) {
     if (eventId === 1 || eventId === 2) {
       lastGradeIdx = wrap(lastGradeIdx + (eventId === 1 ? 1 : -1), GRADE_LENS[lastGradeSys], 0);
       routes[routes.length - 1].grade = lastGradeIdx;
-      LS.setObject("climbRoutes", routes);
       currentGrade = lastGradeIdx;
       output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
       writeG(output);
       if (lastResult) {
-        bestSendEnc = evalFile('{file_path}/ext12.js')(routes);
+        bestSendEnc = -1;
+        for (var r = 0; r < routes.length; r++) {
+          if (routes[r].send) {
+            var e = routes[r].sys * 100 + routes[r].grade;
+            if (e > bestSendEnc) bestSendEnc = e;
+          }
+        }
         output.bestSend = bestSendEnc;
       }
     } else if (eventId === 4) {
@@ -324,6 +322,7 @@ function getSummaryOutputs(input, output) {
 }
 
 function onLap(_input, _output) {
+  // Only react on BREAK. CLIMB-state laps (auto-lap, stray button) are ambiguous — can't tell send from fail.
   if (state === 2 && !frDirty) {
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
     startAsc = curAsc;

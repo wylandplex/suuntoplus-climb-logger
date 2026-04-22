@@ -94,7 +94,7 @@ A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes 
 - **`climbProjStats`**: `{"sys_slot": {attempts, sends, bestTime, g, hrrSum, hrrN, hrr}}` — per-slot stats
 - **`stats`**: route totals + HR aggregates + active-project mirror + top-10 ranked + peak grade + session history
 - **`gradeHistory`**: rolling 200-session snapshots `{s, g, r, v}` for multi-year ramp
-- **`climbRoutes`**: transient per-session route log, cleared on app load
+- *(`climbRoutes` removed in favour of in-memory-only `routes[]` — persisted data was never read)*
 
 ### Height tracking
 
