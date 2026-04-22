@@ -19,10 +19,10 @@
     <!-- Separator -->
     <div class="p-hc" style="top:44%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-    <!-- HR + Grade side by side -->
+    <!-- Height + Grade side by side (small stats row) -->
     <div class="sp-vertical-center" style="top:calc(55% - 50%e); left:calc(30% - 50%e);">
-      <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
-      <span class="sp-b-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span class="sp-b-s">H</span>
+      <span class="sp-b-m f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
     </div>
 
     <!-- Vertical separator -->
@@ -33,10 +33,10 @@
       <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
 
-    <!-- Live height delta (during climb) -->
-    <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
-      <span class="sp-b-s">H</span>
-      <span class="sp-b-s f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
+    <!-- HR hero (big, between stats and session) -->
+    <div class="p-hc sp-vertical-center" style="top:calc(75% - 50%e);">
+      <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
+      <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Session time -->
