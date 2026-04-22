@@ -13,9 +13,9 @@
       <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => 'PROJECT ' + Math.abs(x)" default="PROJECT 1" />
     </div>
 
-    <!-- Up-arrow tap-bar (invisible) -->
+    <!-- Up-arrow tap-bar (invisible, ready-screen geometry) -->
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-      style="top:26%;left:0;width:70%;height:14%;position:absolute;"></div>
+      style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
     <!-- Up-arrow icon: step 0 position (wide spread for sysName slot) -->
     <div id="upArrow0" class="f-ico p-hc" style="top:calc(33% - 50%e);">&#xF266;</div>
     <!-- Up-arrow icon: project steps (ready-screen layout), hidden initially -->
@@ -35,9 +35,9 @@
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
     </div>
 
-    <!-- Down-arrow tap-bar (invisible) -->
+    <!-- Down-arrow tap-bar (invisible, ready-screen geometry) -->
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-      style="top:66%;left:0;width:70%;height:25%;position:absolute;"></div>
+      style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
     <!-- Down-arrow icon: step 0 position -->
     <div id="downArrow0" class="f-ico p-hc" style="top:calc(74% - 50%e);">&#xF267;</div>
     <!-- Down-arrow icon: project steps (ready-screen layout), hidden initially -->
