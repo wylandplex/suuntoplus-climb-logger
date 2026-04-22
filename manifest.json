@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776898438,
+  "modificationTime": 1776898587,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -419,6 +419,11 @@
     {
       "shownName": "Best Session Height [m, recent 200 sessions]",
       "path": "stats.bestSessionHmRecent",
+      "type": "int"
+    },
+    {
+      "shownName": "Best Grade of Last 5 Sessions (sys*100+idx)",
+      "path": "stats.bestOfLast5",
       "type": "int"
     }
   ],
