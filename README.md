@@ -1,250 +1,146 @@
-# Climb Log
+# Climb Log v3.0
 
-Route logger for climbing sessions on Suunto watches. Tracks grades across 8 systems, logs sends and fails with time and heart rate, and supports project tracking for repeat attempts on specific routes.
+[![Latest](https://img.shields.io/badge/release-v3.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
-## Screenshots
+A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 8 grade systems, 5 project slots per system, heart rate, height gain, recovery, and multi-year grade progression.
 
-| Setup | Project Config | Ready | Climbing | Break |
-|:---:|:---:|:---:|:---:|:---:|
-| ![Setup](screenshots/setup.png) | ![Project](screenshots/setup-project.png) | ![Ready](screenshots/ready.png) | ![Climbing](screenshots/climbing.png) | ![Break](screenshots/break-sent.png) |
+**For the end-user app description** → see [APPSTORE.md](APPSTORE.md)
+
+---
 
 ## Screen Flow
 
 ```
-SETUP → READY → CLIMBING → BREAK → READY → ...
+┌─────────────────────────────────────────────────────────────┐
+│                  Climb Log — state machine                  │
+└─────────────────────────────────────────────────────────────┘
+
+                  ┌───────────────┐
+                  │    SETUP      │  configure grade system
+                  │  Step 0-5     │  + 5 project slots per system
+                  └───▲───┬───────┘
+                      │   │ down-long (save & exit)
+                      │   │ mid-long  (→ READY)
+                      │   ▼
+                      │   ┌───────────────┐
+           mid-long   │   │               │
+           (→ SETUP)  │   │    READY      │
+                      ├───┤     home      │
+                      │   │               │
+                      │   └───┬───────▲───┘
+                      │       │       │
+                      ▼       │       │
+                  ┌──────────┐│       │
+                  │  STATS   ││       │ down-long
+                  │scrollable││       │ (NEXT)
+                  │          ││       │
+                  └──────────┘│       │
+                              │       │
+                 down-long    │       │
+                 (START)      │       │
+                              ▼       │
+                      ┌───────────────┐│
+                      │               ││
+                      │    CLIMB      ││  up-long = FAIL ✗
+                      │               ││  down-long = SEND ✓
+                      └─────┬─────────┘│
+                            │          │
+                            ▼          │
+                      ┌───────────────┐│
+                      │               ││
+                      │    BREAK      ├┘  up-long = save as project
+                      │               │   up/down short = adjust grade
+                      └───────────────┘
 ```
 
-### Setup
+### Per-screen button matrix
 
-Configure your grade system and up to 5 project routes on the watch before climbing.
+| Screen  | Up short            | Down short           | Mid long            | Up long                 | Down long      |
+|---------|---------------------|----------------------|---------------------|-------------------------|----------------|
+| READY   | grade / proj cycle  | grade / proj cycle   | → STATS             | toggle freeflow/project | START          |
+| CLIMB   | — *(safety lock)*   | — *(safety lock)*    | — *(locked)*        | FAIL ✗                  | SEND ✓         |
+| BREAK   | last-grade adjust + | last-grade adjust −  | —                   | ★ save as project       | NEXT           |
+| STATS   | scroll up           | scroll down          | → READY             | → SETUP                 | → READY        |
+| SETUP   | field +             | field −              | → READY *(save)*    | next step               | → READY *(save)* |
 
-- **Swipe up/down** or **buttons up/down**: cycle through options
-- **Tap CLIMB** (step 0): skip projects, go straight to ready
-- **Tap PROJECTS** (step 0): configure project routes (steps 1-5)
-- **Tap SKIP** (steps 1-5): skip remaining projects, go to ready
-- **Tap NEXT/OK**: advance to next project / finish setup
+**Universal rules:**
+- `mid-short` is OS-reserved (scrolls through Suunto's native activity screens)
+- `mid-long` switches between main workflow and utility screens
+- `down-long` commits / advances forward
+- Touch tap-zones mirror long-press action on their respective button pills
+- Flicks fire the underlying short-press event 3× (quick cycle)
 
-Set a project grade to **OFF** to disable that project slot.
+---
 
-### Ready
+## Architecture
 
-Pick your grade and start climbing.
+| File                | Role                                                       | Loaded         |
+|---------------------|------------------------------------------------------------|----------------|
+| `main.js`           | State machine, event dispatcher, HR buffer, save logic    | App start      |
+| `ready.html`        | Home screen, grade display, arrow tap-bars                | On navigation  |
+| `climb.html`        | Active route timer, live HR + height                      | On START       |
+| `break.html`        | Route summary, HRR capture at 60s                         | On SEND/FAIL   |
+| `setup.html`        | Grade system + per-system project config                  | On mid-long    |
+| `stats.html`        | Scrollable all-time stats + TOP-10                        | On STATS entry |
+| `ext9.js`           | Workout summary tiles + grade ramp persist at session end | On workout end |
+| `ext10.js`          | Route end — update projStats + all-time + top-10          | On SEND/FAIL   |
+| `ext12.js`          | Recompute best-send on break grade edit                   | On grade edit  |
+| `manifest.json`     | Outputs, variables (49), settings (46), templates          | App config     |
+| `data.json`         | Companion app defaults                                    | First install  |
 
-**Free mode** (default):
-- **Swipe up/down** or **buttons up/down**: cycle grades
-- **Tap START** or **long press down**: begin climbing
+### Data model (localStorage)
 
-**Project mode**:
-- **Swipe up/down** or **buttons up/down**: cycle through projects
-- Shows attempts, sends, and best time for each project
-- Grade is locked to the project grade
+- **`watchSetup`**: `{sys, proj}` — per-system project cache
+- **`climbProjStats`**: `{"sys_slot": {attempts, sends, bestTime, g, hrrSum, hrrN, hrr}}` — per-slot stats
+- **`stats`**: route totals + HR aggregates + active-project mirror + top-10 ranked + peak grade + session history
+- **`gradeHistory`**: rolling 200-session snapshots `{s, g, r, v}` for multi-year ramp
+- **`climbRoutes`**: transient per-session route log, cleared on app load
 
-**Switching modes:**
-- **Long press up**: toggle between free and project mode
-
-**Hidden:**
-- **Double-tap** the grade system label (FR/UIAA/...): cycle grade system
-
-### Climbing
-
-Timer runs. Log the result when done.
-
-- **Tap SEND**: log a send
-- **Tap FAIL**: log a fail
-- **Long press up**: log a fail (physical button)
-- **Long press down**: log a send (physical button)
-- All actions trigger a silent lap marker in the workout
-
-### Break
-
-Review the result, correct the grade if needed, then continue.
-
-- **Swipe up/down** or **buttons up/down**: correct the grade of the route just logged
-- **Tap NEXT** or **long press down**: return to ready screen
-
-## Grade Systems
-
-| # | System | Example Grades | Typical Use |
-|---|--------|----------------|-------------|
-| 0 | French | 3a ... 9c | Sport climbing (Europe) |
-| 1 | UIAA | 4 ... 12- | Sport/trad (Central Europe) |
-| 2 | YDS | 5.5 ... 5.15d | Sport/trad (North America) |
-| 3 | British | 4a ... 7b | Trad climbing (UK) |
-| 4 | Ice (WI) | WI2 ... WI7+ | Ice climbing |
-| 5 | Mixed | M1 ... M12 | Mixed climbing |
-| 6 | V-Scale | VB ... V12 | Bouldering (North America) |
-| 7 | Fontainebleau | 4A ... 8C+ | Bouldering (Europe) |
-
-## Companion App Dashboard
-
-The Suunto mobile app shows read-only stats for the current state of the app:
-
-- **Grade System** — which system is active (e.g. "French", "UIAA")
-- **Project 1-5** — active project grades (e.g. "6b+", "OFF")
-- **Total Routes / Sends / Send Rate** — cumulative across all sessions
-- **Sessions** — number of exercises started
-
-All configuration is done on the watch via the setup screen. The companion app is a dashboard only.
-
-## Project Tracking
-
-Each grade system has 5 independent project slots. Projects are configured during setup on the watch and persist across sessions.
-
-In project mode, the app tracks per-project:
-- **Attempts** (sends + fails)
-- **Sends**
-- **Best time** (fastest send)
-
-Project stats persist across sessions. Route logs reset each new activity.
-
-## Controls Reference
-
-### Touch
-
-| Screen | Gesture | Action |
-|--------|---------|--------|
-| Setup | Swipe up/down | Cycle system or grade |
-| Setup | Tap CLIMB (step 0) | Skip to ready |
-| Setup | Tap PROJECTS (step 0) | Configure projects |
-| Setup | Tap SKIP (steps 1-5) | Skip to ready |
-| Setup | Tap NEXT/OK (steps 1-5) | Advance / finish |
-| Ready | Swipe up/down | Cycle grade (free) or project (proj) |
-| Ready | Tap START | Begin climbing |
-| Ready | Tap title bar | Toggle free/project mode |
-| Ready | Double-tap system label | Cycle grade system |
-| Climbing | Tap SEND | Log send + lap |
-| Climbing | Tap FAIL | Log fail + lap |
-| Break | Swipe up/down | Correct grade |
-| Break | Tap NEXT | Back to ready |
-
-### Physical Buttons
-
-All buttons are locked (`type="lock" longType="lock"`) to prevent native watch actions.
-
-| Screen | Button | Action |
-|--------|--------|--------|
-| Setup | Up | Cycle up |
-| Setup | Up long | PROJECTS / NEXT / OK |
-| Setup | Down | Cycle down |
-| Setup | Down long | CLIMB / SKIP |
-| Ready | Up | Cycle grade/project up |
-| Ready | Up long | Toggle free/project mode |
-| Ready | Down | Cycle grade/project down |
-| Ready | Down long | Start climbing |
-| Climbing | Up long | Fail + lap |
-| Climbing | Down long | Send + lap |
-| Break | Up | Grade up |
-| Break | Down | Grade down |
-| Break | Down long | Next (back to ready) |
-
-## Heart Rate on the Break Screen
-
-After each route the break screen shows a compact HR summary for the climb just completed, plus a live recovery readout.
-
-### Route HR metrics (top block, zone-coloured)
-
-| Label | Meaning | Source |
-|---|---|---|
-| **AVG** | Average HR across the full route | Lap average from watch |
-| **MAX** | Peak HR during the route | Lap max from watch |
-| **1'** | Highest 1-minute rolling average HR during the route | Sliding 60-sample window in app |
-| **3'** | Highest 3-minute rolling average HR during the route | Sliding 180-sample window in app |
-
-Values are coloured by percentage of your personal MaxHR (from watch settings): green <70%, yellow 70–80%, orange 80–90%, red >90%. For routes under 1 minute, the 1' value falls back to AVG; for routes under 3 minutes, 3' falls back to AVG.
-
-The 1' and 3' peaks matter more than route MAX for climbing: a 30-second spike on a crux doesn't tell you how hard the full route hit you, whereas the highest sustained 1-minute and 3-minute HR does.
-
-### HRR — Heart Rate Recovery (bottom row)
-
-The small `HRR -25` readout next to the live HR shows how many beats per minute your HR has dropped from its peak after you tapped SEND/FAIL. It follows the **clinical HRR-1min protocol** rather than a naive live diff.
-
-**Measurement protocol:**
-1. **0–10 seconds after route end** — peak-capture window. The display tracks the highest HR seen, since HR often keeps climbing for a few seconds after you stop (aerobic lag). Whatever the highest reading is in these first 10 seconds becomes the "peak" reference.
-2. **10–60 seconds** — peak is locked. HRR updates live: `HRR = peak − current`, shown in bpm.
-3. **At the 60-second mark** — the value freezes. Everything after that is ignored until the next route. This is the standard clinical HRR-1min number.
-
-Example: you tap SEND at 170 bpm; over the next 8 seconds your HR climbs to 174 bpm → peak = 174. At 60 s you're at 146 → display freezes at `HRR -28`. That's your HRR-1min for this route.
-
-**Why this matters.** HRR is one of the most studied fitness markers in sports medicine. The drop in HR immediately after peak exertion reflects **parasympathetic (vagal) reactivation** — the nervous-system switch back from "fight-or-flight" to rest. A faster drop means better cardiac autonomic function, which correlates with:
-
-- **Aerobic fitness** — fit athletes recover faster. Cole et al. (1999, *NEJM*) showed a 1-minute HRR ≤ 12 bpm predicted a fourfold increase in all-cause mortality over 6 years; later studies (Nishime 2000, Shetler 2001) confirmed this as an independent fitness marker.
-- **Readiness for the next effort** — if HR is still elevated, you're still taxed. In climbing this matters directly: starting the next attempt too early usually means a weaker performance.
-- **Training load trends** — with consistent conditions (same route difficulty, same rest position) HRR gets bigger over weeks as you get fitter.
-
-**Typical 1-minute HRR values after a hard effort:**
-
-| Level | HRR at 1 min |
-|---|---|
-| Elite endurance athlete | 30–50+ bpm |
-| Well-trained recreational | 20–30 bpm |
-| Average active adult | 12–20 bpm |
-| Below-average / deconditioned | < 12 bpm |
-
-**How to read it on the watch.**
-- Watch it grow during the first minute of rest. A bigger final number = you're recovering faster.
-- The frozen value at 60 s is what matters — compare the same wall, same difficulty across sessions. Bigger HRR over time = better aerobic fitness.
-- If you leave the break screen before 60 s, no value is saved (this release only — see #42 for per-project avg HRR tracking planned for a later version).
-- Peak HR is the highest value in the first 10 seconds after SEND — this grace window accounts for the aerobic lag that normally lets HR climb a few seconds past the true top of the effort.
-
-**Caveats.** HRR is sensitive to hydration, stimulants, altitude, heat, and illness — all depress it. Use it as a relative trend indicator, not an absolute medical score. And remember climbing recovery differs from steady-state cycling/running: short, explosive efforts with heavy upper-body load produce different HRR curves than an endurance-test HRR would.
-
-## Data Logging
-
-`climbing` is a binary logged output (1 while a route is active, 0 during rest/setup). Visible as a graph overlay in the Suunto mobile app, it lets you line up HR spikes against exactly when each route happened.
-
-## Session Summary
-
-After ending the exercise, the watch and Suunto app show:
-- **Sends / Routes**: e.g. "3 / 10"
-- **Highest Send**: e.g. "2* M6" (2 sends at grade M6)
-
-Grade names are loaded from flash (`evalFile`) during the session to stay within memory limits. See [#10](https://github.com/wylandplex/suuntoplus-climb-logger/issues/10).
-
-## Memory Optimization
-
-Grade strings (~200 objects) are not kept in JavaScript memory. Only grade counts (`GRADE_LENS`) are stored. Full grade arrays are available in `ext0.js`-`ext7.js` (loaded from flash on demand via `evalFile`). HTML templates maintain their own copy for display.
-
-## Data Storage
-
-Routes are saved to `localStorage` during a session but cleared on each new activity start:
-
-```json
-[
-  {"grade": 18, "sys": 0, "duration": 83, "send": 1, "hr": 145, "proj": 0},
-  {"grade": 18, "sys": 0, "duration": 120, "send": 0, "hr": 152, "proj": 2}
-]
-```
-
-Project stats (`climbProjStats`) and watch setup (grade system + project grades) persist across sessions.
-
-## Compatibility
-
-Starting with v2.82, the app restricts itself to UI2 watches via the `displays: ["n", "o", "q"]` tag on all templates. Supported models: Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro. Older UI1 models (e.g. Vertical Solar) are excluded because the app couldn't run reliably on them.
-
-Developed and tested on **Suunto Vertical 2**. If your supported watch encounters problems, please [open an issue](https://github.com/wylandplex/suuntoplus-climb-logger/issues) with your watch model and firmware version.
+---
 
 ## Development
 
-Requires [SuuntoPlus Editor](https://marketplace.visualstudio.com/items?itemName=Suunto.suuntoplus-editor) for VS Code.
-
+### Build & deploy
 ```bash
-# Open in VS Code
-code climb-logger/
-
-# Test: Command Palette → "SuuntoPlus: Open SuuntoPlus Simulator"
-# Deploy: Command Palette → "SuuntoPlus: Deploy to Watch"
+# VS Code + SuuntoPlus editor extension required
+#   Command Palette → SuuntoPlus: Open Simulator    (test locally)
+#   Command Palette → SuuntoPlus: Build App         (creates .zip)
+#   Command Palette → SuuntoPlus: Deploy to Watch   (USB or BT)
 ```
 
-## Version History
+### Push to GitHub
+```bash
+./push-apps.sh climb-logger        # from workspace root
+```
 
-- **v2.82** — Restrict to UI2 watches via `displays: ["n", "o", "q"]` on all templates (excludes UI1 models that couldn't run reliably)
-- **v2.81** — Fix memory crash on companion app settings sync
-- **v2.8** — Companion app becomes stats dashboard (remove project settings, add read-only variables for projects + cumulative stats)
-- **v2.7** — Fix companion app project settings sync, compatibility note for older watch models
-- **v2.6** — Session summary (sends/routes + highest send grade), Suunto icon font for labels, sp-vertical-center layouts, UI polish across all screens
-- **v2.4** — Button lock (prevents native actions), long press for send/fail, break screen grade buttons, memory optimization (GRADES to evalFile), route reset per session, phone settings with real grades per system, totalRoutes graph logging, removed ignoreEvent throttle
-- **v2.3** — Fix layout for all display sizes, memory optimization, removed phone settings
-- **v2.2** — Refactored main.js, fixed watch font rendering (f-num to sp-t for text)
-- **v2.1** — Real climbing grade systems (8 systems), flick gestures
-- **v2.0** — Redesigned UI, simpler lap flow, project routes
-- **v1.0** — Initial release
+### Parser budget
+
+Suunto watches have a startup parser budget that limits main.js size. Refer to the minifier pipeline:
+- Terser (toplevel=true, reserved=["_e","_","_d"]) for initial mangling
+- SuuntoPlus property-to-array-index transform (outputs become `_[N]`)
+
+Each manifest output costs ~36 B of startup budget. Template files (break.html, ext10.js, etc.) are lazy-loaded and don't count against startup budget.
+
+Current v3.0 footprint:
+- `main.js` minified: ~3.5 KB
+- `.fea` (q-display): ~44 KB
+
+---
+
+## Compatibility
+
+**UI2 watches only** (starting v2.82):
+- Suunto Vertical, Vertical 2
+- Suunto Race, Race S, Race 2
+- Suunto Ocean, Ocean Lite
+- Suunto 9 Peak Pro
+
+Older UI1 watches (9 Peak, 5 Peak, 5, 3, Vertical Solar, etc.) are excluded at the manifest `displays` level because they hit memory limits.
+
+## License
+
+MIT — see [LICENSE](LICENSE) if present. Contributions welcome via pull request or issue.
+
+## Credits
+
+Built by [@wylandplex](https://github.com/wylandplex). Refactoring and v3.0 UX rework with Claude.

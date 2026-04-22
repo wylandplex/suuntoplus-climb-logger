@@ -22,7 +22,7 @@
     <!-- HR + Grade side by side -->
     <div class="sp-vertical-center" style="top:calc(55% - 50%e); left:calc(30% - 50%e);">
       <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
-      <span class="sp-b-m f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span class="sp-b-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Vertical separator -->
@@ -30,29 +30,13 @@
 
     <div class="sp-vertical-center" style="top:calc(55% - 50%e); left:calc(70% - 50%e);">
       <span class="f-ico" style="padding-right:4px">&#xF144;</span>
-      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" /></span>
+      <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
 
-    <!-- Separator -->
-    <div class="p-hc" style="top:63%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
-
-    <!-- SEND + FAIL buttons (trigger lap + event) -->
-    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
-      style="top:65%;left:5%;width:44%;height:17%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:88%;height:70%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:6px;">
-        <div class="sp-t-s sp-vertical-center" style="top:calc(50% - 50%e); left:calc(50% - 50%e);"><span class="f-ico" style="padding-right:3px">&#xF200;</span><span>SEND</span></div>
-      </div>
-    </div>
-
-    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
-      style="top:65%;left:51%;width:44%;height:17%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:88%;height:70%;position:absolute;
-                  background:rgba(255,255,255,0.06);border-radius:6px;">
-        <div class="sp-t-s sp-vertical-center" style="top:calc(50% - 50%e); left:calc(50% - 50%e);"><span class="f-ico" style="padding-right:3px">&#xF110;</span><span>FAIL</span></div>
-      </div>
+    <!-- Live height delta (during climb) -->
+    <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
+      <span class="sp-b-s">H</span>
+      <span class="sp-b-s f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
     </div>
 
     <!-- Session time -->
@@ -62,25 +46,42 @@
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
 
-    <!-- Button hints -->
-    <:if test="{{ IS_NG3 }}">
-      <div class="btn btn-top">
-        <img class="cm-bgc icon" src="hint-btn-top.png" />
+    <!-- Up-button: visible pill (fixed size). -->
+    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico" style="top:calc(65% - 50%e); left:6px;color:#fff;">&#xF110;</div>
       </div>
-      <div class="btn btn-btm">
-        <img class="cm-bgc icon" src="hint-btn-bottom.png" />
-      </div>
-    </:if>
+    </div>
+    <!-- Up-button: large invisible tap zone (tap = FAIL). -->
+    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
+      style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Physical: up long=FAIL+lap, down long=SEND+lap -->
+    <!-- Down-button: visible pill (fixed size). -->
+    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico" style="top:calc(45% - 50%e); left:6px;color:#fff;">&#xF200;</div>
+      </div>
+    </div>
+    <!-- Down-button: large invisible tap zone (tap = SEND). -->
+    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+      style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+    <!-- Physical: up-long=FAIL+lap, down-long=SEND+lap, mid locked (no OS interrupt) -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
-        onClick=""
-        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
+        onClick="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
+        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
+      <pushButton name="next" type="lock" longType="lock"
+        onClick="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
-        onClick=""
-        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+        onClick="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
+        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
     </userInput>
     </:if>
 

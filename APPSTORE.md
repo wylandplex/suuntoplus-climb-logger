@@ -1,42 +1,120 @@
 # Climb Log
 
-> **Compatibility notice:** Climb Log packs a lot of functionality — 8 grade systems, 5 project slots, HR tracking, session stats, gesture + button controls — and has grown beyond what older Suunto watches can run reliably. Starting with v2.82, the app is restricted to UI2 watches only: **Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, and 9 Peak Pro**. Older models (9 Peak, 5 Peak, 5, 3, Vertical Solar, etc.) will not see the app in the store because they ran into memory limits and crashes. Developed and tested on Suunto Vertical 2 — if your supported watch has issues, please report your model and firmware version on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger/issues).
+> **Compatibility:** Requires Suunto UI2 watches — Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro. Developed and tested on Vertical 2. Please report issues on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger/issues).
 
-Route logger for climbing sessions on Suunto watches.
+Complete climbing session tracker — log sends & fails, configure projects per grade system, track heart rate, height gain, recovery, and long-term grade progression.
 
 ## Features
 
-- 8 grade systems: French, UIAA, YDS, British, Ice (WI), Mixed, V-Scale, Fontainebleau
-- Log sends and fails with long press — each logs a silent lap marker in your workout
-- Configure up to 5 project routes per grade system directly on the watch — no phone needed
-- Attempt, send, and best time tracking per project (persists across sessions)
-- Companion app shows active projects, total routes, sends, send rate, and session count
-- Freely switch between project routes and free grade selection mid-session
-- Correct the grade on the break screen with buttons or swipe before moving on
-- Switch grade systems on the fly with a double-tap
-- All physical buttons are locked to prevent accidental native watch actions
-- Designed for the wall — touch gestures and physical buttons work with gloves
-- Total routes logged as a graph in the Suunto app, comparable with heart rate
-- Works on all Suunto display sizes
+- **8 Grade Systems** — French, UIAA, YDS, British, Ice (WI), Mixed, V-Scale, Font
+- **5 Projects per system** (40 total) — fully configurable on watch or companion app
+- **Auto-save as project** from break screen with one button — last climbed route becomes active project
+- **Live heart rate tracking** during climb — peak 1-min and 3-min sliding averages
+- **HRR (Heart Rate Recovery)** — 60s post-route delta, averaged per project + session + all-time
+- **Altimeter height tracking** — live meters climbed during route, all-time total in stats
+- **Route statistics** — attempts, sends, best time per project slot
+- **Session summary** — routes, sends, best grade, avg HR (time-weighted), total height
+- **All-time aggregates** — send rate, session count, avg HR across all sessions
+- **Grade Ramp / Progression** — peak grade ever, session-first-reached, sessions-at-peak (visible in stats + companion)
+- **Top-10 achievements** — hardest sent projects ranked cross-system with relative difficulty
+- **Route height graph** — live altimeter recorded as time-series in Suunto app
+- **Climbing vs rest graph** — overlay with heart rate to analyze session structure
+- **Companion App** — 49 read-only stats + 46 editable settings (grade system, all 40 projects across systems, project names)
+- **Full touch + button support** — gloves-friendly for outdoor climbing
 
-## How to use
+## Screen flow
 
-1. Start a climbing activity on your watch and select Climb Log.
-2. **Setup:** Pick your grade system (swipe or buttons up/down). Tap PROJECTS or long press up to configure up to 5 project routes. Tap CLIMB or long press down to skip straight to climbing.
-3. **Ready:** Swipe or use buttons to pick a grade. Long press up to toggle between free and project mode. Tap START or long press down to begin.
-4. **Climbing:** Tap SEND/FAIL on screen, or long press down for send / long press up for fail. Both trigger a silent lap marker.
-5. **Break:** Review your stats. Swipe or use buttons up/down to correct the grade. Tap NEXT or long press down to continue.
-6. End the activity. Your routes are tracked via lap markers and the total routes graph in the Suunto app.
+```
+         ┌───────────────┐
+         │   SETUP       │◄── configure grade system + 5 projects per system
+         │  Step 0-5     │    (step 0 = grade system; steps 1-5 = projects)
+         └───▲───┬───────┘
+             │   │ mid-long (save & exit)
+             │   │
+  up-long    │   ▼
+  (→ SETUP)  │   ┌───────────────┐
+             │   │               │
+             │   │    READY      │◄── home base: pick grade or toggle
+             └──►│     home      │    freeflow/project mode
+                 │               │
+                 └───┬───────▲───┘
+                     │       │
+       down-long     │       │  down-long (NEXT)
+       (START)       │       │
+                     ▼       │
+                 ┌───────────┐│
+                 │           ││
+                 │   CLIMB   ││  up-long = FAIL ✗
+                 │           ││  down-long = SEND ✓
+                 └─────┬─────┘│
+                       │      │
+                       ▼      │
+                 ┌───────────┐│
+                 │   BREAK   ││  up-long = save as project
+                 │           ├┘  down-long = NEXT
+                 │           │   up/down short = adjust last grade
+                 └───────────┘
+                      │
+                      │ mid-long (from READY → STATS)
+                      ▼
+                 ┌───────────┐
+                 │   STATS   │   all-time aggregates + top-10 + grade ramp
+                 │ scrollable│   up/down short = scroll, flicks = scroll
+                 │           │   up-long = SETUP, mid/down-long = READY
+                 └───────────┘
+```
 
-*Tip: All controls work with physical buttons — no need to remove gloves for ice or mixed climbing.*
+## Button reference
 
-## Latest changes
+### Universal
 
-- **v2.9 (pre-release):** HR peak tracking (1-min and 3-min sliding window peaks on break screen), HRR-1min heart-rate-recovery countdown, watch-native lap timers (session pauses properly pause logger), route max HR, live best-send correction on grade edit, climbing-state graph overlay in Suunto app for lining up HR with routes, UI2 watches only
-- v2.82: Restrict installation to UI2 watches (Vertical, Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro) — older UI1 models that couldn't run the app reliably no longer see it in the store
-- v2.81: Fix memory crash when companion app syncs settings — removed all editable settings, deferred heavy operations from app load phase
-- Companion app is now a stats dashboard: see active projects, cumulative routes/sends/send rate
-- All setup is done on the watch — no phone needed at the crag
-- Session summary after exercise: sends/routes and highest send grade
+- **Short press** Up/Down = change values in context (grade, project slot, scroll)
+- **Long press Middle** = switch between main workflow and utility screens
+- **Long press Down** = COMMIT / go forward (START, SEND, NEXT, SAVE)
+- **Flick up/down** = fast 3× value cycle (or scroll on STATS)
+- **Mid short press** is reserved for Suunto system default (next activity screen)
 
-Feedback welcome! Leave a comment or open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger) — contributions and ideas are appreciated.
+### Per screen
+
+| Screen   | Up short        | Down short       | Mid long       | Up long        | Down long |
+|----------|-----------------|------------------|----------------|----------------|-----------|
+| READY    | grade / proj ±  | grade / proj ±   | → STATS        | toggle mode    | START     |
+| CLIMB    | — (safety lock) | — (safety lock)  | — (locked)     | FAIL ✗         | SEND ✓    |
+| BREAK    | adjust last +   | adjust last −    | —              | ★ save project | NEXT      |
+| STATS    | scroll up       | scroll down      | → READY        | → SETUP        | → READY   |
+| SETUP    | field +         | field −          | → READY (save) | next step      | → READY (save) |
+
+CLIMB is safety-locked — only the two long-press outcomes (FAIL / SEND) work to avoid accidental input during active climbing.
+
+## Companion App (Suunto mobile)
+
+### Editable settings (46)
+- Grade System (0-7)
+- All 40 project grade indices (5 per system × 8 systems)
+- 5 project name labels (shared across systems)
+
+### Read-only variables (49)
+- All-time: total routes, total sends, send rate %, sessions
+- HR: avg HR, avg max HR, avg peak 1-min, avg peak 3-min, avg HRR
+- Height: total meters climbed across all sessions
+- Active project: grade, tries, sends, best time, HRR
+- Peak grade: encoded value, first-reached session, sessions-at-peak
+- Top-10 achievements: grade + attempts + sends per slot
+
+## Session Summary (after workout)
+
+Shown as Suunto Plus tiles:
+- **Routes** — total attempts this session
+- **Sends** — successful completions
+- **Best** — hardest grade sent (with system label)
+- **Avg HR** — time-weighted across all routes
+- **Height** — total meters climbed this session
+- **Peak** — all-time peak grade (updates if this session beat previous)
+
+## Tip
+
+All physical inputs mirror the touch gestures — no need to take off gloves for ice, winter, or mixed climbing. Middle short-press is left free for Suunto's built-in activity-screen navigation, so you can still scroll through HR, map, etc. during the session.
+
+## Feedback
+
+Open an issue on [GitHub](https://github.com/wylandplex/suuntoplus-climb-logger/issues) — contributions welcome.

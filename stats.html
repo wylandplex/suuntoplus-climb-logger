@@ -1,0 +1,97 @@
+<uiView onFlickUp="sB(-15)"
+        onFlickDown="sB(15)"
+        onLoad="
+          var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
+          function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
+          var sv=localStorage.getObject('stats')||{};
+          var y=0,maxY=-80;
+          function sB(dy){y=Math.max(maxY,Math.min(0,y+dy));setStyle('#sc','top',(14+y)+'%')}
+          setStyle('#sc','top','14%');
+          setText('#s_r',''+(sv.totalRoutes||0));
+          setText('#s_sn',''+(sv.totalSends||0));
+          setText('#s_pc',''+(sv.sendPct||0));
+          setText('#s_se',''+(sv.sessions||0));
+          setText('#s_hr',''+(sv.avgHr||0));
+          setText('#s_mx',''+(sv.avgMaxHr||0));
+          setText('#s_th',''+(sv.totalHeight||0));
+          setText('#s_pk',sv.peakGrade>=0?dG(sv.peakGrade):'--');
+          setText('#s_hrr',''+(sv.avgHrr||0));
+          for(var i=1;i<=10;i++){
+            var g=sv['t'+i+'_grade'],a=sv['t'+i+'_attempts']||0,s=sv['t'+i+'_sends']||0;
+            setText('#r'+i+'_g',g>=0?dG(g):'');
+            setText('#r'+i+'_c',g>=0?a+'/'+s:'');
+          }
+        ">
+  <div id="climblogger">
+
+    <!-- Scrollable content container -->
+    <div id="sc" style="position:absolute;left:0;width:100%;height:200%;top:14%">
+      <div class="p-hc sp-vertical-center" style="top:calc(3% - 50%e);"><span class="sp-b-s">Routes</span><span id="s_r" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(10% - 50%e);"><span class="sp-b-s">Sends</span><span id="s_sn" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(17% - 50%e);"><span class="sp-b-s">Rate %</span><span id="s_pc" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(24% - 50%e);"><span class="sp-b-s">Sessions</span><span id="s_se" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(31% - 50%e);"><span class="sp-b-s">Avg HR</span><span id="s_hr" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(38% - 50%e);"><span class="sp-b-s">Avg Max</span><span id="s_mx" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(45% - 50%e);"><span class="sp-b-s">Avg HRR</span><span id="s_hrr" class="sp-b-m f-num" style="padding-left:6px">--</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(52% - 50%e);"><span class="sp-b-s">Total H</span><span id="s_th" class="sp-b-m f-num" style="padding-left:6px">--</span><span class="sp-b-s">m</span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(59% - 50%e);"><span class="sp-b-s">Peak</span><span id="s_pk" class="sp-b-m" style="padding-left:6px">--</span></div>
+      <div class="sp-b-s p-hc" style="top:calc(67% - 50%e);">TOP 10</div>
+      <div class="p-hc sp-vertical-center" style="top:calc(73% - 50%e);"><span class="sp-b-s" style="padding-right:4px">1.</span><span id="r1_g" class="sp-b-s"></span><span id="r1_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);"><span class="sp-b-s" style="padding-right:4px">2.</span><span id="r2_g" class="sp-b-s"></span><span id="r2_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(83% - 50%e);"><span class="sp-b-s" style="padding-right:4px">3.</span><span id="r3_g" class="sp-b-s"></span><span id="r3_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(88% - 50%e);"><span class="sp-b-s" style="padding-right:4px">4.</span><span id="r4_g" class="sp-b-s"></span><span id="r4_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(93% - 50%e);"><span class="sp-b-s" style="padding-right:4px">5.</span><span id="r5_g" class="sp-b-s"></span><span id="r5_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(98% - 50%e);"><span class="sp-b-s" style="padding-right:4px">6.</span><span id="r6_g" class="sp-b-s"></span><span id="r6_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(103% - 50%e);"><span class="sp-b-s" style="padding-right:4px">7.</span><span id="r7_g" class="sp-b-s"></span><span id="r7_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(108% - 50%e);"><span class="sp-b-s" style="padding-right:4px">8.</span><span id="r8_g" class="sp-b-s"></span><span id="r8_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(113% - 50%e);"><span class="sp-b-s" style="padding-right:4px">9.</span><span id="r9_g" class="sp-b-s"></span><span id="r9_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(118% - 50%e);"><span class="sp-b-s" style="padding-right:4px">10.</span><span id="r10_g" class="sp-b-s"></span><span id="r10_c" class="sp-b-s f-num" style="padding-left:8px"></span></div>
+    </div>
+
+    <!-- Title bar (rendered AFTER content so it overlays top) -->
+    <div class="cm-fg" style="width:100%;height:14%">
+      <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">STATS</div>
+    </div>
+
+    <!-- Up-button: visible pill. -->
+    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(65% - 50%e); left:6px;">&#xF102;</div>
+      </div>
+    </div>
+    <!-- Up-button: invisible tap zone (tap = → SETUP, consistent with long-press). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
+      style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+    <!-- Down-button: visible pill (E365 = back/exit). -->
+    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(45% - 50%e); left:6px;">&#xE365;</div>
+      </div>
+    </div>
+    <!-- Down-button: invisible tap zone (tap = → READY, consistent with long-press). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+      style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+    <!-- Physical: up-long = SETUP, mid-long = READY, flick = scroll -->
+    <:if test="{{ HAS_ON_EVENT }}">
+    <userInput>
+      <pushButton name="up" type="lock" longType="lock"
+        onClick="sB(15)"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
+      <pushButton name="down" type="lock" longType="lock"
+        onClick="sB(-15)"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
+    </userInput>
+    </:if>
+
+  </div>
+</uiView>

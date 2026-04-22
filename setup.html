@@ -1,92 +1,77 @@
-<uiView onFlickUp="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onFlickDown="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+<uiView onFlickUp="for(var i=0;i<3;i++)$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+        onFlickDown="for(var i=0;i<3;i++)$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
         onLoad="
           var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
           function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
+          $.subscribe('/Zapp/{zapp_index}/Output/modeSub',function(v){setStyle('#titIco','visibility',v===0?'VISIBLE':'HIDDEN');setStyle('#titTxt','visibility',v===0?'HIDDEN':'VISIBLE');setStyle('#sysName','visibility',v===0?'VISIBLE':'HIDDEN');setText('#upIco',String.fromCharCode(v===0?0xE338:0xF102));});
         ">
   <div id="climblogger">
 
-    <!-- Step title: GRADE SYSTEM / PROJECT 1-3 -->
-    <div class="sp-b-s p-hc" style="top:calc(18% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x === 0 ? 'GRADE SYSTEM' : 'PROJECT ' + Math.abs(x)" default="GRADE SYSTEM" />
+    <!-- Step title: F102 icon on step 0 (grade system), PROJECT N text on steps 1-5 -->
+    <div id="titIco" class="f-ico p-hc" style="top:calc(22% - 50%e);">&#xF102;</div>
+    <div id="titTxt" class="sp-b-s p-hc" style="top:calc(22% - 50%e);">
+      <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => 'PROJECT ' + Math.abs(x)" default="PROJECT 1" />
     </div>
 
-    <!-- System name -->
-    <div class="sp-t-l" style="top:calc(32% - 50%e); left:calc(50% - 50%e);">
+    <!-- Up-arrow tap-bar (invisible) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+      style="top:26%;left:0;width:70%;height:14%;position:absolute;"></div>
+    <!-- Up-arrow icon (screen-centered) -->
+    <div class="f-ico p-hc" style="top:calc(33% - 50%e);">&#xF266;</div>
+
+    <!-- System name (centered, hidden on project steps) -->
+    <div id="sysName" class="sp-t-l" style="top:calc(42% - 50%e); left:calc(50% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x=>'French Sport,UIAA Sport,YDS Sport,British Trad,Ice (WI),Mixed,V-Scale Boulder,Font Boulder'.split(',')[Math.floor(x/100)]||'French Sport'" default="French Sport" />
     </div>
 
-    <!-- Minus button (left of grade) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-      style="top:38%;left:2%;width:18%;height:14%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:75%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">-</div>
-      </div>
-    </div>
-
-    <!-- Grade preview / project grade / OFF -->
-    <div class="sp-t-l" style="top:calc(44% - 50%e); left:calc(50% - 50%e);">
+    <!-- Grade preview / project grade / OFF (hero) -->
+    <div class="sp-t-l" style="top:calc(58% - 50%e); left:calc(50% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
     </div>
 
-    <!-- Plus button (right of grade) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-      style="top:38%;left:80%;width:18%;height:14%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:75%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">+</div>
+    <!-- Down-arrow tap-bar (invisible) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+      style="top:66%;left:0;width:70%;height:25%;position:absolute;"></div>
+    <!-- Down-arrow icon (screen-centered) -->
+    <div class="f-ico p-hc" style="top:calc(74% - 50%e);">&#xF267;</div>
+
+    <!-- Up-button: visible pill (dynamic icon: project symbol on step 0, circle on project steps). -->
+    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div id="upIco" class="f-ico cm-bgc"
+             style="top:calc(65% - 50%e); left:6px;">&#xE338;</div>
       </div>
     </div>
+    <!-- Up-button: invisible tap zone (tap = next step). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
+      style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- CLIMB button (skip to ready) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 7, null, 'int32');"
-      style="top:58%;left:5%;width:44%;height:13%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:65%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
-          <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x === 0 ? 'CLIMB' : 'SKIP'" default="CLIMB" />
-        </div>
+    <!-- Down-button: visible pill (E365 = back/exit). -->
+    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(45% - 50%e); left:6px;">&#xE365;</div>
       </div>
     </div>
+    <!-- Down-button: large invisible tap zone (tap = save & → READY). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+      style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- PROJECTS / NEXT / OK button -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
-      style="top:58%;left:51%;width:44%;height:13%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:65%;position:absolute;
-                  background:rgba(255,255,255,0.06);border-radius:6px;">
-        <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
-          <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x === 0 ? 'PROJECTS' : (x > -5 ? 'NEXT' : 'OK')" default="PROJECTS" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Hint -->
-    <div class="sp-b-s p-hc" style="top:calc(78% - 50%e); opacity:0.4;">swipe to change</div>
-
-    <!-- Button hints -->
-    <:if test="{{ IS_NG3 }}">
-      <div class="btn btn-top">
-        <img class="cm-bgc icon" src="hint-btn-top.png" />
-      </div>
-      <div class="btn btn-btm">
-        <img class="cm-bgc icon" src="hint-btn-bottom.png" />
-      </div>
-    </:if>
-
-    <!-- Physical: up=next, down=prev, down long=OK/NEXT -->
+    <!-- Physical: up±=field, up-long=STATS, mid=OS, mid-long=READY(save), down-long=next step -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 7, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
     </userInput>
     </:if>
 

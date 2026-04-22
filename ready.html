@@ -1,8 +1,24 @@
-<uiView onFlickUp="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onFlickDown="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+<uiView onFlickUp="for(var i=0;i<3;i++)$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+        onFlickDown="for(var i=0;i<3;i++)$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
         onLoad="
           var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
           function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
+          var ps=localStorage.getObject('climbProjStats')||{};
+          var ws=localStorage.getObject('watchSetup')||{};
+          var cSys=ws.sys||0;
+          function fT(s){return s>0?Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60):'--'}
+          function uP(cm){
+            if(cm>0){
+              var p=ps[cSys+'_'+cm]||{attempts:0,sends:0,bestTime:0};
+              setText('#pT',''+p.attempts);
+              setText('#pS',''+p.sends);
+              setText('#pB',fT(p.bestTime));
+              setStyle('#projStats','visibility','VISIBLE');
+            } else {
+              setStyle('#projStats','visibility','HIDDEN');
+            }
+          }
+          $.subscribe('/Zapp/{zapp_index}/Output/climbMode',function(v){uP(v)});
         ">
   <div id="climblogger">
 
@@ -14,61 +30,71 @@
       </div>
     </div>
 
-    <!-- Minus button (left of grade) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-      style="top:24%;left:2%;width:18%;height:14%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:75%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">-</div>
-      </div>
-    </div>
+    <!-- Up-arrow tap-bar (invisible wide target) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+      style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
+    <!-- Up-arrow icon (screen-centered) -->
+    <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
 
-    <!-- Grade display (hero) -->
-    <div class="sp-t-l" style="top:calc(30% - 50%e); left:calc(50% - 50%e);">
+    <!-- Grade display (hero, centered) -->
+    <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
     </div>
 
-    <!-- Plus button (right of grade) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-      style="top:24%;left:80%;width:18%;height:14%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:75%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">+</div>
+    <!-- Down-arrow tap-bar (invisible wide target) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+      style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
+    <!-- Down-arrow icon (screen-centered) -->
+    <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
+
+
+    <!-- Up-button: visible pill (fixed size). Hidden when no projects configured. -->
+    <div id="pillTop" style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(65% - 50%e); left:6px;">&#xF107;</div>
       </div>
     </div>
+    <!-- Up-button: large invisible tap zone (tap = → STATS). -->
+    <div id="zoneTop" onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
+      style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- START button -->
-    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
-      style="top:44%;left:10%;width:80%;height:19%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:85%;height:75%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-l" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">START</div>
+    <!-- Middle-button: visible pill. -->
+    <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(55% - 50%e); left:6px;">&#xF111;</div>
       </div>
     </div>
+    <!-- Middle-button: invisible tap zone (tap = → STATS). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
+      style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Project stats -->
-    <div class="sp-b-s" style="top:calc(66% - 50%e); left:calc(28% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => x ? 'TRIES' : ''" />
+    <!-- Down-button: visible pill (fixed size). -->
+    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(45% - 50%e); left:6px;">&#xE373;</div>
+      </div>
     </div>
-    <div class="sp-b-m" style="top:calc(73% - 50%e); left:calc(28% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => ''" />
-    </div>
+    <!-- Down-button: large invisible tap zone (tap = START). -->
+    <div onTap="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+      style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <div class="sp-b-s" style="top:calc(66% - 50%e); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => x ? 'SENDS' : ''" />
-    </div>
-    <div class="sp-b-m" style="top:calc(73% - 50%e); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => ''" />
-    </div>
-
-    <div class="sp-b-s" style="top:calc(66% - 50%e); left:calc(72% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => x ? 'BEST' : ''" />
-    </div>
-    <div class="sp-b-m" style="top:calc(73% - 50%e); left:calc(72% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => ''" />
+    <!-- Project stats row (only in project mode) -->
+    <div id="projStats" class="p-hc sp-vertical-center" style="top:calc(82% - 50%e);visibility:HIDDEN">
+      <span class="sp-b-s">T</span>
+      <span id="pT" class="sp-b-s f-num" style="padding-left:3px">0</span>
+      <span class="sp-b-s" style="padding-left:10px">S</span>
+      <span id="pS" class="sp-b-s f-num" style="padding-left:3px">0</span>
+      <span class="sp-b-s" style="padding-left:10px">B</span>
+      <span id="pB" class="sp-b-s f-num" style="padding-left:3px">--</span>
     </div>
 
     <!-- Session time -->
@@ -78,25 +104,17 @@
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
 
-    <!-- Button hints -->
-    <:if test="{{ IS_NG3 }}">
-      <div class="btn btn-top">
-        <img class="cm-bgc icon" src="hint-btn-top.png" />
-      </div>
-      <div class="btn btn-btm">
-        <img class="cm-bgc icon" src="hint-btn-bottom.png" />
-      </div>
-    </:if>
-
-    <!-- Physical: up=grade up, up long=cycle mode, down=grade down, down long=START -->
+    <!-- Physical: up=grade±, up-long=toggle mode, mid-long=STATS, down±, down-long=START -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+        onLongPressStart="$.put('/Activity/Trigger', 23); $.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
     </userInput>
     </:if>
 

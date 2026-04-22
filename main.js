@@ -1,10 +1,9 @@
-/* Climb Logger v2.95 */
+/* Climb Logger v3.0 */
 
-var currentTemplate = "setup";
-var setupDone = false;
+var currentTemplate = "ready";
+var state = 0;
 var setupStep = 0;
 
-var state = 0;
 var currentGrade = 18;
 var routeNumber = 1;
 var routes = [];
@@ -28,6 +27,10 @@ var frDirty = 0;
 var frSend = 0;
 
 var climbMode = 0;
+var curAlt = 0;
+var startAlt = 0;
+var maxAlt = 0;
+var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
@@ -36,6 +39,7 @@ var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
 var GRADE_LENS = [41, 24, 29, 11, 11, 12, 14, 30];
 var DEFAULT_IDX = [18, 6, 5, 5, 3, 5, 4, 12];
 var gradeSystem = 0;
+var LS = localStorage;
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -60,36 +64,44 @@ var loadProjects = function(sys) {
   }
 };
 
-var saveSetup = function() {
+var writeStats = function() {
+  var sv = LS.getObject("stats") || {};
+  for (var k in allTimeStats) sv[k] = allTimeStats[k];
+  sv.system = gradeSystem;
+  var d = 0;
+  for (var s = 0; s < 8; s++) {
+    var sp = allProjects[s] || [];
+    for (var i = 0; i < 5; i++) {
+      var v = sp[i] !== undefined ? sp[i] : -1;
+      var key = s + "_" + (i+1);
+      sv["p" + key] = v;
+      var p = projStats[key];
+      if (p && (v === -1 || (p.g !== undefined && p.g !== v))) {
+        delete projStats[key]; d = 1;
+      }
+    }
+  }
+  if (d) LS.setObject("climbProjStats", projStats);
+  var ap = climbMode > 0 ? (projStats[gradeSystem + "_" + climbMode] || {}) : {};
+  sv.activeGrade = climbMode > 0 && projGradeIdx[climbMode-1] >= 0 ? gradeSystem * 100 + projGradeIdx[climbMode-1] : -1;
+  sv.activeTries = ap.attempts || 0;
+  sv.activeSends = ap.sends || 0;
+  sv.activeBest = ap.bestTime || 0;
+  LS.setObject("stats", sv);
+};
+
+var saveAll = function() {
   allProjects[gradeSystem] = projGradeIdx.slice();
-  localStorage.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
+  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
+  writeStats();
 };
 
-var updateAllTimeStats = function() {
-  var sv = localStorage.getObject("stats") || {};
-  sv.totalRoutes = allTimeStats.totalRoutes;
-  sv.totalSends = allTimeStats.totalSends;
-  sv.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
-  sv.sessions = allTimeStats.sessions;
-  localStorage.setObject("stats", sv);
-};
-
-var wrapIdx = function(idx, len) {
-  if (idx >= len) return 0;
-  if (idx < 0) return len - 1;
-  return idx;
-};
-
-var wrapIdxOff = function(idx, len) {
-  if (idx >= len) return -1;
-  if (idx < -1) return len - 1;
-  return idx;
+var wrap = function(idx, len, off) {
+  return idx >= len ? -off : idx < -off ? len - 1 : idx;
 };
 
 var cycleSystem = function(dir) {
-  gradeSystem += dir;
-  if (gradeSystem > 7) gradeSystem = 0;
-  if (gradeSystem < 0) gradeSystem = 7;
+  gradeSystem = wrap(gradeSystem + dir, 8, 0);
   currentGrade = DEFAULT_IDX[gradeSystem];
   loadProjects(gradeSystem);
 };
@@ -107,40 +119,103 @@ var cycleActiveProject = function(dir) {
   currentGrade = projGradeIdx[climbMode - 1];
 };
 
-// finishRoute → ext10.js via frDirty in evaluate()
-
-var goReady = function() {
-  currentTemplate = "ready";
+var setTpl = function(t) {
+  currentTemplate = t;
   unload('_cm');
 };
 
+var goState = function(s, t) {
+  state = s;
+  setTpl(t);
+};
+
+var writeG = function(o, idx) {
+  o.grade = encGrade(gradeSystem, idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
+};
+
+var renderSetup = function(o) {
+  o.routeNum = setupStep || gradeSystem + 1;
+  writeG(o, setupStep ? setupStep - 1 : undefined);
+  o.modeSub = -setupStep;
+};
+
+var finishRoute = function(send) {
+  lastResult = send; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
+  lastHeight = Math.max(0, Math.round(maxAlt - startAlt));
+  frDirty = 1; frSend = send;
+  routeNumber++;
+  goState(2, "break");
+};
+
+var toggleMode = function() {
+  if (climbMode > 0) {
+    climbMode = 0;
+  } else {
+    for (var p = 0; p < 5; p++) {
+      if (projGradeIdx[p] >= 0) {
+        climbMode = p + 1;
+        currentGrade = projGradeIdx[p];
+        break;
+      }
+    }
+  }
+  writeStats();
+};
+
+var saveAsProject = function() {
+  if (climbMode > 0) return;
+  var sp = allProjects[lastGradeSys] || [-1,-1,-1,-1,-1];
+  for (var i = 0; i < 5; i++) {
+    if (sp[i] === -1) {
+      sp[i] = lastGradeIdx;
+      allProjects[lastGradeSys] = sp;
+      if (lastGradeSys !== gradeSystem) {
+        gradeSystem = lastGradeSys;
+        loadProjects(gradeSystem);
+      }
+      projGradeIdx[i] = lastGradeIdx;
+      climbMode = i + 1;
+      currentGrade = lastGradeIdx;
+      saveAll();
+      goState(0, "ready");
+      return;
+    }
+  }
+};
+
 function onLoad(_input, output) {
-  var ws = localStorage.getObject("watchSetup");
+  var ws = LS.getObject("watchSetup");
   if (ws) {
     gradeSystem = (ws.sys >= 0 && ws.sys <= 7) ? ws.sys : 0;
     allProjects = ws.proj || {};
   }
+
+  var savedStats = LS.getObject("stats");
+  if (savedStats) {
+    if (savedStats.system >= 0 && savedStats.system <= 7) gradeSystem = savedStats.system | 0;
+    for (var k in allTimeStats) allTimeStats[k] = savedStats[k] || 0;
+    for (var s = 0; s < 8; s++) {
+      var sp = allProjects[s] || [-1, -1, -1, -1, -1];
+      for (var i = 0; i < 5; i++) {
+        var p = savedStats["p" + s + "_" + (i+1)];
+        if (p >= -1 && p < GRADE_LENS[s]) sp[i] = p | 0;
+      }
+      allProjects[s] = sp;
+    }
+  }
+
   loadProjects(gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
-
-  localStorage.setObject("climbRoutes", []);
-
-  projStats = localStorage.getObject("climbProjStats") || {};
-
-  var savedStats = localStorage.getObject("stats");
-  if (savedStats) {
-    allTimeStats.totalRoutes = savedStats.totalRoutes || 0;
-    allTimeStats.totalSends = savedStats.totalSends || 0;
-    allTimeStats.sendPct = savedStats.sendPct || 0;
-    allTimeStats.sessions = savedStats.sessions || 0;
-  }
+  LS.setObject("climbRoutes", []);
+  projStats = LS.getObject("climbProjStats") || {};
   allTimeStats.sessions++;
-  updateAllTimeStats();
+  writeStats();
 }
 
 function evaluate(input, output) {
+  if (input.Alt !== undefined) { curAlt = input.Alt; if (state === 1 && curAlt > maxAlt) maxAlt = curAlt; }
   if (state === 1) {
-    var h = input.Heartrate;
+    var h = input.H;
     if (h > 0) {
       hr1Sum += h; hr3Sum += h;
       if (hrIdx >= 60) { hr1Sum -= hrBuf[(hrIdx - 60) % 180]; if (hr1Sum / 60 > bestPk1) bestPk1 = hr1Sum / 60; }
@@ -152,179 +227,99 @@ function evaluate(input, output) {
 
   if (frDirty) {
     frDirty = 0;
-    lastHrAvg = input.LapAvg || 0;
-    lastMaxHr = input.LapMax || 0;
-    lastDuration = input.LapDur2 || 0;
+    lastHrAvg = input.A || 0;
+    lastMaxHr = input.M || 0;
+    lastDuration = input.D || 0;
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var fn = evalFile('{file_path}/ext10.js');
-    var r = fn(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lastMaxHr, lastPk1, lastPk3,
-      frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats);
-    fn = undefined;
+    var r = evalFile('{file_path}/ext10.js')(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lastMaxHr, lastPk1, lastPk3,
+      frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats, lastHeight);
     bestSendEnc = r[0];
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
   }
 
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
-  output.lastDuration = lastDuration;
-  output.routeHrAvg = lastHrAvg;
-  output.routeMaxHr = lastMaxHr;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
+  output.routeHeight = state === 1 ? Math.max(0, Math.round(maxAlt - startAlt)) : lastHeight;
   output.climbMode = climbMode;
 
-  if (!setupDone) {
-    output.routeNum = gradeSystem + 1;
-    if (setupStep === 0) {
-      output.grade = encGrade(gradeSystem, currentGrade);
-    } else {
-      var pi = setupStep - 1;
-      output.grade = projGradeIdx[pi] >= 0 ? encGrade(gradeSystem, projGradeIdx[pi]) : encGrade(gradeSystem, 50);
-    }
-    output.modeSub = -setupStep;
+  if (state === 4) {
+    renderSetup(output);
   } else {
-    output.routeNum = routeNumber;
-    output.grade = encGrade(gradeSystem, currentGrade);
-    if (climbMode > 0) {
-      output.modeSub = -climbMode;
-    } else if (state === 2) {
-      output.modeSub = routes.length;
-    } else {
-      output.modeSub = routeNumber;
-    }
+    output.routeNum = state === 3 ? 0 : (state === 2 ? routes.length : routeNumber);
+    writeG(output);
+    output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
   }
 
-  var sends = countSends();
-  output.totalSends = sends;
+  output.totalSends = countSends();
   output.bestSend = bestSendEnc;
   output.climbing = state === 1 ? 1 : 0;
-
 }
 
 function onEvent(_input, output, eventId) {
-  switch (eventId) {
-    case 1:
-    case 2:
-      var dir = eventId === 1 ? 1 : -1;
-      var len = GRADE_LENS[gradeSystem];
-
-      if (!setupDone) {
-        if (setupStep === 0) {
-          cycleSystem(dir);
-          output.grade = encGrade(gradeSystem, currentGrade);
-          output.routeNum = gradeSystem + 1;
-        } else {
-          var pi = setupStep - 1;
-          projGradeIdx[pi] = wrapIdxOff(projGradeIdx[pi] + dir, len);
-          output.grade = projGradeIdx[pi] >= 0 ? encGrade(gradeSystem, projGradeIdx[pi]) : encGrade(gradeSystem, 50);
-        }
-      } else if (state === 0 && climbMode === 0) {
-        currentGrade = wrapIdx(currentGrade + dir, len);
-        output.grade = encGrade(gradeSystem, currentGrade);
-      } else if (state === 0 && climbMode > 0) {
-        cycleActiveProject(-dir);
-        output.grade = encGrade(gradeSystem, currentGrade);
-        output.climbMode = climbMode;
-      } else if (state === 2) {
-        lastGradeIdx = wrapIdx(lastGradeIdx + dir, GRADE_LENS[lastGradeSys]);
-        routes[routes.length - 1].grade = lastGradeIdx;
-        localStorage.setObject("climbRoutes", routes);
-        currentGrade = lastGradeIdx;
-        output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
-        output.grade = encGrade(gradeSystem, currentGrade);
-        if (lastResult) {
-          var fn = evalFile('{file_path}/ext12.js');
-          bestSendEnc = fn(routes); fn = undefined;
-          output.bestSend = bestSendEnc;
-        }
+  if (state === 0) {
+    if (eventId === 1 || eventId === 2) {
+      if (climbMode === 0) {
+        currentGrade = wrap(currentGrade + (eventId === 1 ? 1 : -1), GRADE_LENS[gradeSystem], 0);
+      } else {
+        cycleActiveProject(eventId === 1 ? -1 : 1);
       }
-      break;
-
-    case 3:
-      if (!setupDone) {
-        if (setupStep < 5) {
-          setupStep++;
-          output.modeSub = -setupStep;
-          var pi = setupStep - 1;
-          output.grade = projGradeIdx[pi] >= 0 ? encGrade(gradeSystem, projGradeIdx[pi]) : encGrade(gradeSystem, 50);
-        } else {
-          saveSetup();
-          setupDone = true;
-          goReady();
-        }
-      } else if (state === 0) {
-        state = 1;
-        hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
-        currentTemplate = "climb";
-        unload('_cm');
-      } else if (state === 1) {
-        lastResult = 1; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
-        frDirty = 1; frSend = 1;
-        routeNumber++; state = 2;
-        currentTemplate = "break"; unload('_cm');
-      } else if (state === 2 && !frDirty) {
-        state = 0;
-        goReady();
+      writeG(output);
+      output.climbMode = climbMode;
+    } else if (eventId === 5) {
+      goState(3, "stats");
+    } else if (eventId === 4) {
+      toggleMode();
+      writeG(output);
+      output.climbMode = climbMode;
+    } else if (eventId === 6) {
+      hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
+      startAlt = maxAlt = curAlt;
+      goState(1, "climb");
+    }
+  } else if (state === 1) {
+    if (eventId === 5) finishRoute(0);
+    else if (eventId === 6) finishRoute(1);
+  } else if (state === 2) {
+    if (eventId === 1 || eventId === 2) {
+      lastGradeIdx = wrap(lastGradeIdx + (eventId === 1 ? 1 : -1), GRADE_LENS[lastGradeSys], 0);
+      routes[routes.length - 1].grade = lastGradeIdx;
+      LS.setObject("climbRoutes", routes);
+      currentGrade = lastGradeIdx;
+      output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
+      writeG(output);
+      if (lastResult) {
+        bestSendEnc = evalFile('{file_path}/ext12.js')(routes);
+        output.bestSend = bestSendEnc;
       }
-      break;
-
-    case 4:
-      if (state === 1) {
-        lastResult = 0; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
-        frDirty = 1; frSend = 0;
-        routeNumber++; state = 2;
-        currentTemplate = "break"; unload('_cm');
+    } else if (eventId === 4) {
+      saveAsProject();
+    } else if (eventId === 6 && !frDirty) {
+      goState(0, "ready");
+    }
+  } else if (state === 3) {
+    if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
+    else if (eventId === 4 || eventId === 6) goState(0, "ready");
+  } else if (state === 4) {
+    if (eventId === 1 || eventId === 2) {
+      if (setupStep === 0) {
+        cycleSystem(eventId === 1 ? 1 : -1);
+      } else {
+        var pi = setupStep - 1;
+        projGradeIdx[pi] = wrap(projGradeIdx[pi] + (eventId === 1 ? 1 : -1), GRADE_LENS[gradeSystem], 1);
       }
-      break;
-
-    case 5:
-      if (state === 0 && setupDone) {
-        if (climbMode > 0) {
-          climbMode = 0;
-        } else {
-          for (var p = 0; p < 5; p++) {
-            if (projGradeIdx[p] >= 0) {
-              climbMode = p + 1;
-              break;
-            }
-          }
-        }
-        if (climbMode > 0) {
-          currentGrade = projGradeIdx[climbMode - 1];
-        }
-        output.grade = encGrade(gradeSystem, currentGrade);
-        output.climbMode = climbMode;
-      }
-      break;
-
-    case 6:
-      if (state === 0 && setupDone) {
-        gradeSystem++;
-        if (gradeSystem > 7) gradeSystem = 0;
-        loadProjects(gradeSystem);
-        for (var p = 0; p < 5; p++) {
-          if (projGradeIdx[p] >= GRADE_LENS[gradeSystem]) {
-            projGradeIdx[p] = GRADE_LENS[gradeSystem] - 1;
-          }
-        }
-        currentGrade = climbMode > 0 ? projGradeIdx[climbMode - 1] : DEFAULT_IDX[gradeSystem];
-        output.grade = encGrade(gradeSystem, currentGrade);
-      }
-      break;
-
-    case 7:
-      if (!setupDone) {
-        saveSetup();
-        setupDone = true;
-        goReady();
-      }
-      break;
+      renderSetup(output);
+    } else if (eventId === 5) {
+      setupStep = (setupStep + 1) % 6;
+      renderSetup(output);
+    } else if (eventId === 6) {
+      saveAll();
+      goState(0, "ready");
+    }
   }
 }
 
 function getSummaryOutputs(input, output) {
-  var fn = evalFile('{file_path}/ext9.js');
-  var r = fn(routes.length, countSends(), bestSendEnc, lastHrAvg || 0);
-  fn = undefined;
-  return r;
+  return evalFile('{file_path}/ext9.js')(routes, bestSendEnc);
 }

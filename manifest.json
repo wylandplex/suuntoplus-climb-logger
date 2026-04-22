@@ -1,30 +1,35 @@
 {
   "name": "Climb Log",
-  "description": "Log sends and fails, track 5 project routes across 8 grade systems.",
-  "version": "2.9",
+  "description": "Log climbs: 8 grade systems, 40 projects, HR + HRR, height tracking, session stats + multi-year grade progression.",
+  "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776421752,
+  "modificationTime": 1776878263,
   "type": "feature",
   "usage": "workout",
   "in": [
     {
-      "name": "Heartrate",
+      "name": "H",
       "source": "Activity/Move/-1/Heartrate/Current",
       "type": "subscribe"
     },
     {
-      "name": "LapAvg",
+      "name": "A",
       "source": "Activity/Lap/-2/HeartRate/Avg",
       "type": "subscribe"
     },
     {
-      "name": "LapMax",
+      "name": "M",
       "source": "Activity/Lap/-2/HeartRate/Max",
       "type": "subscribe"
     },
     {
-      "name": "LapDur2",
+      "name": "D",
       "source": "Activity/Lap/-2/Duration/Current",
+      "type": "subscribe"
+    },
+    {
+      "name": "Alt",
+      "source": "Activity/Move/-1/Altitude/Current",
       "type": "subscribe"
     }
   ],
@@ -37,15 +42,6 @@
     },
     {
       "name": "lastGrade"
-    },
-    {
-      "name": "lastDuration"
-    },
-    {
-      "name": "routeHrAvg"
-    },
-    {
-      "name": "routeMaxHr"
     },
     {
       "name": "routePk1"
@@ -70,73 +66,72 @@
       "log": true,
       "shownName": "Climbing/Breaks",
       "format": "Count_Fourdigits"
+    },
+    {
+      "name": "routeHeight",
+      "log": true,
+      "shownName": "Route Height [m]",
+      "format": "Count_Fourdigits"
     }
   ],
   "template": [
     {
-      "name": "setup.html",
-      "displays": [
-        "n",
-        "o",
-        "q"
-      ]
-    },
-    {
       "name": "ready.html",
       "displays": [
+        "l",
+        "m",
         "n",
         "o",
-        "q"
+        "q",
+        "s"
       ]
     },
     {
       "name": "climb.html",
       "displays": [
+        "l",
+        "m",
         "n",
         "o",
-        "q"
+        "q",
+        "s"
       ]
     },
     {
       "name": "break.html",
       "displays": [
+        "l",
+        "m",
         "n",
         "o",
-        "q"
+        "q",
+        "s"
+      ]
+    },
+    {
+      "name": "setup.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
+    },
+    {
+      "name": "stats.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
       ]
     }
   ],
   "variables": [
-    {
-      "shownName": "Grade System",
-      "path": "stats.system",
-      "type": "string"
-    },
-    {
-      "shownName": "Project 1",
-      "path": "stats.p1",
-      "type": "string"
-    },
-    {
-      "shownName": "Project 2",
-      "path": "stats.p2",
-      "type": "string"
-    },
-    {
-      "shownName": "Project 3",
-      "path": "stats.p3",
-      "type": "string"
-    },
-    {
-      "shownName": "Project 4",
-      "path": "stats.p4",
-      "type": "string"
-    },
-    {
-      "shownName": "Project 5",
-      "path": "stats.p5",
-      "type": "string"
-    },
     {
       "shownName": "Total Routes",
       "path": "stats.totalRoutes",
@@ -176,7 +171,525 @@
       "shownName": "Avg Peak 3min HR [bpm]",
       "path": "stats.avgPk3",
       "type": "int"
+    },
+    {
+      "shownName": "Top1 Grade (sys*100+idx)",
+      "path": "stats.t1_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top1 Attempts",
+      "path": "stats.t1_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top1 Sends",
+      "path": "stats.t1_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top2 Grade (sys*100+idx)",
+      "path": "stats.t2_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top2 Attempts",
+      "path": "stats.t2_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top2 Sends",
+      "path": "stats.t2_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top3 Grade (sys*100+idx)",
+      "path": "stats.t3_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top3 Attempts",
+      "path": "stats.t3_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top3 Sends",
+      "path": "stats.t3_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top4 Grade (sys*100+idx)",
+      "path": "stats.t4_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top4 Attempts",
+      "path": "stats.t4_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top4 Sends",
+      "path": "stats.t4_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top5 Grade (sys*100+idx)",
+      "path": "stats.t5_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top5 Attempts",
+      "path": "stats.t5_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top5 Sends",
+      "path": "stats.t5_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top6 Grade (sys*100+idx)",
+      "path": "stats.t6_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top6 Attempts",
+      "path": "stats.t6_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top6 Sends",
+      "path": "stats.t6_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top7 Grade (sys*100+idx)",
+      "path": "stats.t7_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top7 Attempts",
+      "path": "stats.t7_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top7 Sends",
+      "path": "stats.t7_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top8 Grade (sys*100+idx)",
+      "path": "stats.t8_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top8 Attempts",
+      "path": "stats.t8_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top8 Sends",
+      "path": "stats.t8_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top9 Grade (sys*100+idx)",
+      "path": "stats.t9_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top9 Attempts",
+      "path": "stats.t9_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top9 Sends",
+      "path": "stats.t9_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Top10 Grade (sys*100+idx)",
+      "path": "stats.t10_grade",
+      "type": "int"
+    },
+    {
+      "shownName": "Top10 Attempts",
+      "path": "stats.t10_attempts",
+      "type": "int"
+    },
+    {
+      "shownName": "Top10 Sends",
+      "path": "stats.t10_sends",
+      "type": "int"
+    },
+    {
+      "shownName": "Active Project Grade (sys*100+idx, -1=none)",
+      "path": "stats.activeGrade",
+      "type": "int"
+    },
+    {
+      "shownName": "Active Project Tries",
+      "path": "stats.activeTries",
+      "type": "int"
+    },
+    {
+      "shownName": "Active Project Sends",
+      "path": "stats.activeSends",
+      "type": "int"
+    },
+    {
+      "shownName": "Active Project Best Time [s]",
+      "path": "stats.activeBest",
+      "type": "int"
+    },
+    {
+      "shownName": "Avg HRR [bpm drop in 60s]",
+      "path": "stats.avgHrr",
+      "type": "int"
+    },
+    {
+      "shownName": "Active Project HRR [bpm]",
+      "path": "stats.activeHrr",
+      "type": "int"
+    },
+    {
+      "shownName": "Total Height Climbed [m]",
+      "path": "stats.totalHeight",
+      "type": "int"
+    },
+    {
+      "shownName": "Peak Grade Ever (sys*100+idx)",
+      "path": "stats.peakGrade",
+      "type": "int"
+    },
+    {
+      "shownName": "Session Peak First Reached",
+      "path": "stats.peakSession",
+      "type": "int"
+    },
+    {
+      "shownName": "Sessions at Peak",
+      "path": "stats.sessionsAtPeak",
+      "type": "int"
+    },
+    {
+      "shownName": "Last Session Grade",
+      "path": "stats.lastSessionGrade",
+      "type": "int"
     }
   ],
-  "settings": []
+  "settings": [
+    {
+      "shownName": "Grade System (0=FR 1=YDS 2=V 3=UIAA 4=Brit 5=Font 6=Trad 7=Sax)",
+      "path": "stats.system",
+      "type": "int",
+      "min": 0,
+      "max": 7
+    },
+    {
+      "shownName": "FR P1 (-1=off, 0..40)",
+      "path": "stats.p0_1",
+      "type": "int",
+      "min": -1,
+      "max": 40
+    },
+    {
+      "shownName": "FR P2 (-1=off, 0..40)",
+      "path": "stats.p0_2",
+      "type": "int",
+      "min": -1,
+      "max": 40
+    },
+    {
+      "shownName": "FR P3 (-1=off, 0..40)",
+      "path": "stats.p0_3",
+      "type": "int",
+      "min": -1,
+      "max": 40
+    },
+    {
+      "shownName": "FR P4 (-1=off, 0..40)",
+      "path": "stats.p0_4",
+      "type": "int",
+      "min": -1,
+      "max": 40
+    },
+    {
+      "shownName": "FR P5 (-1=off, 0..40)",
+      "path": "stats.p0_5",
+      "type": "int",
+      "min": -1,
+      "max": 40
+    },
+    {
+      "shownName": "YDS P1 (-1=off, 0..23)",
+      "path": "stats.p1_1",
+      "type": "int",
+      "min": -1,
+      "max": 23
+    },
+    {
+      "shownName": "YDS P2 (-1=off, 0..23)",
+      "path": "stats.p1_2",
+      "type": "int",
+      "min": -1,
+      "max": 23
+    },
+    {
+      "shownName": "YDS P3 (-1=off, 0..23)",
+      "path": "stats.p1_3",
+      "type": "int",
+      "min": -1,
+      "max": 23
+    },
+    {
+      "shownName": "YDS P4 (-1=off, 0..23)",
+      "path": "stats.p1_4",
+      "type": "int",
+      "min": -1,
+      "max": 23
+    },
+    {
+      "shownName": "YDS P5 (-1=off, 0..23)",
+      "path": "stats.p1_5",
+      "type": "int",
+      "min": -1,
+      "max": 23
+    },
+    {
+      "shownName": "V P1 (-1=off, 0..28)",
+      "path": "stats.p2_1",
+      "type": "int",
+      "min": -1,
+      "max": 28
+    },
+    {
+      "shownName": "V P2 (-1=off, 0..28)",
+      "path": "stats.p2_2",
+      "type": "int",
+      "min": -1,
+      "max": 28
+    },
+    {
+      "shownName": "V P3 (-1=off, 0..28)",
+      "path": "stats.p2_3",
+      "type": "int",
+      "min": -1,
+      "max": 28
+    },
+    {
+      "shownName": "V P4 (-1=off, 0..28)",
+      "path": "stats.p2_4",
+      "type": "int",
+      "min": -1,
+      "max": 28
+    },
+    {
+      "shownName": "V P5 (-1=off, 0..28)",
+      "path": "stats.p2_5",
+      "type": "int",
+      "min": -1,
+      "max": 28
+    },
+    {
+      "shownName": "UIAA P1 (-1=off, 0..10)",
+      "path": "stats.p3_1",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "UIAA P2 (-1=off, 0..10)",
+      "path": "stats.p3_2",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "UIAA P3 (-1=off, 0..10)",
+      "path": "stats.p3_3",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "UIAA P4 (-1=off, 0..10)",
+      "path": "stats.p3_4",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "UIAA P5 (-1=off, 0..10)",
+      "path": "stats.p3_5",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "Brit P1 (-1=off, 0..10)",
+      "path": "stats.p4_1",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "Brit P2 (-1=off, 0..10)",
+      "path": "stats.p4_2",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "Brit P3 (-1=off, 0..10)",
+      "path": "stats.p4_3",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "Brit P4 (-1=off, 0..10)",
+      "path": "stats.p4_4",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "Brit P5 (-1=off, 0..10)",
+      "path": "stats.p4_5",
+      "type": "int",
+      "min": -1,
+      "max": 10
+    },
+    {
+      "shownName": "Font P1 (-1=off, 0..11)",
+      "path": "stats.p5_1",
+      "type": "int",
+      "min": -1,
+      "max": 11
+    },
+    {
+      "shownName": "Font P2 (-1=off, 0..11)",
+      "path": "stats.p5_2",
+      "type": "int",
+      "min": -1,
+      "max": 11
+    },
+    {
+      "shownName": "Font P3 (-1=off, 0..11)",
+      "path": "stats.p5_3",
+      "type": "int",
+      "min": -1,
+      "max": 11
+    },
+    {
+      "shownName": "Font P4 (-1=off, 0..11)",
+      "path": "stats.p5_4",
+      "type": "int",
+      "min": -1,
+      "max": 11
+    },
+    {
+      "shownName": "Font P5 (-1=off, 0..11)",
+      "path": "stats.p5_5",
+      "type": "int",
+      "min": -1,
+      "max": 11
+    },
+    {
+      "shownName": "Trad P1 (-1=off, 0..13)",
+      "path": "stats.p6_1",
+      "type": "int",
+      "min": -1,
+      "max": 13
+    },
+    {
+      "shownName": "Trad P2 (-1=off, 0..13)",
+      "path": "stats.p6_2",
+      "type": "int",
+      "min": -1,
+      "max": 13
+    },
+    {
+      "shownName": "Trad P3 (-1=off, 0..13)",
+      "path": "stats.p6_3",
+      "type": "int",
+      "min": -1,
+      "max": 13
+    },
+    {
+      "shownName": "Trad P4 (-1=off, 0..13)",
+      "path": "stats.p6_4",
+      "type": "int",
+      "min": -1,
+      "max": 13
+    },
+    {
+      "shownName": "Trad P5 (-1=off, 0..13)",
+      "path": "stats.p6_5",
+      "type": "int",
+      "min": -1,
+      "max": 13
+    },
+    {
+      "shownName": "Sax P1 (-1=off, 0..29)",
+      "path": "stats.p7_1",
+      "type": "int",
+      "min": -1,
+      "max": 29
+    },
+    {
+      "shownName": "Sax P2 (-1=off, 0..29)",
+      "path": "stats.p7_2",
+      "type": "int",
+      "min": -1,
+      "max": 29
+    },
+    {
+      "shownName": "Sax P3 (-1=off, 0..29)",
+      "path": "stats.p7_3",
+      "type": "int",
+      "min": -1,
+      "max": 29
+    },
+    {
+      "shownName": "Sax P4 (-1=off, 0..29)",
+      "path": "stats.p7_4",
+      "type": "int",
+      "min": -1,
+      "max": 29
+    },
+    {
+      "shownName": "Sax P5 (-1=off, 0..29)",
+      "path": "stats.p7_5",
+      "type": "int",
+      "min": -1,
+      "max": 29
+    },
+    {
+      "shownName": "Project 1 Name",
+      "path": "projName1",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 2 Name",
+      "path": "projName2",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 3 Name",
+      "path": "projName3",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 4 Name",
+      "path": "projName4",
+      "type": "string"
+    },
+    {
+      "shownName": "Project 5 Name",
+      "path": "projName5",
+      "type": "string"
+    }
+  ]
 }

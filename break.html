@@ -1,5 +1,5 @@
-<uiView onFlickUp="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onFlickDown="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+<uiView onFlickUp="for(var i=0;i<3;i++)$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+        onFlickDown="for(var i=0;i<3;i++)$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
         onLoad="
           var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
           function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
@@ -17,16 +17,37 @@
             if(hrVals.pk3>0)setStyle('#hrPk3Val','color',zoneCol(hrVals.pk3));
           }
           $.get('/Settings/User/MaxHR',function(v){maxHR=v||0;applyColors()});
-          $.subscribe('/Zapp/{zapp_index}/Output/routeHrAvg',function(v){hrVals.avg=v;applyColors()});
-          $.subscribe('/Zapp/{zapp_index}/Output/routeMaxHr',function(v){hrVals.max=v;applyColors()});
+          $.subscribe('/Activity/Lap/-2/HeartRate/Avg',function(v){hrVals.avg=v;applyColors()});
+          $.subscribe('/Activity/Lap/-2/HeartRate/Max',function(v){hrVals.max=v;applyColors()});
           $.subscribe('/Zapp/{zapp_index}/Output/routePk1',function(v){hrVals.pk1=v;applyColors()});
           $.subscribe('/Zapp/{zapp_index}/Output/routePk3',function(v){hrVals.pk3=v;applyColors()});
           var peakHR=0,curHR=0,curDur=0,frozen=false;
+          var cMode=0,cSys=0;
+          var ws=localStorage.getObject('watchSetup');if(ws)cSys=ws.sys||0;
+          $.subscribe('/Zapp/{zapp_index}/Output/climbMode',function(v){cMode=v});
+          function persistHrr(d){
+            var sv=localStorage.getObject('stats')||{};
+            var n=(sv.avgHrrN||0)+1;
+            sv.avgHrrN=n;
+            sv.avgHrr=Math.round(((sv.avgHrr||0)*(n-1)+d)/n);
+            if(cMode>0){
+              var ps=localStorage.getObject('climbProjStats')||{};
+              var sk=cSys+'_'+cMode;
+              if(ps[sk]){
+                ps[sk].hrrSum=(ps[sk].hrrSum||0)+d;
+                ps[sk].hrrN=(ps[sk].hrrN||0)+1;
+                ps[sk].hrr=Math.round(ps[sk].hrrSum/ps[sk].hrrN);
+                sv.activeHrr=ps[sk].hrr;
+                localStorage.setObject('climbProjStats',ps);
+              }
+            }
+            localStorage.setObject('stats',sv);
+          }
           function refresh(){
             if(frozen||peakHR<=0||curHR<=0)return;
             var d=Math.round((peakHR-curHR)*60);
             setText('#hrr',d>=0?'-'+d:'+'+Math.abs(d));
-            if(curDur>=60)frozen=true;
+            if(curDur>=60){frozen=true;persistHrr(d)}
           }
           $.subscribe('/Activity/Lap/-1/Duration/Current',function(s){curDur=s;refresh()});
           $.subscribe('/Activity/Move/-1/Heartrate/Current',function(v){
@@ -48,7 +69,7 @@
     <!-- Grade + Time of completed route -->
     <div class="sp-vertical-center" style="top:calc(27% - 50%e); left:calc(30% - 50%e);">
       <span class="f-ico" style="padding-right:4px">&#xF144;</span>
-      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" /></span>
+      <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" /></span>
     </div>
 
     <!-- Vertical separator -->
@@ -56,7 +77,7 @@
 
     <div class="sp-vertical-center" style="top:calc(27% - 50%e); left:calc(70% - 50%e);">
       <span class="f-ico" style="padding-right:4px">&#xF100;</span>
-      <span class="sp-b-m f-num"><eval input="/Zapp/{zapp_index}/Output/lastDuration" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+      <span class="sp-b-m"><eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
 
     <!-- Separator -->
@@ -69,13 +90,13 @@
       </div>
       <div class="sp-b-s" style="position:absolute;top:0;left:16%;">AVG</div>
       <div id="hrAvgVal" class="sp-b-s f-num" style="position:absolute;top:0;left:40%;">
-        <eval input="/Zapp/{zapp_index}/Output/routeHrAvg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+        <eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
       <div class="sp-b-s" style="position:absolute;top:0;left:62%;">1'</div>
       <div id="hrPk1Val" class="sp-b-s f-num" style="position:absolute;top:0;left:72%;">
         <eval input="/Zapp/{zapp_index}/Output/routePk1" outputFormat="HeartRate_Fourdigits" default="--" /></div>
       <div class="sp-b-s" style="position:absolute;top:50%;left:16%;">MAX</div>
       <div id="hrMaxVal" class="sp-b-s f-num" style="position:absolute;top:50%;left:40%;">
-        <eval input="/Zapp/{zapp_index}/Output/routeMaxHr" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+        <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></div>
       <div class="sp-b-s" style="position:absolute;top:50%;left:62%;">3'</div>
       <div id="hrPk3Val" class="sp-b-s f-num" style="position:absolute;top:50%;left:72%;">
         <eval input="/Zapp/{zapp_index}/Output/routePk3" outputFormat="HeartRate_Fourdigits" default="--" /></div>
@@ -84,53 +105,62 @@
     <!-- Separator -->
     <div class="p-hc" style="top:57%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-    <!-- Stats row: all centered in one div -->
+    <!-- Stats row: sends/routes, best, height -->
     <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
       <span class="f-ico" style="padding-right:14px">&#xF107;</span>
       <span class="f-ico" style="padding-right:6px">&#xF200;</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span><span class="sp-b-s f-num">/</span><span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="Count_Threedigits" default="0" /></span>
+      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/totalSends" outputFormat="Count_Threedigits" default="0" /></span><span class="sp-b-s f-num">/</span><span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeNum" outputFormat="Count_Threedigits" default="0" /></span>
       <span class="f-ico" style="padding-left:16px;padding-right:6px">&#xF118;</span>
       <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/bestSend" outputFormat="script x => dG(x)" default="--" /></span>
-    </div>
-
-    <!-- Separator -->
-
-    <!-- NEXT button -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
-      style="top:69%;left:15%;width:70%;height:16%;position:absolute;">
-      <div style="top:calc(50% - 50%e); left:calc(50% - 50%e);
-                  width:80%;height:70%;position:absolute;
-                  background:rgba(255,255,255,0.15);border-radius:8px;">
-        <div class="sp-t-m" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">NEXT</div>
-      </div>
+      <span class="sp-b-s" style="padding-left:16px">H</span>
+      <span class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'') + x + 'm'" default="--" /></span>
     </div>
 
     <!-- Recovery HR + HRR delta -->
     <div class="p-hc sp-vertical-center" style="top:calc(88% - 50%e);">
       <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-      <span class="sp-b-s" style="padding-left:12px">HRR</span>
-      <span class="sp-b-s f-num" id="hrr" style="padding-left:4px">--</span>
+      <span class="sp-b-s" style="padding-left:10px">HRR</span>
+      <span class="sp-b-s f-num" id="hrr" style="padding-left:3px">--</span>
     </div>
 
-    <!-- Button hints -->
-    <:if test="{{ IS_NG3 }}">
-      <div class="btn btn-top">
-        <img class="cm-bgc icon" src="hint-btn-top.png" />
+    <!-- Down-button: visible pill (fixed size). -->
+    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(45% - 50%e); left:6px;">&#xE373;</div>
       </div>
-      <div class="btn btn-btm">
-        <img class="cm-bgc icon" src="hint-btn-bottom.png" />
+    </div>
+    <!-- Middle-button: visible pill. -->
+    <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(55% - 50%e); left:6px;">&#xE338;</div>
       </div>
-    </:if>
+    </div>
+    <!-- Middle-button: invisible tap zone (tap = save as project). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
+      style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Physical: up=grade up, down=grade down, down long=NEXT -->
+    <!-- Down-button: large invisible tap zone (tap = NEXT). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
+      style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+    <!-- Physical: up±=last-grade, up-long=save as project, mid locked, down-long=NEXT -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
-        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');" />
+        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
     </userInput>
     </:if>
 
