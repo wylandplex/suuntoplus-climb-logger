@@ -6,7 +6,7 @@
           var ps=localStorage.getObject('climbProjStats')||{};
           var ws=localStorage.getObject('watchSetup')||{};
           var cSys=ws.sys||0;
-          function fT(s){return s>0?Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60):'--'}
+          function fT(s){if(s<=0)return '--';var m=Math.floor(s/60),sec=Math.floor(s%60);return m+':'+(sec<10?'0':'')+sec}
           function uP(cm){
             if(cm>0){
               var p=ps[cSys+'_'+cm]||{attempts:0,sends:0,bestTime:0};
