@@ -135,12 +135,12 @@
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
-        onClick="previous('vs')"
+        onClick="previous('#vs')"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');" />
       <pushButton name="next" longType="lock"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
-        onClick="next('vs')"
+        onClick="next('#vs')"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
     </userInput>
     </:if>
