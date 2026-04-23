@@ -1,5 +1,6 @@
 function(eid,eidx,routes,sc,ats,ps,bse,GL,output){
 var n=routes.length;
+if(n>0){
 if(eid===5)eidx=(eidx+1)%n;
 else if(eid===6)eidx=(eidx-1+n)%n;
 else if(eid===3){
@@ -15,8 +16,9 @@ var rr=routes[eidx];
 if(rr){var dy=eid===1?1:-1,L=GL[rr.sys];
 rr.grade=((rr.grade+dy)%L+L)%L;
 if(rr.send){bse=-1;for(var j=0;j<n;j++)if(routes[j].send){var e2=routes[j].sys*100+routes[j].grade;if(e2>bse)bse=e2}}}}
-var rr2=routes[eidx]||{};
-if(rr2.sys!==undefined)output.lastGrade=rr2.sys*100+rr2.grade;
+}
+var rr2=(n>0)?(routes[eidx]||{}):{};
+output.lastGrade=rr2.sys!==undefined?rr2.sys*100+rr2.grade:-1;
 output.routeNum=n>0?eidx+1:0;
 output.editSend=rr2.send||0;
 output.totalSends=sc;
