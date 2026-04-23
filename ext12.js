@@ -1,4 +1,7 @@
 function(ats,aps,GL){
+var bk=localStorage.getObject("statsBackup");
+if(bk&&bk.s){localStorage.setObject("stats",bk.s);localStorage.setObject("climbProjStats",bk.p||{});localStorage.setObject("gradeHistory",bk.h||[])}
+localStorage.setObject("statsBackup",{s:localStorage.getObject("stats")||{},p:localStorage.getObject("climbProjStats")||{},h:localStorage.getObject("gradeHistory")||[]});
 var ws=localStorage.getObject("watchSetup");
 var gs=0;
 if(ws){gs=(ws.sys>=0&&ws.sys<=7)?ws.sys:0;aps=ws.proj||aps}

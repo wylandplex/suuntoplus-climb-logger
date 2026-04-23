@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776941504,
+  "modificationTime": 1776946183,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -173,154 +173,9 @@
       "type": "int"
     },
     {
-      "shownName": "Top1 Grade (sys*100+idx)",
-      "path": "stats.t1_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top1 Attempts",
-      "path": "stats.t1_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top1 Sends",
-      "path": "stats.t1_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top2 Grade (sys*100+idx)",
-      "path": "stats.t2_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top2 Attempts",
-      "path": "stats.t2_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top2 Sends",
-      "path": "stats.t2_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top3 Grade (sys*100+idx)",
-      "path": "stats.t3_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top3 Attempts",
-      "path": "stats.t3_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top3 Sends",
-      "path": "stats.t3_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top4 Grade (sys*100+idx)",
-      "path": "stats.t4_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top4 Attempts",
-      "path": "stats.t4_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top4 Sends",
-      "path": "stats.t4_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top5 Grade (sys*100+idx)",
-      "path": "stats.t5_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top5 Attempts",
-      "path": "stats.t5_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top5 Sends",
-      "path": "stats.t5_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top6 Grade (sys*100+idx)",
-      "path": "stats.t6_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top6 Attempts",
-      "path": "stats.t6_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top6 Sends",
-      "path": "stats.t6_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top7 Grade (sys*100+idx)",
-      "path": "stats.t7_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top7 Attempts",
-      "path": "stats.t7_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top7 Sends",
-      "path": "stats.t7_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top8 Grade (sys*100+idx)",
-      "path": "stats.t8_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top8 Attempts",
-      "path": "stats.t8_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top8 Sends",
-      "path": "stats.t8_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top9 Grade (sys*100+idx)",
-      "path": "stats.t9_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top9 Attempts",
-      "path": "stats.t9_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top9 Sends",
-      "path": "stats.t9_sends",
-      "type": "int"
-    },
-    {
-      "shownName": "Top10 Grade (sys*100+idx)",
-      "path": "stats.t10_grade",
-      "type": "int"
-    },
-    {
-      "shownName": "Top10 Attempts",
-      "path": "stats.t10_attempts",
-      "type": "int"
-    },
-    {
-      "shownName": "Top10 Sends",
-      "path": "stats.t10_sends",
-      "type": "int"
+      "shownName": "Grade Pyramid (hardest first, grade:attempts/sends)",
+      "path": "stats.pyramid",
+      "type": "string"
     },
     {
       "shownName": "Active Project Grade (sys*100+idx, -1=none)",
