@@ -96,7 +96,8 @@
     "mostTriesGrade": -1,
     "bestSessionHm": 0,
     "bestSessionHmRecent": 0,
-    "bestOfLast5": -1
+    "bestOfLast5": -1,
+    "buckets": {}
   },
   "projName1": "",
   "projName2": "",

@@ -25,17 +25,19 @@
           setText('#j_triesG',sv.mostTriesGrade>=0?dG(sv.mostTriesGrade):'--');
           setText('#s_bha',''+(sv.bestSessionHm||0));
           setText('#s_bhr',''+(sv.bestSessionHmRecent||0));
-          // Top 10 best sessions by peak grade (from gradeHistory — works for freeflow + project).
-          var hs=(hist||[]).slice();
-          hs.sort(function(a,b){
-            var d=nm(b.g)-nm(a.g);
-            return d!==0?d:(b.v||0)-(a.v||0);
-          });
+          // Top 10 by grade bucket (sv.buckets is live, updated every route-end in ext10).
+          var bk=sv.buckets||{};
+          var bes=[];
+          for(var bk_k in bk) if(bk[bk_k].s>0) {
+            var bkp=bk_k.split('_');
+            bes.push({g:(+bkp[0])*100+(+bkp[1]), a:bk[bk_k].a, s:bk[bk_k].s});
+          }
+          bes.sort(function(a,b){var d=nm(b.g)-nm(a.g);return d!==0?d:b.s-a.s});
           for(var i=0;i<10;i++){
-            var e=hs[i];
-            if(e){
-              setText('#r'+(i+1)+'_g', dG(e.g));
-              setText('#r'+(i+1)+'_c', (e.v||0)+'/'+(e.r||0));
+            var be=bes[i];
+            if(be){
+              setText('#r'+(i+1)+'_g', dG(be.g));
+              setText('#r'+(i+1)+'_c', be.a+'/'+be.s);
             } else {
               setText('#r'+(i+1)+'_g', '');
               setText('#r'+(i+1)+'_c', '');
