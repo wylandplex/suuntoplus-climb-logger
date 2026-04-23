@@ -146,7 +146,6 @@ function onLoad(_input, output) {
   loadProjects(gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
-  writeStats();
 }
 
 function evaluate(input, output) {

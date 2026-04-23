@@ -1,16 +1,22 @@
 function(ats,aps,GL){
 var bk=localStorage.getObject("statsBackup");
-if(bk&&bk.s){localStorage.setObject("stats",bk.s);localStorage.setObject("climbProjStats",bk.p||{})}
-localStorage.setObject("statsBackup",{s:localStorage.getObject("stats")||{},p:localStorage.getObject("climbProjStats")||{}});
+var sv,ps;
+if(bk&&bk.s){
+sv=bk.s;ps=bk.p||{};
+localStorage.setObject("stats",sv);
+localStorage.setObject("climbProjStats",ps);
+}else{
+sv=localStorage.getObject("stats")||{};
+ps=localStorage.getObject("climbProjStats")||{};
+localStorage.setObject("statsBackup",{s:sv,p:ps});
+}
 var ws=localStorage.getObject("watchSetup");
 var gs=0;
 if(ws){gs=(ws.sys>=0&&ws.sys<=7)?ws.sys:0;aps=ws.proj||aps}
-var sv=localStorage.getObject("stats");
-if(sv){if(sv.system>=0&&sv.system<=7)gs=sv.system|0;
+if(sv.system>=0&&sv.system<=7)gs=sv.system|0;
 for(var k in ats)ats[k]=sv[k]||0;
 for(var s=0;s<8;s++){var sp=aps[s]||[-1,-1,-1,-1,-1];
 for(var i=0;i<5;i++){var p=sv["p"+s+"_"+(i+1)];
 if(p>=-1&&p<GL[s])sp[i]=p|0}
-aps[s]=sp}}
-return[gs,aps,localStorage.getObject("climbProjStats")||{}]
-}
+aps[s]=sp}
+return[gs,aps,ps]}

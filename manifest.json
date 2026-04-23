@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776950045,
+  "modificationTime": 1776951295,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -179,11 +179,6 @@
       "shownName": "Avg Peak 3min HR [bpm]",
       "path": "stats.avgPk3",
       "type": "int"
-    },
-    {
-      "shownName": "Grade Pyramid (hardest first, grade:attempts/sends)",
-      "path": "stats.pyramid",
-      "type": "string"
     },
     {
       "shownName": "Active Project Grade (sys*100+idx, -1=none)",
