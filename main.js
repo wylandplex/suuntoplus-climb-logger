@@ -265,7 +265,7 @@ function onEvent(_input, output, eventId) {
 }
 
 function getSummaryOutputs(input, output) {
-  return evalFile('{file_path}/ext9.js')(routes, bestSendEnc);
+  return evalFile('{file_path}/ext9.js')(routes, bestSendEnc, allTimeStats, projStats);
 }
 
 function onLap(_input, _output) {
