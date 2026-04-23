@@ -1,8 +1,8 @@
 function(ats,aps,GL){
 var bk=localStorage.getObject("statsBackup");
 var sv,ps;
-if(bk&&bk.s){
-sv=bk.s;ps=bk.p||{};
+if(bk&&bk.s&&typeof bk.s==="object"){
+sv=bk.s;ps=(bk.p&&typeof bk.p==="object")?bk.p:{};
 localStorage.setObject("stats",sv);
 localStorage.setObject("climbProjStats",ps);
 }else{
