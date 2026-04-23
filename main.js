@@ -92,6 +92,7 @@ var setTpl = function(t) {
 var goState = function(s, t) {
   state = s;
   setTpl(t);
+  LS.setObject("climbHB", {s:s,r:routes.length,d:curAsc});
 };
 
 var writeG = function(o, idx) {
@@ -185,13 +186,15 @@ function evaluate(input, output) {
     output.lastGrade = rr.sys !== undefined ? encGrade(rr.sys, rr.grade) : -1;
     output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
     output.modeSub = routes.length;
-    output.climbMode = rr.send ? 1 : 0;
+    output.editSend = rr.send || 0;
   } else if (state === 4) {
     renderSetup(output);
+    output.editSend = 0;
   } else {
     output.routeNum = state === 3 ? 0 : (state === 2 ? routes.length : routeNumber);
     writeG(output);
     output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
+    output.editSend = 0;
   }
 
   output.totalSends = sendsCount;
@@ -245,19 +248,13 @@ function onEvent(_input, output, eventId) {
     }
     else if (eventId === 6) goState(0, "ready");
   } else if (state === 5) {
-    if (eventId === 4) {
+    if (eventId === 4 || eventId === 7) {
       if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
-      goState(3, "stats");
+      goState(eventId === 7 ? 0 : 3, eventId === 7 ? "ready" : "stats");
     } else {
-      var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
+      var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS, output);
       editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
       if (eventId !== 5 && eventId !== 6) editDirty = 1;
-      var rr5 = routes[editIdx] || {};
-      output.lastGrade = rr5.sys !== undefined ? encGrade(rr5.sys, rr5.grade) : -1;
-      output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
-      output.climbMode = rr5.send ? 1 : 0;
-      output.totalSends = sendsCount;
-      output.bestSend = bestSendEnc;
     }
   } else if (state === 4) {
     var r4 = evalFile('{file_path}/ext17.js')(eventId, dy, setupStep, gradeSystem, projGradeIdx, GRADE_LENS);

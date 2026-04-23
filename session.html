@@ -3,7 +3,7 @@
         onLoad="
           var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+'.split('|');
           function dG(x){return x>=0?(x%100>=50?'OFF':(G[Math.floor(x/100)]||'').split(',')[x%100]||'?'):'--'}
-          $.subscribe('/Zapp/{zapp_index}/Output/climbMode',function(v){
+          $.subscribe('/Zapp/{zapp_index}/Output/editSend',function(v){
             setText('#resIco',String.fromCharCode(v?0xF200:0xF110));
             setText('#resLbl',v?'SEND':'FAIL');
             setStyle('#resIco','color',v?'#5cdd8b':'#ff6666');
@@ -31,7 +31,7 @@
       <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
     </div>
 
-    <!-- Result icon + label (climbMode-driven in state 5: 1=SEND, 0=FAIL) -->
+    <!-- Result icon + label (editSend-driven) -->
     <div class="p-hc sp-vertical-center" style="top:calc(68% - 50%e);">
       <span id="resIco" class="f-ico" style="padding-right:6px">&#xF110;</span>
       <span id="resLbl" class="sp-b-m">FAIL</span>
@@ -75,7 +75,7 @@
              style="top:calc(45% - 50%e); left:6px;">&#xE373;</div>
       </div>
     </div>
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 7, null, 'int32');"
       style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Physical: up/down short = grade ±1, up-long = next route, down-long = back to READY, mid-short = toggle, mid-long = exit-to-stats. Prev-route nav via flick down. -->
@@ -89,7 +89,7 @@
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 7, null, 'int32');" />
     </userInput>
     </:if>
 
