@@ -27,8 +27,6 @@ var bestSendEnc = -1;
 var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
-var editIdx = 0;
-var editDirty = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -201,20 +199,12 @@ function evaluate(input, output) {
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : lastHeight;
   output.climbMode = climbMode;
 
-  if (state === 5) {
-    var rr = routes[editIdx] || {};
-    output.lastGrade = rr.sys !== undefined ? encGrade(rr.sys, rr.grade) : -1;
-    output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
-    output.modeSub = routes.length;
-    output.editSend = rr.send || 0;
-  } else if (state === 4) {
+  if (state === 4) {
     renderSetup(output);
-    output.editSend = 0;
   } else {
     output.routeNum = state === 3 ? 0 : (state === 2 ? routes.length : routeNumber);
     writeG(output);
     output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
-    output.editSend = 0;
   }
 
   output.totalSends = sendsCount;
@@ -272,26 +262,7 @@ function onEvent(_input, output, eventId) {
     }
   } else if (state === 3) {
     if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
-    else if (eventId === 4) {
-      editIdx = routes.length > 0 ? routes.length - 1 : 0;
-      goState(5, "session");
-    }
-    else if (eventId === 6) goState(0, "ready");
-  } else if (state === 5) {
-    if (eventId === 4) {
-      if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
-      goState(3, "stats");
-    } else {
-      var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
-      editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
-      if (eventId !== 5 && eventId !== 6) editDirty = 1;
-      var rr5 = routes[editIdx] || {};
-      if (rr5.sys !== undefined) output.lastGrade = encGrade(rr5.sys, rr5.grade);
-      output.routeNum = editIdx + 1;
-      output.editSend = rr5.send || 0;
-      output.totalSends = sendsCount;
-      output.bestSend = bestSendEnc;
-    }
+    else if (eventId === 4 || eventId === 6) goState(0, "ready");
   } else if (state === 4) {
     if (dy) {
       if (setupStep === 0) {
