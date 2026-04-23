@@ -149,6 +149,10 @@ var saveAsProject = function() {
       projGradeIdx[i] = lastGradeIdx;
       climbMode = i + 1;
       currentGrade = lastGradeIdx;
+      var k = lastGradeSys + "_" + climbMode;
+      projStats[k] = { attempts: 1, sends: lastResult ? 1 : 0, bestTime: lastResult ? lastDuration : 0, g: lastGradeIdx, firstSes: allTimeStats.sessions };
+      LS.setObject("climbProjStats", projStats);
+      if (routes.length > 0) routes[routes.length-1].proj = climbMode;
       saveAll();
       goState(0, "ready");
       return;
