@@ -266,7 +266,7 @@ function onEvent(_input, output, eventId) {
     }
   } else if (state === 3) {
     if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
-    else if (eventId === 4 || eventId === 6) goState(0, "ready");
+    else if (eventId === 6) goState(0, "ready");
   } else if (state === 4) {
     if (dy) {
       if (setupStep === 0) {
