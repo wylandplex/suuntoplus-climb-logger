@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776947668,
+  "modificationTime": 1776948211,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -72,6 +72,9 @@
       "log": true,
       "shownName": "Route Height [m]",
       "format": "Count_Fourdigits"
+    },
+    {
+      "name": "editSend"
     }
   ],
   "template": [
@@ -121,6 +124,17 @@
     },
     {
       "name": "stats.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
+    },
+    {
+      "name": "session.html",
       "displays": [
         "l",
         "m",
