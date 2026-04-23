@@ -247,9 +247,9 @@ function onEvent(_input, output, eventId) {
     }
     else if (eventId === 6) goState(0, "ready");
   } else if (state === 5) {
-    if (eventId === 4) {
+    if (eventId === 4 || eventId === 7) {
       if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
-      goState(3, "stats");
+      goState(eventId === 7 ? 0 : 3, eventId === 7 ? "ready" : "stats");
     } else {
       var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
       editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
