@@ -49,7 +49,7 @@
     <!-- Pannable page stack (native SDK primitive) -->
     <uiViewSet id="vs" orientation="vertical" rollOver="none"
                transition.type="slide" transition.timing="ease" transition.duration="0.25"
-               onSelectionChanged="setText('#pageLabel', PAGES[targetData])"
+               onIdle="setText('#pageLabel', PAGES[targetData])"
                style="position:absolute;top:16%;left:0;width:100%;height:84%">
 
       <!-- Page 1: Progression (default) -->
