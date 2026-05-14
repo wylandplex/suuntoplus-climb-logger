@@ -1,4 +1,4 @@
-function(lgi,lgs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,bsc,routes,ps,ats,h){if(routes.length===0)localStorage.setObject("statsBackup",{});
+function(lgi,lgs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,bsc,routes,ps,ats,h){
 if(isSend){var enc=lgs*100+lgi;
 if(enc>bse){bse=enc;bsc=1;}else if(enc===bse){bsc++;}}
 var fs=0;

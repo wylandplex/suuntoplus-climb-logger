@@ -1,8 +1,5 @@
-/* Climb Logger v3.0 */
-
-var currentTemplate = "ready";
-var state = 0;
-var setupStep = 0;
+var currentTemplate = "setup";
+var state = 4;
 
 var currentGrade = 18;
 var routeNumber = 1;
@@ -16,7 +13,6 @@ var hr1Sum = 0;
 var hr3Sum = 0;
 var bestPk1 = 0;
 var bestPk3 = 0;
-var lastMaxHr = 0;
 var lastPk1 = 0;
 var lastPk3 = 0;
 var lastDuration = 0;
@@ -39,8 +35,8 @@ var allProjects = {};
 var projStats = {};
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
 
-var GRADE_LENS = [41, 24, 29, 11, 11, 12, 14, 30];
-var DEFAULT_IDX = [18, 6, 5, 5, 3, 5, 4, 12];
+var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
+var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 
@@ -73,17 +69,6 @@ var wrap = function(idx, len, off) {
   return idx >= len ? -off : idx < -off ? len - 1 : idx;
 };
 
-var cycleSystem = function(dir) {
-  gradeSystem = wrap(gradeSystem + dir, 8, 0);
-  currentGrade = DEFAULT_IDX[gradeSystem];
-  loadProjects(gradeSystem);
-};
-
-var cycleActiveProject = function(dir) {
-  var r = evalFile('{file_path}/ext16.js')(dir, climbMode, projGradeIdx);
-  climbMode = r[0]; currentGrade = r[1];
-};
-
 var setTpl = function(t) {
   currentTemplate = t;
   unload('_cm');
@@ -97,12 +82,6 @@ var goState = function(s, t) {
 
 var writeG = function(o, idx) {
   o.grade = encGrade(gradeSystem, idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
-};
-
-var renderSetup = function(o) {
-  o.routeNum = setupStep || gradeSystem + 1;
-  writeG(o, setupStep ? setupStep - 1 : undefined);
-  o.modeSub = -setupStep;
 };
 
 var finishRoute = function(send) {
@@ -119,6 +98,7 @@ var toggleMode = function() {
   if (climbMode > 0) {
     climbMode = 0;
   } else {
+    climbMode = 1;
     for (var p = 0; p < 5; p++) {
       if (projGradeIdx[p] >= 0) {
         climbMode = p + 1;
@@ -165,11 +145,11 @@ function evaluate(input, output) {
   if (frDirty) {
     frDirty = 0;
     lastHrAvg = input.A || 0;
-    lastMaxHr = input.M || 0;
+    var lMx = input.M || 0;
     lastDuration = input.D || 0;
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var r = evalFile('{file_path}/ext10.js')(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lastMaxHr, lastPk1, lastPk3,
+    var r = evalFile('{file_path}/ext10.js')(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lMx, lastPk1, lastPk3,
       frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats, lastHeight);
     bestSendEnc = r[0];
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
@@ -188,11 +168,12 @@ function evaluate(input, output) {
     output.modeSub = routes.length;
     output.editSend = rr.send || 0;
   } else if (state === 4) {
-    renderSetup(output);
-    output.editSend = 0;
+    output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
+    output.modeSub = gradeSystem;
+    output.routeNum = 0; output.editSend = 0; output.lastGrade = -1;
   } else {
-    output.routeNum = state === 3 ? 0 : (state === 2 ? routes.length : routeNumber);
-    writeG(output);
+    output.routeNum = state === 2 ? routes.length : routeNumber;
+    writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
     output.editSend = 0;
   }
@@ -209,12 +190,18 @@ function onEvent(_input, output, eventId) {
       if (climbMode === 0) {
         currentGrade = wrap(currentGrade + dy, GRADE_LENS[gradeSystem], 0);
       } else if (dy === 1 || dy === -1) {
-        cycleActiveProject(-dy);
+        var rcp = evalFile('{file_path}/ext16.js')(-dy, climbMode, projGradeIdx);
+        climbMode = rcp[0]; currentGrade = rcp[1];
       }
       writeG(output);
       output.climbMode = climbMode;
     } else if (eventId === 5) {
-      goState(3, "stats");
+      if (climbMode === 0) {
+        editIdx = routes.length > 0 ? routes.length - 1 : 0;
+        goState(5, "session");
+      } else {
+        goState(6, "projsetup");
+      }
     } else if (eventId === 4) {
       toggleMode();
       writeG(output);
@@ -240,43 +227,46 @@ function onEvent(_input, output, eventId) {
     } else if (eventId === 6 && !frDirty) {
       goState(0, "ready");
     }
-  } else if (state === 3) {
-    if (eventId === 5) { setupStep = 0; goState(4, "setup"); }
-    else if (eventId === 4) {
-      editIdx = routes.length > 0 ? routes.length - 1 : 0;
-      goState(5, "session");
+  } else if (state === 4) {
+    if (dy) {
+      gradeSystem = (gradeSystem + dy + 10) % 10;
+      currentGrade = DEFAULT_IDX[gradeSystem];
+      loadProjects(gradeSystem);
+    } else if (eventId === 5 || eventId === 6) {
+      evalFile('{file_path}/ext17.js')(gradeSystem);
+      saveAll();
+      goState(0, "ready");
     }
-    else if (eventId === 6) goState(0, "ready");
+  } else if (state === 6) {
+    if (eventId === 6) {
+      var ws6 = LS.getObject("watchSetup") || {};
+      allProjects = ws6.proj || allProjects;
+      loadProjects(gradeSystem);
+      writeStats();
+      goState(0, "ready");
+    }
   } else if (state === 5) {
-    if (eventId === 4 || eventId === 7) {
+    if (eventId === 4 || eventId === 7 || eventId === 12) {
       if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
-      goState(eventId === 7 ? 0 : 3, eventId === 7 ? "ready" : "stats");
+      if (eventId === 12) {
+        if (routes.length > 0) editIdx = (editIdx + 1) % routes.length;
+      } else {
+        goState(0, "ready");
+      }
     } else {
-      var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS, output);
+      var r5 = evalFile('{file_path}/ext13.js')(eventId, editIdx, routes, sendsCount, allTimeStats, projStats, bestSendEnc, GRADE_LENS);
       editIdx = r5[0]; sendsCount = r5[1]; bestSendEnc = r5[2];
       if (eventId !== 5 && eventId !== 6) editDirty = 1;
     }
-  } else if (state === 4) {
-    var r4 = evalFile('{file_path}/ext17.js')(eventId, dy, setupStep, gradeSystem, projGradeIdx, GRADE_LENS);
-    setupStep = r4[0];
-    if (r4[1] === 3) { cycleSystem(dy); renderSetup(output); }
-    else if (r4[1] === 1) renderSetup(output);
-    else if (r4[1] === 2) { saveAll(); goState(0, "ready"); }
   }
 }
 
 function getSummaryOutputs(input, output) {
-  return evalFile('{file_path}/ext9.js')(routes, bestSendEnc, allTimeStats, projStats);
+  return evalFile('{file_path}/ext9.js')(routes, bestSendEnc, allTimeStats, projStats, gradeSystem);
 }
 
 function onLap(_input, _output) {
-  // Debounce: our own button taps fire /Activity/Trigger too. The onEvent handler sets
-  // selfLapExpected BEFORE the Trigger propagates, so self-laps are swallowed here.
   if (selfLapExpected) { selfLapExpected = 0; return; }
-  // External laps drive state transitions: READY→CLIMB (start), CLIMB→BREAK (send),
-  // BREAK→CLIMB (next route). SEND is chosen as the CLIMB default — most climbers hit
-  // the lap button AFTER finishing a route successfully; for a fall they'd use the app's
-  // FAIL button before lap-pressing.
   if (state === 0) {
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
     startAsc = curAsc;
