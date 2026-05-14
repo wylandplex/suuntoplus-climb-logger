@@ -7,6 +7,8 @@
             setText('#resIco',String.fromCharCode(v?0xF200:0xF110));
             setText('#resLbl',v?'SEND':'FAIL');
             setStyle('#resIco','color',v?'#5cdd8b':'#ff6666');
+            setText('#midIco',String.fromCharCode(v?0xF110:0xF200));
+            setStyle('#midIco','color',v?'#ff6666':'#5cdd8b');
           });
         ">
   <div id="climblogger">
@@ -24,23 +26,23 @@
     <!-- Up-arrow tap-bar = grade - (short up) -->
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
       style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(30% - 50%e);">&#xF266;</div>
+    <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
 
     <!-- Grade hero -->
     <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
       <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
     </div>
 
-    <!-- Result icon + label (editSend-driven) -->
-    <div class="p-hc sp-vertical-center" style="top:calc(68% - 50%e);">
+    <!-- Down-arrow tap-bar = grade + (short down) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+      style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
+    <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
+
+    <!-- Result icon + label (editSend-driven) — below down arrow -->
+    <div class="p-hc sp-vertical-center" style="top:calc(83% - 50%e);">
       <span id="resIco" class="f-ico" style="padding-right:6px">&#xF110;</span>
       <span id="resLbl" class="sp-b-m">FAIL</span>
     </div>
-
-    <!-- Down-arrow tap-bar = grade + (short down) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-      style="top:78%;left:0;width:70%;height:18%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(82% - 50%e);">&#xF267;</div>
 
     <!-- Top pill: save & back (matches up-long = event 7) -->
     <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
@@ -54,13 +56,13 @@
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 7, null, 'int32');"
       style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Middle pill: toggle SEND/FAIL (matches mid-long = event 3) -->
+    <!-- Middle pill: shows OPPOSITE of current SEND/FAIL state (preview of toggle) -->
     <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
       <div style="top:0; left:0; width:100%;height:100%;position:absolute;
                   background:rgba(255,255,255,0.15);
                   border-radius:40% 0 0 40%;">
-        <div class="f-ico cm-bgc"
-             style="top:calc(55% - 50%e); left:6px;">&#xF111;</div>
+        <div id="midIco" class="f-ico"
+             style="top:calc(55% - 50%e); left:6px;">&#xF200;</div>
       </div>
     </div>
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');"
