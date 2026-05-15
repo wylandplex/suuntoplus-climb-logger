@@ -238,11 +238,10 @@ function onEvent(_input, output, eventId) {
       goState(0, "ready");
     }
   } else if (state === 6) {
-    if (eventId === 6) {
-      var ws6 = LS.getObject("watchSetup") || {};
-      allProjects = ws6.proj || allProjects;
-      loadProjects(gradeSystem);
-      writeStats();
+    if (eventId > 99) {
+      var v = eventId - 100;
+      for (var i = 0; i < 5; i++) projGradeIdx[i] = ((v >> (i * 6)) & 63) - 1;
+      saveAll();
       goState(0, "ready");
     }
   } else if (state === 5) {

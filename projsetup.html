@@ -5,12 +5,14 @@
   var step=0;
   var proj=[-1,-1,-1,-1,-1];
   var ws=localStorage.getObject('watchSetup');
-  if(ws){if(ws.sys>=0&&ws.sys<=9)sys=ws.sys|0;if(ws.proj&&ws.proj[sys])proj=ws.proj[sys].slice()}
+  if(ws&&ws.sys>=0&&ws.sys<=9)sys=ws.sys|0;
+  var sv=localStorage.getObject('stats')||{};
+  for(var i=0;i<5;i++){var p=sv['p'+sys+'_'+(i+1)];if(p!=null&&p>=-1)proj[i]=p|0}
   function dG(i){return i<0?'OFF':(G[sys].split(',')[i]||'?')}
   function render(){setText('#projN',''+(step+1));setText('#grade',dG(proj[step]))}
   function cyc(d){var L=GL[sys],v=proj[step]+d;proj[step]=v>=L?-1:v<-1?L-1:v;render()}
   function nxt(){step=(step+1)%5;render()}
-  function sav(){var w=localStorage.getObject('watchSetup')||{};w.proj=w.proj||{};w.proj[sys]=proj;localStorage.setObject('watchSetup',w);$.put('/Zapp/{zapp_index}/Event',6,null,'int32')}
+  function sav(){var v=0;for(var i=0;i<5;i++)v|=(proj[i]+1)<<(i*6);$.put('/Zapp/{zapp_index}/Event',100+v,null,'int32')}
   render();
 ">
   <div id="climblogger">
