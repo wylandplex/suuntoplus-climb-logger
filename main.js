@@ -352,6 +352,9 @@ function onLoad(_input, output) {
   loadProjects(gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
+  var ws = LS.getObject("watchSetup");
+  var sos = LS.getObject("showSetupOnStart");
+  if (ws && !sos) { state = 0; currentTemplate = "ready"; }
 }
 
 function evaluate(input, output) {

@@ -150,6 +150,7 @@
   ],
   "variables": [
     {"shownName": "Current Grade System", "path": "stats.system", "type": "int"},
+    {"shownName": "Show grade-system setup at app start (1=yes, 0=skip)", "path": "showSetupOnStart", "type": "int"},
     {"shownName": "Send Pyramid", "path": "stats.pyramid", "type": "string"},
     {"shownName": "Current System Routes", "path": "stats.totalRoutes", "type": "int"},
     {"shownName": "Current System Sends", "path": "stats.totalSends", "type": "int"},
