@@ -74,5 +74,15 @@
   "projName2": "",
   "projName3": "",
   "projName4": "",
-  "projName5": ""
+  "projName5": "",
+  "s0": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s1": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s2": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s3": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s4": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s5": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s6": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s7": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
+  "s8": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "totalHeight": 0 },
+  "s9": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "totalHeight": 0 }
 }

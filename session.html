@@ -23,8 +23,8 @@
       </div>
     </div>
 
-    <!-- Up-arrow tap-bar = grade - (short up) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+    <!-- Up-arrow tap-bar = grade + (short up) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
       style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
     <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
 
@@ -33,8 +33,8 @@
       <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
     </div>
 
-    <!-- Down-arrow tap-bar = grade + (short down) -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+    <!-- Down-arrow tap-bar = grade - (short down) -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
       style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
     <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
 
@@ -84,13 +84,12 @@
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
-        onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
+        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 7, null, 'int32');" />
       <pushButton name="next" longType="lock"
-        onClick="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 3, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
-        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
+        onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 12, null, 'int32');" />
     </userInput>
     </:if>

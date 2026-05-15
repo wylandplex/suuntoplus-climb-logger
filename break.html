@@ -25,7 +25,12 @@
           var peakHR=0,curHR=0,curDur=0,frozen=false;
           var cMode=0,cSys=0;
           var ws=localStorage.getObject('watchSetup');if(ws)cSys=ws.sys||0;
-          $.subscribe('/Zapp/{zapp_index}/Output/climbMode',function(v){cMode=v});
+          $.subscribe('/Zapp/{zapp_index}/Output/climbMode',function(v){
+            cMode=v;
+            var pv=v>0?'HIDDEN':'VISIBLE';
+            setStyle('#midPill','visibility',pv);
+            setStyle('#midZone','visibility',pv);
+          });
           function persistHrr(d){
             var sv=localStorage.getObject('stats')||{};
             var n=(sv.avgHrrN||0)+1;
@@ -126,6 +131,19 @@
       <span class="sp-b-s f-num" id="hrr" style="padding-left:3px">--</span>
     </div>
 
+    <!-- Top-button: visible pill (X = discard last route, matches up-long event 0). -->
+    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
+                  background:rgba(255,255,255,0.15);
+                  border-radius:40% 0 0 40%;">
+        <div class="f-ico cm-bgc"
+             style="top:calc(55% - 50%e); left:6px;">&#xF110;</div>
+      </div>
+    </div>
+    <!-- Top-button: invisible tap zone (tap = DISCARD). -->
+    <div onTap="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');"
+      style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
     <!-- Down-button: visible pill (fixed size). -->
     <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
       <div style="top:0; left:0; width:100%;height:100%;position:absolute;
@@ -135,8 +153,8 @@
              style="top:calc(45% - 50%e); left:6px;">&#xE373;</div>
       </div>
     </div>
-    <!-- Middle-button: visible pill. -->
-    <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
+    <!-- Middle-button: visible pill (hidden in project mode — no "save as project" makes sense). -->
+    <div id="midPill" style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
       <div style="top:0; left:0; width:100%;height:100%;position:absolute;
                   background:rgba(255,255,255,0.15);
                   border-radius:40% 0 0 40%;">
@@ -144,22 +162,22 @@
              style="top:calc(55% - 50%e); left:6px;">&#xE338;</div>
       </div>
     </div>
-    <!-- Middle-button: invisible tap zone (tap = save as project). -->
-    <div onTap="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
+    <!-- Middle-button: invisible tap zone (tap = save as project; gated to route mode). -->
+    <div id="midZone" onTap="if(cMode==0)$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');"
       style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Down-button: large invisible tap zone (tap = NEXT). -->
     <div onTap="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');"
       style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Physical: up±=last-grade, up-long=save as project, mid locked, down-long=NEXT -->
+    <!-- Physical: up±=last-grade; mid-long=save as project (route mode only); down±=last-grade, down-long=NEXT -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
       <pushButton name="next" longType="lock"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
+        onLongPressStart="if(cMode==0)$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 2, null, 'int32');"
         onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 6, null, 'int32');" />
