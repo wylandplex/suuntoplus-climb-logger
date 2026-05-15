@@ -56,10 +56,7 @@
       "format": "HeartRate_Fourdigits"
     },
     {
-      "name": "totalSends",
-      "log": true,
-      "shownName": "Total Sends",
-      "format": "Count_Threedigits"
+      "name": "totalSends"
     },
     {
       "name": "bestSend"
@@ -77,10 +74,7 @@
       "format": "Count_Twodigits"
     },
     {
-      "name": "routeHeight",
-      "log": true,
-      "shownName": "Route Height",
-      "format": "Ascent_Fourdigits"
+      "name": "routeHeight"
     },
     {
       "name": "editSend"
@@ -160,6 +154,16 @@
     {"shownName": "Current System Send Rate [%]", "path": "stats.sendPct", "type": "int"},
     {"shownName": "Current System Sessions", "path": "stats.sessions", "type": "int"},
     {"shownName": "Current System Total Height [m]", "path": "stats.totalHeight", "type": "int"},
+    {"shownName": "Peak Grade", "path": "stats.peakGrade", "type": "int"},
+    {"shownName": "Sessions @ Peak", "path": "stats.sessionsAtPeak", "type": "int"},
+    {"shownName": "Last Session Grade", "path": "stats.lastSessionGrade", "type": "int"},
+    {"shownName": "Best of Last 5", "path": "stats.bestOfLast5", "type": "int"},
+    {"shownName": "Best Session Height [m]", "path": "stats.bestSessionHm", "type": "int"},
+    {"shownName": "Best Recent Session Height [m]", "path": "stats.bestSessionHmRecent", "type": "int"},
+    {"shownName": "Longest Project Sessions", "path": "stats.longestProjectSes", "type": "int"},
+    {"shownName": "Longest Project Grade", "path": "stats.longestProjectGrade", "type": "int"},
+    {"shownName": "Most Tries on Project", "path": "stats.mostTriesProject", "type": "int"},
+    {"shownName": "Most Tries Grade", "path": "stats.mostTriesGrade", "type": "int"},
     {"shownName": "Active Project Grade", "path": "stats.activeGrade", "type": "int"},
     {"shownName": "Active Project Tries", "path": "stats.activeTries", "type": "int"},
     {"shownName": "Active Project Sends", "path": "stats.activeSends", "type": "int"},
