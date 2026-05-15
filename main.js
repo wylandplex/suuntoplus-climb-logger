@@ -217,6 +217,12 @@ var evSetup = function(eid, dy) {
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
   } else if (eid === 5 || eid === 6) {
+    var ws = LS.getObject("watchSetup");
+    if (ws && ws.sys >= 0 && ws.sys <= 9) {
+      gradeSystem = ws.sys;
+      currentGrade = DEFAULT_IDX[gradeSystem];
+      loadProjects(gradeSystem);
+    }
     loadExt(17)(gradeSystem);
     saveAll();
     goState(0, "ready");
@@ -261,16 +267,29 @@ var evEdit = function(output, eid) {
         }
       }
       recalcBse();
+      output.editSend = r.send;
+      output.bestSend = bestSendEnc;
     }
   } else if (eid === 1 || eid === 2) {
     var rr = routes[editIdx];
     if (rr && !rr.proj) {
       var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[rr.sys];
       rr.grade = ((rr.grade + dy5) % L + L) % L;
-      if (rr.send) recalcBse();
+      output.lastGrade = encGrade(rr.sys, rr.grade);
+      if (rr.send) {
+        recalcBse();
+        output.bestSend = bestSendEnc;
+      }
     }
   }
-  if (eid !== 5 && eid !== 6) editDirty = 1;
+  if (eid === 5 || eid === 6) {
+    var cr = routes[editIdx];
+    if (cr) {
+      output.lastGrade = encGrade(cr.sys, cr.grade);
+      output.editSend = cr.send || 0;
+      output.routeNum = editIdx + 1;
+    }
+  } else editDirty = 1;
 };
 
 function onLoad(_input, output) {
