@@ -172,6 +172,7 @@ var commitDirty = function(input) {
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       if (r[3] && r[4]) projStats[r[3]] = r[4];
       LS.setObject("climbRoutes", routes);
+      loadExt(19)(routes, routeNumber, sendsCount);
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
   }
