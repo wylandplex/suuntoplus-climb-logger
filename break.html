@@ -66,12 +66,6 @@
         ">
   <div id="climblogger">
 
-    <!-- Discard confirm overlay (shown while UP-long is held; full = discard). -->
-    <div id="discardPop" style="position:absolute;top:0;left:0;width:100%;height:100%;
-         background:rgba(0,0,0,0.85);visibility:HIDDEN;z-index:10;">
-      <div class="f-ico p-hc sp-c-red" style="top:calc(50% - 50%e);font-size:80px;">&#xF110;</div>
-    </div>
-
     <!-- Title bar -->
     <div class="cm-fg" style="width:100%;height:16%">
       <div id="title" class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
@@ -179,9 +173,7 @@
     <userInput>
       <pushButton name="up" type="lock" longType="lock" longPressDuration="3"
         onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onLongPressStart="setStyle('#discardPop','visibility','VISIBLE')"
-        onLongPressCancel="setStyle('#discardPop','visibility','HIDDEN')"
-        onLongPressFull="setStyle('#discardPop','visibility','HIDDEN');$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
+        onLongPressFull="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
       <pushButton name="next" longType="lock"
         onLongPressStart="if(cMode==0)$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
