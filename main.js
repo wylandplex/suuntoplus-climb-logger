@@ -382,18 +382,15 @@ function evaluate(input, output) {
   setOutputs(output);
 }
 
-function onExerciseEnd(input, output) {
-  if (input && input.Asc !== undefined) curAsc = input.Asc;
+function onExerciseEnd(input, _output) {
   if (state === 1) {
-    lastResult = 0; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
+    lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
     frDirty = 1; frSend = 0;
     routeNumber++;
   }
   commitDirty(input || {});
-  loadExt(19)(routes, routeNumber, sendsCount);
   loadExt(20)(routes, allTimeStats, projStats, gradeSystem);
-  setOutputs(output);
 }
 
 function onEvent(_input, output, eventId) {
