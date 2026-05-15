@@ -383,7 +383,8 @@ function onExerciseEnd(input, output) {
     routeNumber++;
   }
   commitDirty(input || {});
-  loadExt(19)(routes, bestSendEnc, allTimeStats, projStats, gradeSystem);
+  loadExt(19)(routes);
+  loadExt(20)(routes, allTimeStats, projStats, gradeSystem);
   setOutputs(output);
 }
 
