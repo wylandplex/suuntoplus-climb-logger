@@ -159,13 +159,21 @@ var commitDirty = function(input) {
   if (frDirty) {
     frDirty = 0;
     lastHrAvg = input.A || 0;
-    var lMx = input.M || 0;
     lastDuration = input.D || 0;
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lMx, lastPk1, lastPk3,
-      frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats, lastHeight);
+    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, input.M || 0, lastPk1, lastPk3,
+      frSend, climbMode, bestSendEnc, 0, projStats, allTimeStats, lastHeight);
     bestSendEnc = r[0]; lastBk = r[1];
+    if (r[2]) {
+      routes.push(r[2]);
+      allTimeStats.totalRoutes++;
+      if (frSend) allTimeStats.totalSends++;
+      allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
+      if (r[3] && r[4]) projStats[r[3]] = r[4];
+      LS.setObject("climbRoutes", routes);
+      loadExt(19)(routes, routeNumber, sendsCount);
+    }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
   }
 };
