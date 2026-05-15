@@ -383,6 +383,7 @@ function onExerciseEnd(input, output) {
     routeNumber++;
   }
   commitDirty(input || {});
+  loadExt(19)(routes, bestSendEnc, allTimeStats, projStats, gradeSystem);
   setOutputs(output);
 }
 
@@ -397,7 +398,7 @@ function onEvent(_input, output, eventId) {
 }
 
 function getSummaryOutputs(input, output) {
-  return loadExt(9)(routes, bestSendEnc, allTimeStats, projStats, gradeSystem);
+  return loadExt(9)();
 }
 
 function onLap(_input, output) {
