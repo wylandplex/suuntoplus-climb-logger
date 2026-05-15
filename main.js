@@ -383,7 +383,8 @@ function onExerciseEnd(input, output) {
     routeNumber++;
   }
   commitDirty(input || {});
-  loadExt(19)(routes);
+  LS.setObject("dbgEnd", { st: state, rn: routeNumber, fr: frDirty, sc: sendsCount, rl: routes.length, tr: allTimeStats.totalRoutes });
+  loadExt(19)(routes, routeNumber, sendsCount);
   loadExt(20)(routes, allTimeStats, projStats, gradeSystem);
   setOutputs(output);
 }
