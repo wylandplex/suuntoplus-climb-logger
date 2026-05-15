@@ -149,6 +149,8 @@
     }
   ],
   "variables": [
+    {"shownName": "Current Grade System", "path": "stats.system", "type": "int"},
+    {"shownName": "Send Pyramid", "path": "stats.pyramid", "type": "string"},
     {"shownName": "Current System Routes", "path": "stats.totalRoutes", "type": "int"},
     {"shownName": "Current System Sends", "path": "stats.totalSends", "type": "int"},
     {"shownName": "Current System Send Rate [%]", "path": "stats.sendPct", "type": "int"},
