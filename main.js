@@ -88,9 +88,10 @@ var setOutputs = function(output) {
     output.modeSub = gradeSystem;
     output.routeNum = 0; output.editSend = 0; output.lastGrade = -1;
   } else {
-    output.routeNum = state === 2 ? routes.length : routeNumber;
+    var rn = state === 2 ? routeNumber - 1 : routeNumber;
+    output.routeNum = rn;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
-    output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routes.length : routeNumber);
+    output.modeSub = climbMode > 0 ? -climbMode : rn;
     output.editSend = 0;
   }
   output.totalSends = sendsCount;
@@ -177,6 +178,7 @@ var evReady = function(output, eid, dy) {
     }
     writeG(output);
     output.climbMode = climbMode;
+    output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
   } else if (eid === 5) {
     if (climbMode === 0) {
       editIdx = routes.length > 0 ? routes.length - 1 : 0;
@@ -188,6 +190,7 @@ var evReady = function(output, eid, dy) {
     toggleMode();
     writeG(output);
     output.climbMode = climbMode;
+    output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
   } else if (eid === 6) {
     selfLapExpected = 1;
     startClimb(output);
