@@ -155,6 +155,21 @@ var recalcBse = function() {
   }
 };
 
+var commitDirty = function(input) {
+  if (frDirty) {
+    frDirty = 0;
+    lastHrAvg = input.A || 0;
+    var lMx = input.M || 0;
+    lastDuration = input.D || 0;
+    lastPk1 = bestPk1 || lastHrAvg;
+    lastPk3 = bestPk3 || lastHrAvg;
+    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lMx, lastPk1, lastPk3,
+      frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats, lastHeight);
+    bestSendEnc = r[0]; lastBk = r[1];
+    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
+  }
+};
+
 var startClimb = function(output) {
   hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
   startAsc = curAsc;
@@ -352,19 +367,19 @@ function evaluate(input, output) {
     }
   }
 
-  if (frDirty) {
-    frDirty = 0;
-    lastHrAvg = input.A || 0;
-    var lMx = input.M || 0;
-    lastDuration = input.D || 0;
-    lastPk1 = bestPk1 || lastHrAvg;
-    lastPk3 = bestPk3 || lastHrAvg;
-    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, lMx, lastPk1, lastPk3,
-      frSend, climbMode, bestSendEnc, 0, routes, projStats, allTimeStats, lastHeight);
-    bestSendEnc = r[0]; lastBk = r[1];
-    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
-  }
+  commitDirty(input);
+  setOutputs(output);
+}
 
+function onExerciseEnd(input, output) {
+  if (input && input.Asc !== undefined) curAsc = input.Asc;
+  if (state === 1) {
+    lastResult = 0; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
+    lastHeight = Math.max(0, Math.round(curAsc - startAsc));
+    frDirty = 1; frSend = 0;
+    routeNumber++;
+  }
+  commitDirty(input || {});
   setOutputs(output);
 }
 

@@ -44,13 +44,22 @@
       "name": "lastGrade"
     },
     {
-      "name": "routePk1"
+      "name": "routePk1",
+      "log": true,
+      "shownName": "Peak HR 1min",
+      "format": "HeartRate_Fourdigits"
     },
     {
-      "name": "routePk3"
+      "name": "routePk3",
+      "log": true,
+      "shownName": "Peak HR 3min",
+      "format": "HeartRate_Fourdigits"
     },
     {
-      "name": "totalSends"
+      "name": "totalSends",
+      "log": true,
+      "shownName": "Total Sends",
+      "format": "Count_Threedigits"
     },
     {
       "name": "bestSend"
@@ -62,10 +71,16 @@
       "name": "modeSub"
     },
     {
-      "name": "climbing"
+      "name": "climbing",
+      "log": true,
+      "shownName": "Climbing",
+      "format": "Count_Twodigits"
     },
     {
-      "name": "routeHeight"
+      "name": "routeHeight",
+      "log": true,
+      "shownName": "Route Height",
+      "format": "Ascent_Fourdigits"
     },
     {
       "name": "editSend"
