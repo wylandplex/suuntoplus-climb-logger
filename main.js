@@ -271,7 +271,13 @@ var evEdit = function(output, eid) {
   if (eid === 4 || eid === 7 || eid === 12) {
     if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
     if (eid === 12) {
-      if (n > 0) editIdx = (editIdx + 1) % n;
+      if (n > 0) editIdx = (editIdx - 1 + n) % n;
+      var pr = routes[editIdx];
+      if (pr) {
+        output.lastGrade = encGrade(pr.sys, pr.grade);
+        output.editSend = pr.send || 0;
+        output.routeNum = editIdx + 1;
+      }
     } else {
       goState(0, "ready", output);
     }
