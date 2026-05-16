@@ -63,7 +63,8 @@
             if(curDur<=10&&v>peakHR)peakHR=v;
             refresh();
           });
-          function uT(x){var t;if(x>0){t='ROUTE '+x}else{var w=localStorage.getObject('watchSetup');var s=w?(w.sys|0):0;var sv=localStorage.getObject('stats')||{};var nms=(sv['projNames'+s]||'').split(',');var nm=nms[Math.abs(x)-1];nm=nm?nm.replace(/^\s+|\s+$/g,''):'';t=nm?nm:'PROJECT '+Math.abs(x)}setText('#titleText',t)}
+          function uTrm(s){var a=0,b=s.length;while(a<b&&s.charAt(a)===' ')a++;while(b>a&&s.charAt(b-1)===' ')b--;return s.substring(a,b)}
+          function uT(x){var t;if(x>0){t='ROUTE '+x}else{var w=localStorage.getObject('watchSetup');var sy=w?(w.sys|0):0;var sv=localStorage.getObject('stats')||{};var nms=(sv['projNames'+sy]||'').split(',');var nm=nms[Math.abs(x)-1]||'';nm=uTrm(nm);t=nm?nm:'PROJECT '+Math.abs(x)}setText('#titleText',t)}
           $.subscribe('/Zapp/{zapp_index}/Output/modeSub',function(v){uT(v)});
         ">
   <div id="climblogger">
