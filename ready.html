@@ -36,17 +36,17 @@
             setStyle('#downArr','visibility',ev);
             if(off)setStyle('#projStats','visibility','HIDDEN');
           }
+          function uT(x){var t;if(x>0){t='ROUTE '+x}else{var w=localStorage.getObject('watchSetup');var s=w?(w.sys|0):0;var sv=localStorage.getObject('stats')||{};var nms=(sv['projNames'+s]||'').split(',');var nm=nms[Math.abs(x)-1];nm=nm?nm.replace(/^\s+|\s+$/g,''):'';t=nm?nm:'PROJECT '+Math.abs(x)}setText('#titleText',t)}
           $.subscribe('/Zapp/{zapp_index}/Output/climbMode',function(v){uP(v)});
           $.subscribe('/Zapp/{zapp_index}/Output/grade',function(v){uG(v)});
+          $.subscribe('/Zapp/{zapp_index}/Output/modeSub',function(v){uT(v)});
         ">
   <div id="climblogger">
 
     <!-- Title bar -->
     <div id="title" class="cm-fg" style="width:100%;height:16%"
          onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');">
-      <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => { if(x>0)return 'ROUTE '+x; var ws=localStorage.getObject('watchSetup'); var sys=ws?(ws.sys|0):0; var sv=localStorage.getObject('stats')||{}; var nms=(sv['projNames'+sys]||'').split(','); var nm=nms[Math.abs(x)-1]; var t=nm?nm.replace(/^\s+|\s+$/g,''):''; return t?t:'PROJECT '+Math.abs(x); }" default="ROUTE 1" />
-      </div>
+      <div id="titleText" class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">ROUTE 1</div>
     </div>
 
     <!-- Up-arrow tap-bar (invisible wide target) -->
