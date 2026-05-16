@@ -176,7 +176,6 @@ var commitDirty = function(input) {
       if (frSend) allTimeStats.totalSends++;
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       if (r[3] && r[4]) projStats[r[3]] = r[4];
-      LS.setObject("climbRoutes", routes);
       loadExt(19)(routes, routeNumber, sendsCount);
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
@@ -294,7 +293,6 @@ var evEdit = function(output, eid) {
           }
         }
         routes.splice(editIdx, 1);
-        LS.setObject("climbRoutes", routes);
         recalcBse();
         if (routeNumber > 1) routeNumber--;
         n = routes.length;
