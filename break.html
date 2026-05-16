@@ -9,7 +9,7 @@
           function zoneCol(hz){
             if(maxHR<=0||hz<=0)return '#FFFFFF';
             var pct=hz*60/maxHR*100;
-            return getStyle(pct>90?'css:.c-red':(pct>80?'css:.sp-c-orange':(pct>70?'css:.sp-c-yellow':'css:.c-green')),'color');
+            return pct>90?'#ff6666':pct>80?'#ffa500':pct>70?'#ffd966':'#5cdd8b';
           }
           function applyColors(){
             if(hrVals.avg>0&&_aC.a!==hrVals.avg){_aC.a=hrVals.avg;setStyle('#hrAvgVal','color',zoneCol(hrVals.avg))}
