@@ -296,6 +296,7 @@ var evEdit = function(output, eid) {
         routes.splice(editIdx, 1);
         LS.setObject("climbRoutes", routes);
         recalcBse();
+        if (routeNumber > 1) routeNumber--;
         n = routes.length;
         if (editIdx >= n && n > 0) editIdx = n - 1;
       }
