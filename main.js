@@ -26,6 +26,7 @@ var frSend = 0;
 var selfLapExpected = 0;
 var editIdx = 0;
 var editDirty = 0;
+var isPaused = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -366,6 +367,7 @@ function onLoad(_input, output) {
 }
 
 function evaluate(input, output) {
+  if (isPaused) return;
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     var h = input.H;
@@ -394,6 +396,7 @@ function onExerciseEnd(input, _output) {
 }
 
 function onEvent(_input, output, eventId) {
+  if (isPaused) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : eventId === 7 ? 3 : eventId === 8 ? -3 : 0;
   if (state === 0) evReady(output, eventId, dy);
   else if (state === 1) evClimb(output, eventId);
@@ -402,6 +405,9 @@ function onEvent(_input, output, eventId) {
   else if (state === 4) evSetup(output, eventId, dy);
   else if (state === 6) evProjSetup(output, eventId);
 }
+
+function onExercisePause(_input, _output) { isPaused = 1; }
+function onExerciseContinue(_input, _output) { isPaused = 0; }
 
 function getSummaryOutputs(input, output) {
   return loadExt(9)();
