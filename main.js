@@ -24,12 +24,12 @@ var lastGradeIdx = -1;
 var lastGradeSys = 0;
 var lastHrAvg = 0;
 var bestSendEnc = -1;
-var lastBk = null;
 var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
 var editIdx = 0;
 var editDirty = 0;
+var editDelMark = 0;
 var isPaused = 0;
 
 var climbMode = 0;
@@ -87,7 +87,7 @@ var setOutputs = function(output) {
     output.lastGrade = rr.sys !== undefined ? encGrade(rr.sys, rr.grade) : -1;
     output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
     output.modeSub = routes.length;
-    output.editSend = rr.send || 0;
+    output.editSend = editDelMark ? 2 : (rr.send || 0);
   } else if (state === 4) {
     output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
@@ -169,7 +169,7 @@ var commitDirty = function(input) {
     lastPk3 = bestPk3 || lastHrAvg;
     var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
       frSend, climbMode, bestSendEnc, 0, projStats, allTimeStats, lastHeight);
-    bestSendEnc = r[0]; lastBk = r[1];
+    bestSendEnc = r[0];
     if (r[2]) {
       routes.push(r[2]);
       allTimeStats.totalRoutes++;
@@ -246,27 +246,6 @@ var evBreak = function(output, eid, dy) {
     saveAsProject(output);
   } else if (eid === 6 && !frDirty) {
     goState(0, "ready", output);
-  } else if (eid === 0) {
-    if (frDirty) {
-      frDirty = 0;
-    } else if (lastBk) {
-      routes.pop();
-      allTimeStats.totalRoutes = lastBk.tr;
-      allTimeStats.totalSends = lastBk.ts;
-      allTimeStats.sendPct = lastBk.sp;
-      if (lastBk.sk) {
-        if (lastBk.psp) {
-          projStats[lastBk.sk] = { attempts: lastBk.psp.a, sends: lastBk.psp.s, bestTime: lastBk.psp.b, firstSes: lastBk.psp.f, g: lastBk.psp.g };
-        } else {
-          delete projStats[lastBk.sk];
-        }
-        LS.setObject("climbProjStats", projStats);
-      }
-      bestSendEnc = lastBk.bse;
-    }
-    if (frSend) sendsCount--;
-    routeNumber--;
-    goState(0, "ready", output);
   }
 };
 
@@ -300,14 +279,38 @@ var evProjSetup = function(output, eid) {
 var evEdit = function(output, eid) {
   var n = routes.length;
   if (eid === 4 || eid === 7 || eid === 12) {
+    if (editDelMark) {
+      var dr = routes[editIdx];
+      if (dr) {
+        allTimeStats.totalRoutes--;
+        if (dr.send) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
+        allTimeStats.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
+        if (dr.proj > 0) {
+          var dk = dr.sys + "_" + dr.proj, dp = projStats[dk];
+          if (dp) {
+            if (dp.attempts > 0) dp.attempts--;
+            if (dr.send && dp.sends > 0) dp.sends--;
+            if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
+          }
+        }
+        routes.splice(editIdx, 1);
+        LS.setObject("climbRoutes", routes);
+        recalcBse();
+        n = routes.length;
+        if (editIdx >= n && n > 0) editIdx = n - 1;
+      }
+      editDelMark = 0;
+      editDirty = 1;
+    }
     if (editDirty) { LS.setObject("climbProjStats", projStats); writeStats(); editDirty = 0; }
-    if (eid === 12) {
-      if (n > 0) editIdx = (editIdx - 1 + n) % n;
+    if (eid === 12 && n > 0) {
+      editIdx = (editIdx - 1 + n) % n;
       var pr = routes[editIdx];
       if (pr) {
         output.lastGrade = encGrade(pr.sys, pr.grade);
         output.editSend = pr.send || 0;
         output.routeNum = editIdx + 1;
+        output.modeSub = n;
       }
     } else {
       goState(0, "ready", output);
@@ -315,25 +318,38 @@ var evEdit = function(output, eid) {
     return;
   }
   if (n === 0) return;
-  if (eid === 5) editIdx = (editIdx + 1) % n;
-  else if (eid === 6) editIdx = (editIdx - 1 + n) % n;
+  if (eid === 5) { editIdx = (editIdx + 1) % n; editDelMark = 0; }
+  else if (eid === 6) { editIdx = (editIdx - 1 + n) % n; editDelMark = 0; }
   else if (eid === 3) {
     var r = routes[editIdx];
     if (r) {
-      r.send = r.send ? 0 : 1;
-      if (r.send) { sendsCount++; allTimeStats.totalSends++; }
-      else { sendsCount--; allTimeStats.totalSends--; }
-      allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
-      if (r.proj > 0) {
-        var k = r.sys + "_" + r.proj, p = projStats[k];
-        if (p) {
-          if (r.send) p.sends++;
-          else if (p.sends > 0) p.sends--;
+      if (editDelMark) {
+        editDelMark = 0;
+        r.send = 0;
+        if (sendsCount > 0) sendsCount--;
+        allTimeStats.totalSends--;
+        if (r.proj > 0) {
+          var k = r.sys + "_" + r.proj, p = projStats[k];
+          if (p && p.sends > 0) p.sends--;
         }
+        output.editSend = 0;
+      } else if (r.send) {
+        editDelMark = 1;
+        output.editSend = 2;
+      } else {
+        r.send = 1;
+        sendsCount++;
+        allTimeStats.totalSends++;
+        if (r.proj > 0) {
+          var k2 = r.sys + "_" + r.proj, p2 = projStats[k2];
+          if (p2) p2.sends++;
+        }
+        output.editSend = 1;
       }
+      allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       recalcBse();
-      output.editSend = r.send;
       output.bestSend = bestSendEnc;
+      editDirty = 1;
     }
   } else if (eid === 1 || eid === 2) {
     var rr = routes[editIdx];
