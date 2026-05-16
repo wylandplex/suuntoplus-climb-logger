@@ -45,7 +45,7 @@
     <div id="title" class="cm-fg" style="width:100%;height:16%"
          onTap="$.put('/Zapp/{zapp_index}/Event', 5, null, 'int32');">
       <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => { if(x>0)return 'ROUTE '+x; var ws=localStorage.getObject('watchSetup'); var sys=ws?(ws.sys|0):0; var sv=localStorage.getObject('stats')||{}; var nms=(sv['projNames'+sys]||'').split(','); var nm=nms[Math.abs(x)-1]; var t=nm?nm.replace(/^\s+|\s+$/g,''):''; return t?t:'PROJECT '+Math.abs(x); }" default="ROUTE 1" />
       </div>
     </div>
 
