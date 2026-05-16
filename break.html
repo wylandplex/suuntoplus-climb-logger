@@ -132,16 +132,7 @@
       <span class="sp-b-s f-num" id="hrr" style="padding-left:3px">--</span>
     </div>
 
-    <!-- Top-button: visible pill (X = discard via UP-long-hold 3s). -->
-    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
-      <div style="top:0; left:0; width:100%;height:100%;position:absolute;
-                  background:rgba(255,255,255,0.15);
-                  border-radius:40% 0 0 40%;">
-        <div class="f-ico cm-bgc"
-             style="top:calc(55% - 50%e); left:6px;">&#xF110;</div>
-      </div>
-    </div>
-    <!-- Top-button: tap zone removed (discard is UP-long-hold only; no touch path). -->
+    <!-- Top-button: no UP-long action on break — discard moved to session-edit screen -->
 
     <!-- Down-button: visible pill (fixed size). -->
     <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
@@ -173,8 +164,7 @@
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
-        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
+        onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');" />
       <pushButton name="next" longType="lock"
         onLongPressStart="if(cMode==0)$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
