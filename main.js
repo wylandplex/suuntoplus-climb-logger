@@ -13,6 +13,10 @@ var hr1Sum = 0;
 var hr3Sum = 0;
 var bestPk1 = 0;
 var bestPk3 = 0;
+var rSec = 0;
+var hrSum = 0;
+var hrCnt = 0;
+var hrMax = 0;
 var lastPk1 = 0;
 var lastPk3 = 0;
 var lastDuration = 0;
@@ -159,11 +163,11 @@ var recalcBse = function() {
 var commitDirty = function(input) {
   if (frDirty) {
     frDirty = 0;
-    lastHrAvg = input.A || 0;
-    lastDuration = input.D || 0;
+    lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : (input.A || 0);
+    lastDuration = rSec > 0 ? rSec : (input.D || 0);
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, input.M || 0, lastPk1, lastPk3,
+    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
       frSend, climbMode, bestSendEnc, 0, projStats, allTimeStats, lastHeight);
     bestSendEnc = r[0]; lastBk = r[1];
     if (r[2]) {
@@ -175,12 +179,12 @@ var commitDirty = function(input) {
       LS.setObject("climbRoutes", routes);
       loadExt(19)(routes, routeNumber, sendsCount);
     }
-    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
+    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
   }
 };
 
 var startClimb = function(output) {
-  hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = 0;
+  hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
   startAsc = curAsc;
   goState(1, "climb", output);
 };
@@ -370,8 +374,11 @@ function evaluate(input, output) {
   if (isPaused) return;
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
+    rSec++;
     var h = input.H;
     if (h > 0) {
+      hrSum += h; hrCnt++;
+      if (h > hrMax) hrMax = h;
       hr1Sum += h; hr3Sum += h;
       if (hrIdx >= 60) { hr1Sum -= hrBuf[(hrIdx - 60) % 180]; if (hr1Sum / 60 > bestPk1) bestPk1 = hr1Sum / 60; }
       if (hrIdx >= 180) { hr3Sum -= hrBuf[hrIdx % 180]; if (hr3Sum / 180 > bestPk3) bestPk3 = hr3Sum / 180; }
