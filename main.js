@@ -325,26 +325,26 @@ var evEdit = function(output, eid) {
     if (r) {
       if (editDelMark) {
         editDelMark = 0;
-        r.send = 0;
-        if (sendsCount > 0) sendsCount--;
-        allTimeStats.totalSends--;
-        if (r.proj > 0) {
-          var k = r.sys + "_" + r.proj, p = projStats[k];
-          if (p && p.sends > 0) p.sends--;
-        }
-        output.editSend = 0;
-      } else if (r.send) {
-        editDelMark = 1;
-        output.editSend = 2;
-      } else {
         r.send = 1;
         sendsCount++;
         allTimeStats.totalSends++;
         if (r.proj > 0) {
-          var k2 = r.sys + "_" + r.proj, p2 = projStats[k2];
-          if (p2) p2.sends++;
+          var k = r.sys + "_" + r.proj, p = projStats[k];
+          if (p) p.sends++;
         }
         output.editSend = 1;
+      } else if (r.send) {
+        r.send = 0;
+        if (sendsCount > 0) sendsCount--;
+        allTimeStats.totalSends--;
+        if (r.proj > 0) {
+          var k2 = r.sys + "_" + r.proj, p2 = projStats[k2];
+          if (p2 && p2.sends > 0) p2.sends--;
+        }
+        output.editSend = 0;
+      } else {
+        editDelMark = 1;
+        output.editSend = 2;
       }
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       recalcBse();
