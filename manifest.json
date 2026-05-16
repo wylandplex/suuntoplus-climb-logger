@@ -516,10 +516,13 @@
       "min": -1,
       "max": 11
     },
-    {"shownName": "Project 1 Name", "path": "projName1", "type": "string"},
-    {"shownName": "Project 2 Name", "path": "projName2", "type": "string"},
-    {"shownName": "Project 3 Name", "path": "projName3", "type": "string"},
-    {"shownName": "Project 4 Name", "path": "projName4", "type": "string"},
-    {"shownName": "Project 5 Name", "path": "projName5", "type": "string"}
+    {"shownName": "French Project Names (comma-sep, max 5)", "path": "projNames0", "type": "string"},
+    {"shownName": "UIAA Project Names (comma-sep, max 5)", "path": "projNames1", "type": "string"},
+    {"shownName": "YDS Project Names (comma-sep, max 5)", "path": "projNames2", "type": "string"},
+    {"shownName": "British Project Names (comma-sep, max 5)", "path": "projNames3", "type": "string"},
+    {"shownName": "V-Scale Project Names (comma-sep, max 5)", "path": "projNames4", "type": "string"},
+    {"shownName": "Font Project Names (comma-sep, max 5)", "path": "projNames5", "type": "string"},
+    {"shownName": "Ice Project Names (comma-sep, max 5)", "path": "projNames6", "type": "string"},
+    {"shownName": "Mixed Project Names (comma-sep, max 5)", "path": "projNames7", "type": "string"}
   ]
 }
