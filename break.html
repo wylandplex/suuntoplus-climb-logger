@@ -172,9 +172,9 @@
     <!-- Physical: up±=last-grade; mid-long=save as project (route mode only); down±=last-grade, down-long=NEXT -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
-      <pushButton name="up" type="lock" longType="lock" longPressDuration="3"
+      <pushButton name="up" type="lock" longType="lock"
         onClick="$.put('/Zapp/{zapp_index}/Event', 1, null, 'int32');"
-        onLongPressFull="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
+        onLongPressStart="$.put('/Zapp/{zapp_index}/Event', 0, null, 'int32');" />
       <pushButton name="next" longType="lock"
         onLongPressStart="if(cMode==0)$.put('/Zapp/{zapp_index}/Event', 4, null, 'int32');" />
       <pushButton name="down" type="lock" longType="lock"
