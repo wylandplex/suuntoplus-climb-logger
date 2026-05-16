@@ -416,8 +416,12 @@ function onExerciseEnd(input, _output) {
     frDirty = 1; frSend = 0;
     routeNumber++;
   }
-  commitDirty(input || {});
-  loadExt(20)(routes, allTimeStats, projStats, gradeSystem);
+  try {
+    commitDirty(input || {});
+    loadExt(20)(routes, allTimeStats, projStats, gradeSystem);
+  } catch (e) {
+    LS.setObject("dbgEndErr", { msg: "" + e });
+  }
 }
 
 function onEvent(_input, output, eventId) {
