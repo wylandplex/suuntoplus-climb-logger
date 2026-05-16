@@ -17,6 +17,7 @@ var rSec = 0;
 var hrSum = 0;
 var hrCnt = 0;
 var hrMax = 0;
+var sessionH = 0;
 var lastPk1 = 0;
 var lastPk3 = 0;
 var lastDuration = 0;
@@ -80,7 +81,7 @@ var setOutputs = function(output) {
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
-  output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : lastHeight;
+  output.routeHeight = state === 1 ? sessionH + Math.max(0, Math.round(curAsc - startAsc)) : sessionH;
   output.climbMode = climbMode;
   if (state === 5) {
     var rr = routes[editIdx] || {};
@@ -176,6 +177,7 @@ var commitDirty = function(input) {
       if (frSend) allTimeStats.totalSends++;
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       if (r[3] && r[4]) projStats[r[3]] = r[4];
+      sessionH += lastHeight || 0;
       loadExt(19)(routes, routeNumber, sendsCount);
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
@@ -292,6 +294,7 @@ var evEdit = function(output, eid) {
             if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
           }
         }
+        if (dr.h > 0) sessionH = Math.max(0, sessionH - dr.h);
         routes.splice(editIdx, 1);
         recalcBse();
         if (routeNumber > 1) routeNumber--;
