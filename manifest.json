@@ -3,7 +3,7 @@
   "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
   "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1776970743,
+  "modificationTime": 1779128207,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -78,66 +78,23 @@
     },
     {
       "name": "editSend"
+    },
+    {
+      "name": "vState"
+    },
+    {
+      "name": "actT"
+    },
+    {
+      "name": "actS"
+    },
+    {
+      "name": "actB"
     }
   ],
   "template": [
     {
-      "name": "ready.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
-    },
-    {
-      "name": "climb.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
-    },
-    {
-      "name": "break.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
-    },
-    {
-      "name": "session.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
-    },
-    {
-      "name": "setup.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
-    },
-    {
-      "name": "projsetup.html",
+      "name": "cm.html",
       "displays": [
         "l",
         "m",
