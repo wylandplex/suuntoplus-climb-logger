@@ -1,6 +1,6 @@
 # ADR-002: Binding Architecture — Lazy-Output Push Pattern
 
-**Status:** PENDING — awaiting Phase 0 empirical validation (revised after 3rd reviewer consultation)
+**Status:** IN PROGRESS — Variant D adopted, full rollout in v3.0.3
 **Date:** 2026-05-18
 **Deciders:** App owner (skyfi)
 **Supersedes:** Implicit "single-template-with-visibility-toggle" approach from v3.0
@@ -9,9 +9,11 @@
 
 After today's test session (2026-05-18), three issues were identified (see `docs/freeze-analysis-2026-05-18.md`):
 
-1. **Multi-App Freeze** — Movement zzmoveen + Climb-Logger together → `ERR WBMAIN: Too many sim. path-param calls cli:32921 res:2129` + path-dump with 81 active LIDs.
+1. **Multi-App Path-Overflow** — Climb-Logger co-active with other Suunto-Plus apps (Movement zzmoveen, ZoneSense, Weather, etc.) → `ERR WBMAIN: Too many sim. path-param calls cli:32921 res:2129` + path-dump with 81 active LIDs. Subscribe-cascade at app/exercise startup or state transitions can overload the WB Path-Resolver.
 2. **"No Summary" Session** — long fast-click sessions produce nearly empty summaries.
 3. **Fast-Click Race** — break-screen shows no HR values when route was clicked through in <1s.
+
+**Note on framing:** Earlier hypothesis (now closed [Issue #78](https://github.com/wylandplex/suuntoplus-climb-logger/issues/78)) framed path-overflow as USB-trigger. Re-analysis showed `EVT WBCOMM: P-9 connection made to ECSD…` events are NOT USB-to-PC (those would be `EVT PMIC: VBUS state is ON`) — they're internal Watch-Bus communication routes. USB plug coincided with some overflows but did not cause them. The real trigger is multi-app subscribe cascade during app init / state transitions.
 
 Three reviewers were consulted on architectural fix for Issue #1 (the structural one):
 

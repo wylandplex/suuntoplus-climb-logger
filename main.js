@@ -34,7 +34,6 @@ var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
 var dwell = 0;
-var fmt = null;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -296,7 +295,8 @@ var evSetup = function(output, eid, dy) {
   } else if (eid === 6) {
     try {
       loadExt(17)(gradeSystem);
-      saveAll();
+      allProjects[gradeSystem] = projGradeIdx.slice();
+      LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
       goState(0, "cm", output);
     } catch (e) {
       LS.setObject("dbgEvErr", { msg: "" + e });
@@ -416,7 +416,6 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
-  try { fmt = loadExt(20)(); } catch (e) {}
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];
