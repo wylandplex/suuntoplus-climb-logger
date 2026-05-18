@@ -33,6 +33,8 @@ var editDirty = 0;
 var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
+var dwell = 0;
+var fmt = null;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -78,35 +80,40 @@ var wrap = function(idx, len, off) {
   return idx >= len ? -off : idx < -off ? len - 1 : idx;
 };
 
+var pushEs = function(es) {
+  setText('#sc5-eIcon', es === 1 ? '' : es === 0 ? '' : '');
+  setText('#sc5-eText', es === 1 ? 'SEND' : es === 0 ? 'FAIL' : 'DEL');
+  setText('#sc5-eIconPill', es === 1 ? '' : es === 2 ? '' : '');
+};
+
 var setOutputs = function(output) {
   output.vState = state;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
-  output.routeHeight = state === 1 ? sessionH + Math.max(0, Math.round(curAsc - startAsc)) : sessionH;
+  output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;
   output.climbMode = climbMode;
   if (state === 5) {
     var rr = routes[editIdx];
     output.lastGrade = rr ? encGrade(rr[1], rr[0]) : -1;
     output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
     output.modeSub = routes.length;
-    output.editSend = editDelMark ? 2 : (rr ? rr[2] : 0);
+    pushEs(editDelMark ? 2 : (rr ? rr[2] : 0));
     output.climbMode = rr ? (rr[3] || 0) : 0;
     return;  // climbMode is repurposed in edit; skip the global-climbMode assignment below
   } else if (state === 6) {
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
     output.modeSub = pStep + 1;
-    output.routeNum = 0; output.editSend = 0; output.lastGrade = -1;
+    output.routeNum = 0; output.lastGrade = -1;
   } else if (state === 4) {
     output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
-    output.routeNum = 0; output.editSend = 0; output.lastGrade = -1;
+    output.routeNum = 0; output.lastGrade = -1;
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     output.routeNum = rn;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : rn;
-    output.editSend = 0;
   }
   output.totalSends = sendsCount;
   output.bestSend = bestSendEnc;
@@ -121,12 +128,20 @@ var setOutputs = function(output) {
   }
 };
 
+var setV = function(s) {
+  for (var i = 0; i < 7; i++) {
+    if (i !== 3) setStyle('#sc' + i, 'visibility', s === i ? 'VISIBLE' : 'HIDDEN');
+  }
+};
+
 var goState = function(s, t, output) {
   state = s;
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
+  setV(s);
+  if (s === 1 || s === 2) dwell = 1;
 };
 
 var writeG = function(o, idx) {
@@ -180,6 +195,9 @@ var recalcBse = function() {
 
 var commitDirty = function(input) {
   if (frDirty) {
+    // fast-click bounded retry: defer up to 2 ticks for Lap/-2 firmware update
+    // input.A===0 (explicit) only — undefined means onExerciseEnd flush, force commit
+    if (rSec === 0 && hrCnt === 0 && input.A === 0 && frDirty < 3) { frDirty++; return; }
     frDirty = 0;
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : (input.A || 0);
     lastDuration = rSec > 0 ? rSec : (input.D || 0);
@@ -262,7 +280,8 @@ var evBreak = function(output, eid, dy) {
     }
   } else if (eid === 4) {
     saveAsProject(output);
-  } else if (eid === 6 && !frDirty) {
+  } else if (eid === 6 && frDirty < 2) {
+    // exit allowed at frDirty<2 (idle or just-set); blocked during active retry (2/3)
     goState(0, "cm", output);
   }
 };
@@ -333,7 +352,7 @@ var evEdit = function(output, eid) {
       var pr = routes[editIdx];
       if (pr) {
         output.lastGrade = encGrade(pr[1], pr[0]);
-        output.editSend = pr[2] || 0;
+        pushEs(pr[2] || 0);
         output.routeNum = editIdx + 1;
         output.modeSub = n;
         output.climbMode = pr[3] || 0;
@@ -362,7 +381,7 @@ var evEdit = function(output, eid) {
           var k = r[1] + "_" + r[3], p = projStats[k];
           if (p) p.sends++;
         }
-        output.editSend = 1;
+        pushEs(1);
       } else if (r[2]) {
         r[2] = 0;
         if (sendsCount > 0) sendsCount--;
@@ -371,10 +390,10 @@ var evEdit = function(output, eid) {
           var k2 = r[1] + "_" + r[3], p2 = projStats[k2];
           if (p2 && p2.sends > 0) p2.sends--;
         }
-        output.editSend = 0;
+        pushEs(0);
       } else {
         editDelMark = 1;
-        output.editSend = 2;
+        pushEs(2);
       }
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       recalcBse();
@@ -397,6 +416,7 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
+  try { fmt = loadExt(20)(); } catch (e) {}
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];
@@ -429,9 +449,9 @@ function evaluate(input, output) {
   }
 
   commitDirty(input);
-  // Skip setOutputs in edit (5) — eval-script churn in session.html bindings is OOM-risky at high routes.
-  // state=4 (setup) needs it to publish vState so cm.html applyVis fires correctly on initial entry.
   if (state !== 5) setOutputs(output);
+  setV(state);
+  dwell = 0;
 }
 
 function onExerciseEnd(input, _output) {
@@ -448,6 +468,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  if (dwell && ((state === 1 && (eventId === 5 || eventId === 6)) || (state === 2 && eventId === 6))) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
