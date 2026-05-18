@@ -141,7 +141,7 @@ var goState = function(s, t, output) {
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
   setV(s);
-  if (s === 1 || s === 2) dwell = 1;
+  if (s === 1) dwell = 1;
 };
 
 var writeG = function(o, idx) {
@@ -468,7 +468,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (dwell && ((state === 1 && (eventId === 5 || eventId === 6)) || (state === 2 && eventId === 6))) return;
+  if (dwell && state === 1 && (eventId === 5 || eventId === 6)) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
