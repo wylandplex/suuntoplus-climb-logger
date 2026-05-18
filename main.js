@@ -128,12 +128,20 @@ var setOutputs = function(output) {
   }
 };
 
+// Defensive direct setStyle bypass WB vState output channel
+var setV = function(s) {
+  for (var i = 0; i < 7; i++) {
+    if (i !== 3) setStyle('#sc' + i, 'visibility', s === i ? 'VISIBLE' : 'HIDDEN');
+  }
+};
+
 var goState = function(s, t, output) {
   state = s;
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
+  setV(s);
 };
 
 var writeG = function(o, idx) {
@@ -440,9 +448,8 @@ function evaluate(input, output) {
   }
 
   commitDirty(input);
-  // Skip setOutputs in edit (5) — eval-script churn in session.html bindings is OOM-risky at high routes.
-  // state=4 (setup) needs it to publish vState so cm.html applyVis fires correctly on initial entry.
   if (state !== 5) setOutputs(output);
+  setV(state);  // defensive: ensure visibility syncs even if WB vState channel dropped
 }
 
 function onExerciseEnd(input, _output) {
