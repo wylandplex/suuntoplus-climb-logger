@@ -33,6 +33,8 @@ var editDirty = 0;
 var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
+var dwell = 0;
+var fmt = null;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -78,8 +80,6 @@ var wrap = function(idx, len, off) {
   return idx >= len ? -off : idx < -off ? len - 1 : idx;
 };
 
-// Variante D: editSend display pushed via setText (no manifest output, no path sub)
-// Called in setOutputs(state=5) + evEdit when editSend value changes
 var pushEs = function(es) {
   setText('#sc5-eIcon', es === 1 ? '' : es === 0 ? '' : '');
   setText('#sc5-eText', es === 1 ? 'SEND' : es === 0 ? 'FAIL' : 'DEL');
@@ -128,7 +128,6 @@ var setOutputs = function(output) {
   }
 };
 
-// Defensive direct setStyle bypass WB vState output channel
 var setV = function(s) {
   for (var i = 0; i < 7; i++) {
     if (i !== 3) setStyle('#sc' + i, 'visibility', s === i ? 'VISIBLE' : 'HIDDEN');
@@ -142,6 +141,7 @@ var goState = function(s, t, output) {
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
   setV(s);
+  if (s === 1 || s === 2) dwell = 1;
 };
 
 var writeG = function(o, idx) {
@@ -416,6 +416,7 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
+  try { fmt = loadExt(20)(); } catch (e) {}
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];
@@ -449,7 +450,8 @@ function evaluate(input, output) {
 
   commitDirty(input);
   if (state !== 5) setOutputs(output);
-  setV(state);  // defensive: ensure visibility syncs even if WB vState channel dropped
+  setV(state);
+  dwell = 0;
 }
 
 function onExerciseEnd(input, _output) {
@@ -466,6 +468,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  if (dwell && ((state === 1 && (eventId === 5 || eventId === 6)) || (state === 2 && eventId === 6))) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;

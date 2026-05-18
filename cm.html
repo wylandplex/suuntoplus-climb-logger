@@ -183,11 +183,6 @@
 
       <div class="p-hc" style="top:57%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-      <!-- TOO SHORT indicator — Lap/-2 Duration < 2s means HR data above is unreliable -->
-      <div class="sp-b-s p-hc" style="top:calc(60% - 50%e); color:#ffa500;">
-        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => x >= 2 ? '' : 'TOO SHORT'" default="" />
-      </div>
-
       <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
         <span class="f-ico" style="padding-right:14px">&#xF107;</span>
         <span class="f-ico" style="padding-right:6px">&#xF200;</span>
