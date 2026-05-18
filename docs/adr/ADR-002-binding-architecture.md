@@ -1,6 +1,6 @@
-# ADR-002: Binding Architecture — From Monolithic Template to State-Cluster Split
+# ADR-002: Binding Architecture — Lazy-Output Push Pattern
 
-**Status:** PENDING — awaiting Phase 0 empirical validation
+**Status:** PENDING — awaiting Phase 0 empirical validation (revised after 3rd reviewer consultation)
 **Date:** 2026-05-18
 **Deciders:** App owner (skyfi)
 **Supersedes:** Implicit "single-template-with-visibility-toggle" approach from v3.0
@@ -9,119 +9,133 @@
 
 After today's test session (2026-05-18), three issues were identified (see `docs/freeze-analysis-2026-05-18.md`):
 
-1. **Multi-App Freeze** — activating other Suunto-Plus apps (Movement, Vector classic) while Climb-Logger is running causes `ERR WBMAIN: Too many sim. path-param calls` and UI freeze. Watch restart required.
-2. **"No Summary" Session** — long sessions with fast-clicks produce empty/minimal summaries.
+1. **Multi-App Freeze** — Movement zzmoveen + Climb-Logger together → `ERR WBMAIN: Too many sim. path-param calls cli:32921 res:2129` + path-dump with 81 active LIDs.
+2. **"No Summary" Session** — long fast-click sessions produce nearly empty summaries.
 3. **Fast-Click Race** — break-screen shows no HR values when route was clicked through in <1s.
 
-The root cause of Issue #1 is structural: `cm.html` registers **46 `<eval input>` bindings** simultaneously across 6 visibility sections (sc0/sc1/sc2/sc4/sc5/sc6). Visibility:HIDDEN does NOT unsubscribe these bindings — they remain persistent WB subscriptions. With another app active, the total path count exceeds the firmware WB Path-Param Resolver's ~80-path limit.
+Three reviewers were consulted on architectural fix for Issue #1 (the structural one):
 
-Issues #2 and #3 are independent of the binding architecture but share a common UX impact ("user doesn't see data after a session").
+- **Plan-Agent #1** proposed Lazy `$.subscribe` in `applyVis(x)` — rejected by Devil's-Advocate as onLoad-scope leak pattern.
+- **Devil's-Advocate-Reviewer** proposed 2-Cluster Template-Split (`active.html` + `manage.html`).
+- **Codex-Substitute (3rd Reviewer)** found that the 2-Cluster Split is marginal — Movement zzmoveen alone consumes ~30 paths, leaving ≤22 budget for Climb-Logger, while `active.html` would have 25 bindings. **Still over budget.** Plus: confirmed `<uiViewSet>` does NOT have per-view onActivate/onDeactivate (only set-level events `onWakeUp`/`onIdle`/`onSelectionChanged`). Variant A is dead.
 
 ## Decision
 
-**PENDING.** Three variants identified. Final decision blocked on **Phase 0 empirical tests** (see Plan).
+**PENDING revised empirical validation.** Four variants in scope:
 
-### Variant A — `<uiViewSet>` (idiomatic, if framework supports)
+### Variant A — `<uiViewSet>` (REJECTED)
 
-Refactor `cm.html` to use Suunto's native `<uiViewSet>` framework element with per-item `<uiView>` and lifecycle hooks (`onActivate`/`onDeactivate`). Each view registers its bindings only when activated.
+Reading Suunto reference doc lines 1802-1866 shows `<uiViewSet>` is a slideshow widget with set-level events only. Child divs do NOT get individual `onActivate`/`onDeactivate`. Bindings inside child divs load with parent `<uiView>` and persist exactly as today. **No path-resolver pressure reduction.**
 
-**Pros:**
-- Framework-managed lifecycle (no manual unload churn)
-- Idiomatic Suunto-Plus pattern
-- Cleanest architecture
+This variant was based on a misunderstanding of framework capabilities and is removed from consideration.
 
-**Cons:**
-- `<uiViewSet>` capabilities in firmware 2.53.42 not yet documented in our codebase
-- Requires substantial refactor
-- Risk if framework auto-cleanup is unreliable on Vertical 2
+### Variant B — 2-Cluster Template Split (MARGINAL)
 
-### Variant B — 2-Cluster Template Split (empfohlen falls Variant A nicht möglich)
+Split `cm.html` into `active.html` (sc0+sc1+sc2, 25 bindings) + `manage.html` (sc4+sc5+sc6, 9 bindings).
 
-Split `cm.html` into two state-cluster templates:
-- `active.html` containing sc0+sc1+sc2 (READY/CLIMB/BREAK) — 25 bindings
-- `manage.html` containing sc4+sc5+sc6 (SETUP/EDIT/PROJSETUP) — 9 bindings
+**Issue (raised by Codex-Reviewer):** Movement zzmoveen alone consumes ~30 paths in path-resolver dump. With ~80 path total limit, residual budget for Climb-Logger is ≤22 paths. `active.html` at 25 paths is OVER budget. Variant B may not actually solve Issue #1 in Multi-App scenarios.
 
-Template-switches occur only at cluster boundaries (rare: 1-2× per session). Frequent READY→CLIMB→BREAK cycle stays within `active.html` (no unload churn).
+**Secondary concern:** `unload('_cm')` transition window — no guarantee that 25 active.html subs are torn down BEFORE 9 manage.html subs are registered. Brief 34-path window under multi-app pressure could re-trigger overflow.
 
-**Pros:**
-- Active bindings simultaneously: 25 max (climb) or 9 (manage) → well under 80-path limit even with Multi-App
-- Simple file-split refactor, no new JS patterns
-- Minimal main.js change (~50B)
-- Edge cases covered by existing state-machine
+Still viable as fallback if Variant D fails capability check.
 
-**Cons:**
-- Doubled `dG()` Helper code in both templates (~3KB each — acceptable since templates are flash-loaded)
-- 2 unload('_cm') calls per session vs 0 today (low risk if Phase 0 Test 1 passes)
+### Variant C — Plan B Fallback (HONEST, UNINSPIRED)
 
-### Variant C — Plan B Fallback
+Manifest output reduction (16 → 12 outputs) + README user-guidance "use as only app during sessions". Doesn't structurally fix Issue #1, relies on user discipline.
 
-If Phase 0 Test 1 shows that `unload('_cm')` churn is still a freeze trigger even with current 0-leak code:
-- Manifest output reduction (16 → 12 outputs)
-- README/APPSTORE: "Use Climb-Logger as only active app during sessions"
-- Optional: cm.html sc5/sc6 bindings simplified
+### Variant D — Lazy-Output Push Pattern (NEW, PREFERRED)
 
-**Pros:**
-- Low risk, fully reversible
-- No new architecture to validate
+**Proposed by Codex-Substitute reviewer:**
 
-**Cons:**
-- Doesn't structurally fix Issue #1 — relies on user discipline
-- Multi-App scenarios remain fragile
+Replace `<eval input>` bindings in the manage cluster (sc4/sc5/sc6) with plain `<div id="x"></div>` placeholders, and have `main.js` push values via `$.put('#x', value, 'text')` or equivalent DOM-text write. This eliminates path-resolver subscriptions entirely for the manage screens.
 
-## Phase 0 Empirical Tests (Required Before Decision)
+**Architecture sketch:**
+```
+sc0/sc1/sc2 (active climb): keep <eval input> bindings (~25 paths, unavoidable for live HR/timer)
+sc4/sc5/sc6 (manage): plain <div id> placeholders + main.js push on state-entry and event handling
+```
 
-Four watch tests must run with current v3.0 build:
+**Resource impact:**
+- Active path-resolver subs: **25** (only sc0/sc1/sc2 bindings during climb)
+- Manage screens: **0** path-resolver subs (DOM-text writes are not subscriptions)
+- Total when in setup/edit/projsetup: 0 from this app + Movement-30 + Background-15 = ~45 (well under 80)
+- Total when in climb session: 25 + Movement-30 + Background-15 = ~70 (under 80, but TIGHT)
 
-1. **Test 1 — `unload('_cm')` Churn-Validierung:** 100× state=0 ↔ state=4 cycles with current 0-leak code. Decides A/B viability.
-2. **Test 2 — `<uiViewSet>` Capability Check:** Doku-lookup + optional spike app. Decides A viability.
-3. **Test 3 — Path-Resolver Limit Determination:** Quantify what counts against ~80-path limit. Informational, not blocking.
-4. **Test 4 — `applyVis` Subscribe Scope Leak Check:** Defensive test for Lazy-Subscribe pattern viability.
+**Trade-offs:**
+- (+) No template split, no unload churn at all
+- (+) Sc4/5/6 contribute 0 path budget — fully Multi-App safe
+- (+) ~600B in main.js for push helper + per-binding replacement code
+- (-) sc0/sc1/sc2 still have 25 active paths during climb — tight under multi-app load
+- (-) Loss of declarative formatting (`outputFormat="HeartRate_Fourdigits"` becomes JS function call) for sc4/5/6
+- (?) FW capability uncertain — does `$.put('#elementId', val, 'text')` exist in fw 2.53.42?
 
-### Decision Matrix
+### Variant E — Variant D + Active-cluster reduction (DEFENSIVE)
 
-| T1 (unload churn) | T2 (uiViewSet) | → Variant |
-|-------------------|----------------|-----------|
-| ✅ Safe (≥100 cycles) | ✅ Works | **A: `<uiViewSet>`** |
-| ✅ Safe (≥100 cycles) | ❌ Unreliable | **B: 2-Cluster Split** |
-| ❌ Fails (<50 cycles) | any | **C: Plan B Fallback** |
+If `active.html`'s 25 paths are still problematic under multi-app pressure: combine Variant D (manage cluster zero-path) with Variant C (manifest output reduction for active-cluster outputs that aren't critical).
+
+Cut `actT/actS/actB` (project stats — only shown in project mode, can be JS-pushed in sc0) from active-cluster manifest path subs. Bring active-cluster path count down from 25 → 18.
+
+## Phase 0 Empirical Tests (REVISED)
+
+Five tests:
+
+1. **T1 — Multi-App stress + fast unload (REVISED, expanded):** Activate Movement zzmoveen + GPS, then do 5 cycles of state=0→5→0 (active→manage→active) and 20 cycles of state=0→4→0 with <500ms intervals. Monitor for `WBMAIN res:2129` or `Call Method F fail`. **Tests Variant B viability under realistic load.**
+
+2. ~~T2 — `<uiViewSet>` capability~~ **DROPPED** — reference doc confirms feature doesn't apply.
+
+3. **T3 — Path-resolver count quantification:** Test-app with N `<eval input>` bindings (10/20/40/60/80), with Movement co-activated. Determine: at what total path count does WBMAIN res:2129 fire? Does manifest `in` (5 inputs for Climb-Logger) count separately?
+
+4. ~~T4 — applyVis subscribe leak check~~ **DROPPED** — Devil's-Advocate's analysis correct, no need to validate broken pattern.
+
+5. **T5 (NEW) — `$.put('#id', val, 'text')` capability:** Test if DOM-text writes from main.js work in fw 2.53.42. Minimal test app with one `<div id="x"></div>` and main.js calling `$.put('#x', 'hello', 'text')`. **Decides Variant D viability.**
+
+### Revised Decision Matrix
+
+| T1 multi-app | T3 path budget (active) | T5 DOM-push works | → Variant |
+|--------------|--------------------------|--------------------|-----------|
+| Variant B passes | 25 paths OK with Movement | any | **B — 2-Cluster** |
+| Variant B fails | active 25 = over budget | ✅ | **D — Lazy-Output Push** (best) |
+| Variant B fails | active 25 = over budget | ❌ | **E — Variant D fallback OR Variant C** |
+| any | any | ❌ if all fail | **C — Plan B** |
 
 ## Consequences
 
-### If Variant A
-- cm.html refactored to uiViewSet
-- main.js goState simplified (no manual unload)
-- Idiomatic, future-proof
-- Bytes: net +1KB cm.html
+### If Variant D
+- main.js: +500-600B (push helpers, per-state-entry push routines, sc4/5/6 data update logic)
+- cm.html: -200B (replace 9 `<eval input>` in sc4/5/6 with bare `<div>`)
+- Net: ~+400B
+- No template split, no unload churn
+- Active climb still has 25 path subs — must monitor with multi-app
 
 ### If Variant B
-- cm.html deleted, replaced by active.html + manage.html
-- main.js goState has stateTpl(s) helper
-- manifest.json template-Array gets 2 entries
-- Bytes: net +500B across files
+- cm.html → active.html + manage.html (file split)
+- main.js: +50B (stateTpl helper)
+- 2 unload('_cm') calls per session (cluster boundaries)
+- Risk: active-cluster 25 paths still tight under multi-app
 
 ### If Variant C
-- manifest.json reduced (16 → 12 outputs)
-- README/APPSTORE updated with multi-app guidance
-- cm.html unchanged or sc5/sc6 simplified
-- Users must manage app activations manually
+- manifest reduction: 16 → 12 outputs
+- README/APPSTORE: usage guidance
+- Doesn't structurally fix Issue #1
+- User-discipline-dependent
 
 ### Universal (all variants)
-- Issue #2 + #3 fixes in Phase 1 (independent of Variant choice):
-  - HTML TOO-SHORT indicator in break-screen
-  - ext19.js shows all 6 summary fields (no field omission)
+- **Issue #2 fix (independent):** Remove `if(dur>0)`/`if(hrCnt>0)`/`if(ht>0)` guards in ext19.js. Trivial, ship-now.
+- **Issue #3 fix (independent):** Bounded-retry pattern in `commitDirty` — defer commit up to 2 evaluate ticks if Lap/-2 still 0; relax `evBreak` exit gate (`frDirty < 2` instead of `!frDirty`) to avoid hanging back-button. Requires careful main.js verification.
 
 ## Related
 
-- **Predecessor decision:** v3.0 template-merge (cm.html monolith) was itself a fix for v2.x's unload('_cm') churn freeze. ADR-002 evaluates whether that motivation still holds.
+- **Predecessor decision:** v3.0 template-merge (cm.html monolith) was itself a fix for v2.x's `unload('_cm')` churn freeze.
 - **Memory references:**
-  - `feedback_subscribe_in_onactivate.md` — onLoad subscribe leaks
-  - `project_v3_status.md` — v3 architecture history
-  - `reference_watch_limits.md` — hardware constraints
-- **Analysis source:** `docs/freeze-analysis-2026-05-18.md` (today's session forensic)
-- **Plan file:** `~/.claude/plans/i-had-some-elegant-flamingo.md` (Implementations-Roadmap)
+  - `feedback_subscribe_in_onactivate.md`
+  - `project_v3_status.md` (v3 architecture history)
+  - `reference_watch_limits.md`
+- **Analysis source:** `docs/freeze-analysis-2026-05-18.md`
+- **Plan file:** `~/.claude/plans/i-had-some-elegant-flamingo.md`
 
 ## Reviewers
 
-- **Plan-Agent (initial):** Recommended Lazy `$.subscribe` in applyVis (Phase 2 + main.js commitDirty patch Phase 1)
-- **Devil's-Advocate-Reviewer:** Rejected Phase 1 (UI is Lap/-2 direct-bound, main.js patch doesn't change UX) and Phase 2 (applyVis runs in onLoad-scope, classical leak pattern). Proposed Variant B as cleaner alternative.
-- **App owner (skyfi):** Approved Phase 0 empirical-tests-first approach, decision deferred until tests complete.
+- **Plan-Agent (initial):** Recommended Lazy `$.subscribe` in applyVis + main.js commitDirty patch. Both rejected.
+- **Devil's-Advocate-Reviewer:** Rejected initial Plan-Agent proposal on onLoad-scope leak grounds. Proposed 2-Cluster Template Split.
+- **Codex-Substitute (3rd Reviewer):** Found 2-Cluster Split marginal under multi-app load (Movement zzmoveen alone uses ~30 paths). Proposed Lazy-Output Push (Variant D) as cleaner alternative. Confirmed `<uiViewSet>` doesn't have per-view lifecycle. Revised Phase 0 test design (dropped T2/T4, added T5 for DOM-push capability).
+- **App owner (skyfi):** Approved Phase 0 empirical-tests-first approach.
