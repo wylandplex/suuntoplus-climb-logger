@@ -41,6 +41,7 @@ var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
+var projStatsDirty = 0;  // T8: batch LS write
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
@@ -144,9 +145,11 @@ var goState = function(s, t, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
-  if (s === 0) pushActStats();      // T5
-  else if (s === 2) pushBrk();      // T6: break screen totals
-  else if (s === 5) pushEdit();     // T6: edit screen state
+  if (s === 0) {
+    pushActStats();
+    if (projStatsDirty) { try { LS.setObject("climbProjStats", projStats); } catch (e) {} projStatsDirty = 0; }
+  } else if (s === 2) pushBrk();
+  else if (s === 5) pushEdit();
 };
 
 var writeG = function(o, idx) {
@@ -215,9 +218,8 @@ var commitDirty = function(input) {
       allTimeStats.totalRoutes++;
       if (frSend) allTimeStats.totalSends++;
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
-      if (r[3] && r[4]) projStats[r[3]] = r[4];
+      if (r[3] && r[4]) { projStats[r[3]] = r[4]; projStatsDirty = 1; }
       sessionH += lastHeight || 0;
-      // ext19 (full summary with grade labels) runs ONCE at end via getSummaryOutputs
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
     if (climbMode > 0) pushActStats();  // T5
@@ -342,6 +344,7 @@ var evEdit = function(output, eid) {
             if (dp.attempts > 0) dp.attempts--;
             if (dr[2] && dp.sends > 0) dp.sends--;
             if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
+            projStatsDirty = 1;
           }
         }
         if (dr[4] > 0) sessionH = Math.max(0, sessionH - dr[4]);
@@ -365,11 +368,7 @@ var evEdit = function(output, eid) {
       pushEdit();  // T6: routeNum + editSend display moved to setText
       // save&next: keep editDirty across cycles, persist only on save&back
     } else {
-      // save&back: terminal — persist accumulated edits, then exit
-      if (editDirty) {
-        try { LS.setObject("climbProjStats", projStats); } catch (e) {}
-        editDirty = 0;
-      }
+      editDirty = 0;  // T8: flush handled in goState(0)
       goState(0, "cm", output);
     }
     return;
@@ -385,7 +384,7 @@ var evEdit = function(output, eid) {
         allTimeStats.totalSends++;
         if (r[3] > 0) {
           var k = r[1] + "_" + r[3], p = projStats[k];
-          if (p) p.sends++;
+          if (p) { p.sends++; projStatsDirty = 1; }
         }
       } else if (r[2]) {
         r[2] = 0;
@@ -393,7 +392,7 @@ var evEdit = function(output, eid) {
         allTimeStats.totalSends--;
         if (r[3] > 0) {
           var k2 = r[1] + "_" + r[3], p2 = projStats[k2];
-          if (p2 && p2.sends > 0) p2.sends--;
+          if (p2 && p2.sends > 0) { p2.sends--; projStatsDirty = 1; }
         }
       } else {
         editDelMark = 1;

@@ -9,5 +9,5 @@ var p=ps[sk]||{attempts:0,sends:0,bestTime:0};
 if(isNew) p.firstSes=ats.sessions;
 p.g=lgi;p.attempts++;
 if(isSend){if(p.sends===0)fs=1;p.sends++;if(p.bestTime===0||ld<p.bestTime)p.bestTime=ld}
-ps[sk]=p;localStorage.setObject("climbProjStats",ps);np=p}
+ps[sk]=p;np=p}
 return[bse,0,[lgi,lgs,isSend?1:0,cm,h||0,ld,lha],sk,np]}
