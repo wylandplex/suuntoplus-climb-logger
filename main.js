@@ -88,32 +88,27 @@ var setOutputs = function(output) {
   if (state === 5) {
     var rr = routes[editIdx];
     output.lastGrade = rr ? encGrade(rr[1], rr[0]) : -1;
-    output.routeNum = routes.length > 0 ? editIdx + 1 : 0;
     output.modeSub = routes.length;
-    output.editSend = editDelMark ? 2 : (rr ? rr[2] : 0);
     output.climbMode = rr ? (rr[3] || 0) : 0;
-    return;  // climbMode is repurposed in edit; skip the global-climbMode assignment below
+    return;
   } else if (state === 6) {
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
     output.modeSub = pStep + 1;
-    output.routeNum = 0; output.editSend = 0; output.lastGrade = -1;
+    output.lastGrade = -1;
   } else if (state === 4) {
     output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
-    output.routeNum = 0; output.editSend = 0; output.lastGrade = -1;
+    output.lastGrade = -1;
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
-    output.routeNum = rn;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : rn;
-    output.editSend = 0;
   }
-  output.totalSends = sendsCount;
   output.bestSend = bestSendEnc;
   output.climbing = state === 1 ? 1 : 0;
 };
 
-// T5: actT/S/B removed from manifest. setText event-driven only — NEVER from evaluate/setOutputs.
+// T5/T6: setText event-driven only — NEVER from evaluate/setOutputs (heap thrashing rule).
 var pushActStats = function() {
   if (climbMode > 0) {
     var ap = projStats[gradeSystem + "_" + climbMode] || {};
@@ -126,13 +121,31 @@ var pushActStats = function() {
   }
 };
 
+// T6: break screen totals + route counter pushed event-driven via setText.
+var pushBrk = function() {
+  setText("#brk-totalSends", "" + sendsCount);
+  setText("#brk-routeNum", "" + (routeNumber > 0 ? routeNumber - 1 : 0));
+};
+
+// T6: edit screen route counter + send-state icons/label pushed event-driven via setText.
+var pushEdit = function() {
+  var n = routes.length, rr = routes[editIdx];
+  var ev = editDelMark ? 2 : (rr ? rr[2] : 0);
+  setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
+  setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
+  setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
+  setText("#ed-pillIcon", ev === 1 ? String.fromCharCode(0xF110) : ev === 2 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF107));
+};
+
 var goState = function(s, t, output) {
   state = s;
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
-  if (s === 0) pushActStats();  // T5: project stats only visible in ready screen
+  if (s === 0) pushActStats();      // T5
+  else if (s === 2) pushBrk();      // T6: break screen totals
+  else if (s === 5) pushEdit();     // T6: edit screen state
 };
 
 var writeG = function(o, idx) {
@@ -206,7 +219,8 @@ var commitDirty = function(input) {
       // ext19 (full summary with grade labels) runs ONCE at end via getSummaryOutputs
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
-    if (climbMode > 0) pushActStats();  // T5: projStats just updated
+    if (climbMode > 0) pushActStats();  // T5
+    if (state === 2) pushBrk();         // T6: sendsCount + routeNumber just changed
   }
 };
 
@@ -344,11 +358,10 @@ var evEdit = function(output, eid) {
       var pr = routes[editIdx];
       if (pr) {
         output.lastGrade = encGrade(pr[1], pr[0]);
-        output.editSend = pr[2] || 0;
-        output.routeNum = editIdx + 1;
         output.modeSub = n;
         output.climbMode = pr[3] || 0;
       }
+      pushEdit();  // T6: routeNum + editSend display moved to setText
       // save&next: keep editDirty across cycles, persist only on save&back
     } else {
       // save&back: terminal — persist accumulated edits, then exit
@@ -373,7 +386,6 @@ var evEdit = function(output, eid) {
           var k = r[1] + "_" + r[3], p = projStats[k];
           if (p) p.sends++;
         }
-        output.editSend = 1;
       } else if (r[2]) {
         r[2] = 0;
         if (sendsCount > 0) sendsCount--;
@@ -382,14 +394,13 @@ var evEdit = function(output, eid) {
           var k2 = r[1] + "_" + r[3], p2 = projStats[k2];
           if (p2 && p2.sends > 0) p2.sends--;
         }
-        output.editSend = 0;
       } else {
         editDelMark = 1;
-        output.editSend = 2;
       }
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       recalcBse();
       output.bestSend = bestSendEnc;
+      pushEdit();  // T6: editSend icons/label moved to setText
       editDirty = 1;
     }
   } else if (eid === 1 || eid === 2) {

@@ -35,13 +35,13 @@
   ],
   "out": [
     {
-      "name": "routeNum"
-    },
-    {
       "name": "grade"
     },
     {
       "name": "lastGrade"
+    },
+    {
+      "name": "bestSend"
     },
     {
       "name": "routePk1",
@@ -54,12 +54,6 @@
       "log": true,
       "shownName": "Peak HR 3min",
       "format": "HeartRate_Fourdigits"
-    },
-    {
-      "name": "totalSends"
-    },
-    {
-      "name": "bestSend"
     },
     {
       "name": "climbMode"
@@ -75,9 +69,6 @@
     },
     {
       "name": "routeHeight"
-    },
-    {
-      "name": "editSend"
     },
     {
       "name": "vState"
