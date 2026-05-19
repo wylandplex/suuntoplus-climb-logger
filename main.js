@@ -292,7 +292,10 @@ var evProjSetup = function(output, eid, dy) {
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
     output.modeSub = pStep + 1;
   } else if (eid === 5) {
-    saveAll();
+    // #87: skip writeStats() — ext11 evalFile in UI-task while WB path-resolver saturated
+    // caused IBUSERR HardFault → Bootloop. Persist watchSetup only; stats sync via onExerciseEnd.
+    allProjects[gradeSystem] = projGradeIdx.slice();
+    try { LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects }); } catch (e) {}
     goState(0, "cm", output);
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
