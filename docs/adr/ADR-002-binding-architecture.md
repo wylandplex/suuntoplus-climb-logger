@@ -1,9 +1,23 @@
 # ADR-002: Binding Architecture — From Monolithic Template to State-Cluster Split
 
-**Status:** PENDING — awaiting Phase 0 empirical validation
+**Status:** SUPERSEDED by [ADR-003](ADR-003-v2.98-output-reduction.md) for variants A/B; remaining as historical record
 **Date:** 2026-05-18
 **Deciders:** App owner (skyfi)
 **Supersedes:** Implicit "single-template-with-visibility-toggle" approach from v3.0
+
+## Update 2026-05-19 22:55 — `<uiViewSet>` capability check (was Variant A blocker)
+
+Suunto framework docs (`reference.html` h4 `uiviewset`) confirm: `<uiViewSet>` is a VISIBILITY-SWITCHING element, not a binding-lifecycle element.
+
+- Child `<div>` elements coexist in the DOM
+- Class `selected` indicates default child
+- Switching via `navigate('id', N)`, `next()`, `previous()`, `first()`, `last()`
+- Events: `onWakeUp`, `onIdle`, `onSelectionChanged`
+- **Bindings inside non-selected children are NOT unsubscribed** — docs make no mention of binding lifecycle, only visibility
+
+This invalidates ADR-002 Variant A's premise (bindings only register when activated). Per ADR-003's empirical finding, the 46 `<eval input>` bindings already coalesce to 21 unique WB paths via framework dedup, so binding-side restructuring (Variants A and B) cannot meaningfully reduce WB pressure.
+
+**Variants A and B remain ARCHITECTURALLY SOUND for code organization** (cleaner state-cluster separation) but offer **no measurable runtime/heap/path-budget benefit** over the v2.98 single-template approach with output-side optimizations (ADR-003).
 
 ## Context
 
