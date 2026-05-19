@@ -15,13 +15,15 @@
             setStyle('#sc5','visibility',x===5?'VISIBLE':'HIDDEN');
             setStyle('#sc6','visibility',x===6?'VISIBLE':'HIDDEN');
           }
-          $.subscribe('/Zapp/{zapp_index}/Output/vState',applyVis);
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function evX(n){if(lock)return;ev(n);lock=1}
           function evL(n){if(lock)return;ev(n);if((n===6&&lapState===0)||lapState===1){lap();lock=1}}
         ">
   <div id="climblogger">
+
+    <!-- vState → applyVis: <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. -->
+    <div style="display:none"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => applyVis(x)" default="" /></div>
 
     <!-- Grauer Rombus-Hintergrund für die Bottom-Time-Bar (auf jedem Screen sichtbar) -->
     <div style="position:absolute;top:84%;left:15%;width:70%;height:14%;background:rgba(255,255,255,0.15);clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
