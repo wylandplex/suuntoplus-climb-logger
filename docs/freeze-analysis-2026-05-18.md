@@ -200,38 +200,16 @@ Die heutige Multi-App-Aktivierung verschärfte das Problem zusätzlich durch UI-
 
 ---
 
-## Wichtige Erkenntnis: Climb-Logger ist NICHT der Hauptverursacher
-
-Bei näherer Path-Dump-Analyse (Codex-Substitute reviewer findings):
-- `lcli:8083` (Climb-Logger): **23 LIDs**
-- `lcli:8099` (Movement zzmoveen): **~30 LIDs** — **größter Konsument**
-- Andere Apps (8084, 8073, 8057, 808a, etc.): **~28 LIDs**
-
-Movement zzmoveen allein verbraucht mehr als Climb-Logger. Bei einem ~80-Pfade Limit hat Climb-Logger nur ~22 Pfade Budget wenn Movement parallel läuft. **Eine reine Climb-Logger-Reduktion von 47 auf 25 Bindings reicht möglicherweise nicht aus für Multi-App-Sicherheit.**
-
 ## Fix-Strategie (siehe Implementations-Plan)
 
 Detaillierter Plan in:
 - Plan-Datei: `~/.claude/plans/i-had-some-elegant-flamingo.md`
-- ADR-002: `docs/adr/ADR-002-binding-architecture.md` (PENDING Phase 0, **revised after Codex consultation**)
+- ADR-002: `docs/adr/ADR-002-binding-architecture.md` (PENDING Phase 0)
 
-**Kurzfassung nach 3-Reviewer-Konsultation:**
-
-- **Variante A (`<uiViewSet>`):** VERWORFEN — Suunto-Doku-Lookup bestätigt, dass `<uiViewSet>` keine per-view `onActivate`/`onDeactivate` Hooks hat (nur set-level `onWakeUp`/`onIdle`/`onSelectionChanged`). Bindings in Children laden mit parent `<uiView>`. Kein Path-Pressure-Relief.
-- **Variante B (2-Cluster Split):** MARGINAL — `active.html` mit 25 Bindings ist potenziell ÜBER Budget wenn Movement aktiv (30 LIDs).
-- **Variante C (Plan B):** Manifest-Reduktion + User-Doc. Strukturell kein Fix.
-- **Variante D (Lazy-Output Push, NEU):** sc4/5/6 als plain `<div id>` ohne `<eval input>`, main.js pushed Werte via `$.put('#id', val, 'text')`. Eliminiert 9 Path-Subs komplett. **Voraussetzung: FW-Capability-Check (Phase 0 T5).**
-
-**Phase 0 Revised Tests:**
-- T1 — Multi-App + fast unload stress (Variante B viability)
-- T3 — Path-resolver count quantification (Movement co-aktiviert)
-- T5 (NEU) — `$.put('#id', val, 'text')` capability check (Variante D viability)
-- DROPPED: T2 (uiViewSet — moot), T4 (applyVis leak — DA confirmed correct)
-
-## Quick Wins (Independent von Variant-Decision)
-
-- **Issue #2 Fix:** ext19.js — `if(dur>0)`, `if(hrCnt>0)`, `if(ht>0)` Guards entfernen. ~10B Reduktion. Summary zeigt immer alle 6 Felder.
-- **Issue #3 Fix:** main.js — bounded-retry in `commitDirty` (max 2 evaluate ticks Wartezeit für Lap/-2 update) + relax `evBreak` exit gate (`frDirty < 2` statt `!frDirty`) um Back-Button-Hang zu vermeiden. ~25B.
+**Kurzfassung:**
+- Phase 0: 4 Watch-Tests (`unload('_cm')` Churn-Validierung, `<uiViewSet>` Capability-Check, Path-Resolver Limit, applyVis Leak-Check)
+- Phase 1: HTML-side TOO-SHORT Indikator im Break-Screen + ext19 Felder immer zeigen
+- Phase 2: Issue #1 Strukturfix — entweder `<uiViewSet>` (idiomatisch) oder 2-Cluster Template-Split (`active.html` + `manage.html`) oder Plan-B (Manifest reduction + User-Doc), abhängig von Phase 0 Result
 
 ---
 

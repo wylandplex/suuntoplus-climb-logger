@@ -14,9 +14,9 @@ var htR=Math.round(ht);
 var out=[{id:'sr',name:'Sends / Routes',format:'Count_Fourdigits',value:s,postfix:'/ '+n}];
 if(sp>=0)out.push({id:'b',name:'Highest Send',format:'Count_Fourdigits',value:spC,postfix:'* '+dG(sp)});
 if(hp>=0&&hp!==sp)out.push({id:'t',name:'Hardest Try',format:'Count_Fourdigits',value:1,postfix:dG(hp)});
-out.push({id:'d',name:'Climb Time',format:'Duration_FourdigitsFixed',value:dur});
-out.push({id:'a',name:'Avg HR',format:'HeartRate_Fourdigits',value:hrCnt?hrSum/hrCnt:0});
-out.push({id:'h',name:'Height',format:'Count_Fourdigits',value:htR,postfix:'m'});
+if(dur>0)out.push({id:'d',name:'Climb Time',format:'Duration_FourdigitsFixed',value:dur});
+if(hrCnt>0)out.push({id:'a',name:'Avg HR',format:'HeartRate_Fourdigits',value:hrSum/hrCnt});
+if(ht>0)out.push({id:'h',name:'Height',format:'Count_Fourdigits',value:htR,postfix:'m'});
 localStorage.setObject('lastSummary',out);
 localStorage.setObject('_sumTmp',{sp:sp,htR:htR});
 return out}
