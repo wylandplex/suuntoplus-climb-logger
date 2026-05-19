@@ -20,7 +20,7 @@
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
-          function evL(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300);if((n===6&&lapState===0)||lapState===1)lap()}
+          function evL(n){if(lock)return;var s=lapState;if((n===6&&s===0)||s===1)lap();ev(n);lock=1;setTimeout(ulk,300)}
         ">
   <div id="climblogger">
 
