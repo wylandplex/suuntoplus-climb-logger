@@ -1,0 +1,13 @@
+{
+  "name": "suuntoplus-climb-logger",
+  "version": "3.0",
+  "description": "Suunto Watch climbing logger app — dev validation scripts via zappsim",
+  "private": true,
+  "scripts": {
+    "validate": "node ../zappsim/bin/zappsim.js validate .",
+    "test:session-end": "node ../zappsim/bin/zappsim.js run . --scenario session-end-flow",
+    "test:cycle-edit": "node ../zappsim/bin/zappsim.js run . --scenario cycle-edit-routes",
+    "test:rapid-stress": "node ../zappsim/bin/zappsim.js run . --scenario rapid-stress",
+    "test:template-cycle": "node ../zappsim/bin/zappsim.js run . --scenario template-cycle"
+  }
+}
