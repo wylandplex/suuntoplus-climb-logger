@@ -111,13 +111,18 @@ var setOutputs = function(output) {
   output.totalSends = sendsCount;
   output.bestSend = bestSendEnc;
   output.climbing = state === 1 ? 1 : 0;
+};
+
+// T5: actT/S/B removed from manifest. setText event-driven only — NEVER from evaluate/setOutputs.
+var pushActStats = function() {
   if (climbMode > 0) {
-    var ap = projStats[gradeSystem + "_" + climbMode];
-    output.actT = ap ? (ap.attempts || 0) : 0;
-    output.actS = ap ? (ap.sends || 0) : 0;
-    output.actB = ap ? (ap.bestTime || 0) : 0;
+    var ap = projStats[gradeSystem + "_" + climbMode] || {};
+    var b = ap.bestTime || 0;
+    setText("#actT", (ap.attempts || 0) + "T");
+    setText("#actS", (ap.sends || 0) + "S");
+    setText("#actB", b > 0 ? Math.floor(b / 60) + ":" + (b % 60 < 10 ? "0" : "") + (b % 60) : "");
   } else {
-    output.actT = -1; output.actS = -1; output.actB = -1;
+    setText("#actT", ""); setText("#actS", ""); setText("#actB", "");
   }
 };
 
@@ -127,6 +132,7 @@ var goState = function(s, t, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
+  if (s === 0) pushActStats();  // T5: project stats only visible in ready screen
 };
 
 var writeG = function(o, idx) {
@@ -155,7 +161,8 @@ var toggleMode = function() {
       }
     }
   }
-  // writeStats() removed from hot path — heap pressure killer. activeGrade etc. recompute on next launch.
+  // writeStats() removed from hot path — heap pressure killer.
+  pushActStats();  // T5: climbMode just toggled
 };
 
 var saveAsProject = function(output) {
@@ -199,6 +206,7 @@ var commitDirty = function(input) {
       // ext19 (full summary with grade labels) runs ONCE at end via getSummaryOutputs
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
+    if (climbMode > 0) pushActStats();  // T5: projStats just updated
   }
 };
 
@@ -210,6 +218,7 @@ var startClimb = function(output) {
 
 var evReady = function(output, eid, dy) {
   if (dy) {
+    var modeChanged = 0;
     if (climbMode === 0) {
       currentGrade = wrap(currentGrade + dy, GRADE_LENS[gradeSystem], 0);
     } else if (dy === 1 || dy === -1) {
@@ -222,10 +231,12 @@ var evReady = function(output, eid, dy) {
       } while (next !== start);
       climbMode = next;
       currentGrade = projGradeIdx[next - 1];
+      modeChanged = 1;
     }
     writeG(output);
     output.climbMode = climbMode;
     output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
+    if (modeChanged) pushActStats();  // T5: project slot switched
   } else if (eid === 5) {
     if (climbMode === 0) {
       editIdx = routes.length > 0 ? routes.length - 1 : 0;

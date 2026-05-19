@@ -81,15 +81,6 @@
     },
     {
       "name": "vState"
-    },
-    {
-      "name": "actT"
-    },
-    {
-      "name": "actS"
-    },
-    {
-      "name": "actB"
     }
   ],
   "template": [

@@ -69,10 +69,11 @@
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
       <!-- Project stats (visible only in project mode, climbMode>0) -->
+      <!-- T5: outputs removed from manifest. Values pushed via setText from main.js, event-driven only. -->
       <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
-        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/actT" outputFormat="script x => x >= 0 ? x + 'T' : ''" default="" /></span>
-        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actS" outputFormat="script x => x >= 0 ? x + 'S' : ''" default="" /></span>
-        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actB" outputFormat="script x => x > 0 ? Math.floor(x/60)+':'+('0'+(x%60)).slice(-2) : ''" default="" /></span>
+        <span id="actT" class="sp-b-s"></span>
+        <span id="actS" class="sp-b-s" style="padding-left:6px"></span>
+        <span id="actB" class="sp-b-s" style="padding-left:6px"></span>
       </div>
 
       <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
