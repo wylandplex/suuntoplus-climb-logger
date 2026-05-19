@@ -23,7 +23,8 @@
   <div id="climblogger">
 
     <!-- vState → applyVis: <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. -->
-    <div style="display:none"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => applyVis(x)" default="" /></div>
+    <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (applyVis(x),'')" default="" /></div>
 
     <!-- Grauer Rombus-Hintergrund für die Bottom-Time-Bar (auf jedem Screen sichtbar) -->
     <div style="position:absolute;top:84%;left:15%;width:70%;height:14%;background:rgba(255,255,255,0.15);clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
