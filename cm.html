@@ -7,6 +7,7 @@
           function sN(x){return SN[x]||'?'}
           var lapState=4,lock=0;
           function applyView(x){
+            if(x===lapState)return;
             lapState=x;lock=0;
             if(x===0||x===1||x===2||x===4||x===5||x===6) navigate('vs','sc'+x);
           }
