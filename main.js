@@ -33,6 +33,7 @@ var editDirty = 0;
 var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
+var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
 
 var climbMode = 0;
 var curAsc = 0;
@@ -144,6 +145,7 @@ var goState = function(s, t, output) {
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
+  if (s === 1) dwell = 1;
   if (output) setOutputs(output);
   if (s === 0) {
     pushActStats();
@@ -454,6 +456,7 @@ function evaluate(input, output) {
   // Skip setOutputs in edit (5) — eval-script churn in session.html bindings is OOM-risky at high routes.
   // state=4 (setup) needs it to publish vState so cm.html applyVis fires correctly on initial entry.
   if (state !== 5) setOutputs(output);
+  dwell = 0;
 }
 
 function onExerciseEnd(input, _output) {
@@ -470,6 +473,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  if (dwell && state === 1 && (eventId === 5 || eventId === 6)) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
