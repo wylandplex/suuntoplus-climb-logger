@@ -7,7 +7,7 @@
           function sN(x){return SN[x]||'?'}
           var lapState=4,lock=0;
           function applyVis(x){
-            lapState=x;lock=0;
+            lapState=x;
             setStyle('#sc0','visibility',x===0?'VISIBLE':'HIDDEN');
             setStyle('#sc1','visibility',x===1?'VISIBLE':'HIDDEN');
             setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
@@ -18,8 +18,9 @@
           $.subscribe('/Zapp/{zapp_index}/Output/vState',applyVis);
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
-          function evX(n){if(lock)return;ev(n);lock=1}
-          function evL(n){if(lock)return;ev(n);if((n===6&&lapState===0)||lapState===1){lap();lock=1}}
+          function ulk(){lock=0}
+          function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
+          function evL(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300);if((n===6&&lapState===0)||lapState===1)lap()}
         ">
   <div id="climblogger">
 
