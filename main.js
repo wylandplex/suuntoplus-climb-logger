@@ -172,14 +172,16 @@ var toggleMode = function() {
   if (climbMode > 0) {
     climbMode = 0;
   } else {
-    climbMode = 1;
+    var found = 0;
     for (var p = 0; p < 5; p++) {
       if (projGradeIdx[p] >= 0) {
         climbMode = p + 1;
         currentGrade = projGradeIdx[p];
+        found = 1;
         break;
       }
     }
+    if (!found) return;  // #103: refuse project mode when no slot configured
   }
   // writeStats() removed from hot path — heap pressure killer.
   pushActStats();  // T5: climbMode just toggled
