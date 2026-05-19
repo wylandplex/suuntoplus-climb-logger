@@ -19,7 +19,7 @@
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function evX(n){if(lock)return;ev(n);lock=1}
-          function evL(n){if(lock)return;ev(n);if((n===6&&lapState===0)||lapState===1){lap();lock=1}}
+          function evL(n){if(lock)return;var s=lapState;if((n===6&&s===0)||s===1){lap();lock=1}ev(n)}
         ">
   <div id="climblogger">
 
