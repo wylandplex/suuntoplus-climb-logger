@@ -48,6 +48,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
+var f10, f11, f17;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -65,7 +66,7 @@ var loadProjects = function(sys) {
 };
 
 var writeStats = function() {
-  loadExt(11)(allTimeStats, allProjects, projStats, climbMode, projGradeIdx, gradeSystem);
+  f11(allTimeStats, allProjects, projStats, climbMode, projGradeIdx, gradeSystem);
 };
 
 var saveAll = function() {
@@ -205,7 +206,7 @@ var commitDirty = function(input) {
     lastDuration = rSec > 0 ? rSec : (input.D || 0);
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var r = loadExt(10)(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
+    var r = f10(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
       frSend, climbMode, bestSendEnc, 0, projStats, allTimeStats, lastHeight);
     bestSendEnc = r[0];
     if (r[2]) {
@@ -301,7 +302,7 @@ var evSetup = function(output, eid, dy) {
     output.modeSub = gradeSystem;
   } else if (eid === 6) {
     try {
-      loadExt(17)(gradeSystem);
+      f17(gradeSystem);
       saveAll();
       goState(0, "cm", output);
     } catch (e) {
@@ -419,6 +420,7 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
+  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17);  // T7: cache once
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];
@@ -429,8 +431,7 @@ function onLoad(_input, output) {
   var ws = LS.getObject("watchSetup");
   var sv = LS.getObject("stats");
   if (ws && !(sv && sv.showSetupOnStart)) { state = 0; currentTemplate = "cm"; }
-  // NEVER call setOutputs here — writes to the output object in onLoad cause "max app" crash on Vertical 2.
-  // vState gets published when evaluate() runs setOutputs (first tick = 1s after load).
+  // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
 function evaluate(input, output) {
