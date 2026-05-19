@@ -50,7 +50,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-var f10, f11, f14, f17;  // T7/T9: cache parsed ext fns; per-route re-parse was heap-fragmenting
+var f10, f11, f17;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -185,7 +185,7 @@ var toggleMode = function() {
 };
 
 var saveAsProject = function(output) {
-  var r = f14(climbMode, gradeSystem, lastGradeSys, lastGradeIdx, lastResult, lastDuration, allProjects, projGradeIdx, projStats, routes, allTimeStats.sessions);
+  var r = loadExt(14)(climbMode, gradeSystem, lastGradeSys, lastGradeIdx, lastResult, lastDuration, allProjects, projGradeIdx, projStats, routes, allTimeStats.sessions);
   if (r) {
     gradeSystem = r[0]; currentGrade = r[1]; climbMode = r[2];
     saveAll();
@@ -421,7 +421,7 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
-  f10 = loadExt(10); f11 = loadExt(11); f14 = loadExt(14); f17 = loadExt(17);  // T7/T9: cache once
+  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17);  // T7: cache once
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];
