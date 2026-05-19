@@ -407,7 +407,7 @@ function onLoad(_input, output) {
   var ws = LS.getObject("watchSetup");
   var sv = LS.getObject("stats");
   if (ws && !(sv && sv.showSetupOnStart)) { state = 0; currentTemplate = "cm"; }
-  // NEVER call setOutputs(output) here — output.xxx writes in onLoad cause "max app" crash on Vertical 2.
+  // NEVER call setOutputs here — writes to the output object in onLoad cause "max app" crash on Vertical 2.
   // vState gets published when evaluate() runs setOutputs (first tick = 1s after load).
 }
 
