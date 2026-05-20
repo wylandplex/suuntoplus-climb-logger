@@ -49,7 +49,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-var f10, f11, f17;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
+var f10, f11, f17, f21;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -80,34 +80,45 @@ var wrap = function(idx, len, off) {
   return idx >= len ? -off : idx < -off ? len - 1 : idx;
 };
 
+// grade/lastGrade/bestSend moved to ext21 setText push (pushG) — path-budget reduction.
 var setOutputs = function(output) {
   output.vState = state;
-  output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
   output.routeHeight = state === 1 ? sessionH + Math.max(0, Math.round(curAsc - startAsc)) : sessionH;
   output.climbMode = climbMode;
   if (state === 5) {
     var rr = routes[editIdx];
-    output.lastGrade = rr ? encGrade(rr[1], rr[0]) : -1;
     output.modeSub = routes.length;
     output.climbMode = rr ? (rr[3] || 0) : 0;
     return;
   } else if (state === 6) {
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
     output.modeSub = pStep + 1;
-    output.lastGrade = -1;
   } else if (state === 4) {
-    output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
-    output.lastGrade = -1;
   } else {
-    var rn = state === 2 ? routeNumber - 1 : routeNumber;
-    writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
-    output.modeSub = climbMode > 0 ? -climbMode : rn;
+    output.modeSub = climbMode > 0 ? -climbMode : (state === 2 ? routeNumber - 1 : routeNumber);
   }
-  output.bestSend = bestSendEnc;
   output.climbing = state === 1 ? 1 : 0;
+};
+
+// ext21-backed grade text push (grade / lastGrade / bestSend). Event-driven —
+// called from goState (screen entry) + dy handlers (in-screen value change).
+var pushG = function() {
+  var g = -1, lg = -1;
+  if (state === 5) {
+    var rr = routes[editIdx];
+    lg = rr ? encGrade(rr[1], rr[0]) : -1;
+  } else if (state === 6) {
+    g = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
+  } else if (state === 4) {
+    g = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
+  } else if (state === 2) {
+    lg = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
+  } else {
+    g = encGrade(gradeSystem, climbMode > 0 ? (projGradeIdx[climbMode - 1] >= 0 ? projGradeIdx[climbMode - 1] : 50) : currentGrade);
+  }
+  try { f21(state, g, lg, bestSendEnc); } catch (e) {}
 };
 
 // T5/T6: setText event-driven only — NEVER from evaluate/setOutputs (heap thrashing rule).
@@ -145,15 +156,12 @@ var goState = function(s, t, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (output) setOutputs(output);
+  pushG();  // refresh grade/lastGrade/bestSend text for the new screen
   if (s === 0) {
     pushActStats();
     if (projStatsDirty) { try { LS.setObject("climbProjStats", projStats); } catch (e) {} projStatsDirty = 0; }
   } else if (s === 2) pushBrk();
   else if (s === 5) pushEdit();
-};
-
-var writeG = function(o, idx) {
-  o.grade = encGrade(gradeSystem, idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
 };
 
 var finishRoute = function(send, output) {
@@ -250,9 +258,9 @@ var evReady = function(output, eid, dy) {
       currentGrade = projGradeIdx[next - 1];
       modeChanged = 1;
     }
-    writeG(output);
     output.climbMode = climbMode;
     output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
+    pushG();
     if (modeChanged) pushActStats();  // T5: project slot switched
   } else if (eid === 5) {
     if (climbMode === 0) {
@@ -264,9 +272,9 @@ var evReady = function(output, eid, dy) {
     }
   } else if (eid === 4) {
     toggleMode();
-    writeG(output);
     output.climbMode = climbMode;
     output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
+    pushG();
   } else if (eid === 6) {
     startClimb(output);
   }
@@ -282,12 +290,8 @@ var evBreak = function(output, eid, dy) {
     lastGradeIdx = ((lastGradeIdx + dy) % L + L) % L;
     currentGrade = lastGradeIdx;
     if (routes.length > 0) routes[routes.length - 1][0] = lastGradeIdx;
-    output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
-    writeG(output);
-    if (lastResult) {
-      recalcBse();
-      output.bestSend = bestSendEnc;
-    }
+    if (lastResult) recalcBse();
+    pushG();
   } else if (eid === 4) {
     saveAsProject(output);
   } else if (eid === 6 && !frDirty) {
@@ -300,8 +304,8 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
-    output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
+    pushG();
   } else if (eid === 6) {
     try {
       f17(gradeSystem);
@@ -317,15 +321,15 @@ var evProjSetup = function(output, eid, dy) {
   if (dy) {
     var L = GRADE_LENS[gradeSystem], v = projGradeIdx[pStep] + dy;
     projGradeIdx[pStep] = v >= L ? -1 : v < -1 ? L - 1 : v;
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
     output.modeSub = pStep + 1;
+    pushG();
   } else if (eid === 5) {
     saveAll();
     goState(0, "cm", output);
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
     output.modeSub = pStep + 1;
+    pushG();
   }
 };
 
@@ -361,10 +365,10 @@ var evEdit = function(output, eid) {
       editIdx = (editIdx - 1 + n) % n;
       var pr = routes[editIdx];
       if (pr) {
-        output.lastGrade = encGrade(pr[1], pr[0]);
         output.modeSub = n;
         output.climbMode = pr[3] || 0;
       }
+      pushG();      // route nav → lastGrade text
       pushEdit();  // T6: routeNum + editSend display moved to setText
       // save&next: keep editDirty across cycles, persist only on save&back
     } else {
@@ -399,7 +403,6 @@ var evEdit = function(output, eid) {
       }
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       recalcBse();
-      output.bestSend = bestSendEnc;
       pushEdit();  // T6: editSend icons/label moved to setText
       editDirty = 1;
     }
@@ -408,18 +411,15 @@ var evEdit = function(output, eid) {
     if (rr && !rr[3]) {
       var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[rr[1]];
       rr[0] = ((rr[0] + dy5) % L + L) % L;
-      output.lastGrade = encGrade(rr[1], rr[0]);
-      if (rr[2]) {
-        recalcBse();
-        output.bestSend = bestSendEnc;
-      }
+      if (rr[2]) recalcBse();
+      pushG();      // route grade edit → lastGrade text
     }
   }
   editDirty = 1;
 };
 
 function onLoad(_input, output) {
-  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17);  // T7: cache once
+  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17); f21 = loadExt(21);  // T7: cache once
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];

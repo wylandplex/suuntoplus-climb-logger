@@ -35,15 +35,6 @@
   ],
   "out": [
     {
-      "name": "grade"
-    },
-    {
-      "name": "lastGrade"
-    },
-    {
-      "name": "bestSend"
-    },
-    {
       "name": "routePk1",
       "log": true,
       "shownName": "Peak HR 1min",
