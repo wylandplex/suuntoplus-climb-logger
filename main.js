@@ -421,7 +421,7 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
-  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17); f21 = loadExt(21);  // T7: cache once
+  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17); f21 = loadExt(21)();  // T7: cache once. ext21 is a factory (G-closure) — invoke once.
   var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
   gradeSystem = r[0];
   allProjects = r[1];
