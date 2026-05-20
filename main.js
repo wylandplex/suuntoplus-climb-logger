@@ -39,7 +39,6 @@ var curAsc = 0;
 var startAsc = 0;
 var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
-var allProjects = {};
 var projStats = {};
 var projStatsDirty = 0;  // T8: batch LS write
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
@@ -60,19 +59,22 @@ var encGrade = function(idx) {
 };
 
 var loadProjects = function(sys) {
-  var sp = allProjects[sys];
+  var ws = LS.getObject("watchSetup");
+  var sp = ws && ws.proj ? ws.proj[sys] : null;
   for (var i = 0; i < 5; i++) {
     projGradeIdx[i] = (sp && sp[i] !== undefined) ? sp[i] : -1;
   }
 };
 
 var writeStats = function() {
-  f11(allTimeStats, allProjects, projStats, climbMode, projGradeIdx, gradeSystem);
+  f11(allTimeStats, projGradeIdx, projStats, climbMode, gradeSystem);
 };
 
 var saveAll = function() {
-  allProjects[gradeSystem] = projGradeIdx.slice();
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
+  var ws = LS.getObject("watchSetup") || {};
+  var proj = ws.proj || {};
+  proj[gradeSystem] = projGradeIdx.slice();
+  LS.setObject("watchSetup", { sys: gradeSystem, proj: proj });
   try { writeStats(); } catch (e) {}
 };
 
@@ -184,9 +186,9 @@ var toggleMode = function() {
 };
 
 var saveAsProject = function(output) {
-  var r = loadExt(14)(climbMode, gradeSystem, gradeSystem, lastGradeIdx, lastResult, lastDuration, allProjects, projGradeIdx, projStats, routes, allTimeStats.sessions);
+  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routes, allTimeStats.sessions);
   if (r) {
-    gradeSystem = r[0]; currentGrade = r[1]; climbMode = r[2];
+    currentGrade = r[0]; climbMode = r[1];
     saveAll();
     goState(0, "cm", output);
   }
@@ -418,11 +420,10 @@ var evEdit = function(output, eid) {
 
 function onLoad(_input, output) {
   f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17);  // T7: cache once
-  var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
+  var r = loadExt(12)(allTimeStats);
   gradeSystem = r[0];
-  allProjects = r[1];
+  projGradeIdx = r[1];
   projStats = r[2];
-  loadProjects(gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
   var ws = LS.getObject("watchSetup");
