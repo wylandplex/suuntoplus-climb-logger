@@ -1,23 +1,64 @@
 # ADR-002: Binding Architecture — From Monolithic Template to State-Cluster Split
 
-**Status:** SUPERSEDED by [ADR-003](ADR-003-v2.98-output-reduction.md) for variants A/B; remaining as historical record
+**Status:** REJECTED — Variant A empirically killed on watch; Variant B not pursued. ADR-003 (output reduction) is the adopted architecture.
 **Date:** 2026-05-18
 **Deciders:** App owner (skyfi)
 **Supersedes:** Implicit "single-template-with-visibility-toggle" approach from v3.0
 
-## Update 2026-05-19 22:55 — `<uiViewSet>` capability check (was Variant A blocker)
+## Update 2026-05-20 — Variant A (`<uiViewSet>`) EMPIRICALLY KILLED on watch
 
-Suunto framework docs (`reference.html` h4 `uiviewset`) confirm: `<uiViewSet>` is a VISIBILITY-SWITCHING element, not a binding-lifecycle element.
+Variant A was fully implemented and watch-tested (branch `experimental/adr-002-variant-a-uiviewset`, since deleted). **Result: catastrophic failure, reproducible across watch restarts.**
 
-- Child `<div>` elements coexist in the DOM
-- Class `selected` indicates default child
-- Switching via `navigate('id', N)`, `next()`, `previous()`, `first()`, `last()`
-- Events: `onWakeUp`, `onIdle`, `onSelectionChanged`
-- **Bindings inside non-selected children are NOT unsubscribed** — docs make no mention of binding lifecycle, only visibility
+### Watch-test 2026-05-20 (log: `logging/log.log` 08:02–09:14)
 
-This invalidates ADR-002 Variant A's premise (bindings only register when activated). Per ADR-003's empirical finding, the 46 `<eval input>` bindings already coalesce to 21 unique WB paths via framework dedup, so binding-side restructuring (Variants A and B) cannot meaningfully reduce WB pressure.
+```
+08:02:50  climbl01 (uiViewSet build) enabled
+08:03:33  ERR WBMAIN "Too many sim. path-param calls cli:32921 res:2129" ×19
+          JsTotMem 129876→131676 (97.6% → 98.9%)
+08:03:43  relMemCb → "Zapp:RelMem->None avail"  (heap fully exhausted)
+08:04:30  path-param overflow ×18 again
+09:14:31  ERR DUKTAPE JSalloc:2445 fail
+09:14:34  ERR FAULT *ASSERT* file.cpp:149 task:ui → EVT BOOTLOOP
+```
 
-**Variants A and B remain ARCHITECTURALLY SOUND for code organization** (cleaner state-cluster separation) but offer **no measurable runtime/heap/path-budget benefit** over the v2.98 single-template approach with output-side optimizations (ADR-003).
+Crash within ~40 s of app launch. Reproduced identically after a full watch restart.
+
+### Root cause — Variant A's premise was INVERTED
+
+ADR-002 assumed `<uiViewSet>` registers child bindings lazily (only the
+active view) → fewer simultaneous paths. **The opposite is true.**
+
+`<uiViewSet>` holds **ALL** children's `<eval>` path-params SIMULTANEOUSLY
+resolved — for the transition system, even with `transition.duration="0"`.
+The path-param dump at 08:03:33 shows ~19+ paths from `lcli:8083` (UI
+client) all active at once. 6 sections × ~8 eval bindings each → the
+firmware path-param resolver (`res:2129`) overflows immediately.
+
+Plain `visibility:HIDDEN` divs do NOT all count against the simultaneous
+path-param budget — the framework handles hidden-div bindings differently.
+`<uiViewSet>` forces every child's bindings into the resolver at once.
+
+**Therefore the v2.98 `setStyle` visibility-toggle pattern is not just
+"acceptable" — it is the ONLY structure that respects the path-param
+budget. uiViewSet is strictly worse.**
+
+### zappsim blind spot
+
+zappsim gave a false-green: heap estimator 97.7% (looked fine), pathBudget
+detector WB-load 35 (looked fine). Neither models the *simultaneous*
+path-param resolver that `<uiViewSet>` inflates. Logged as a zappsim
+enhancement (uiViewSet path-param amplification detector).
+
+### Verdict
+
+- **Variant A: REJECTED** — empirically catastrophic, do not revisit
+- **Variant B (2-cluster template split): NOT PURSUED** — would also keep
+  all cluster bindings simultaneously active within a cluster; same risk
+  class, and ADR-003 output reduction already solved the multi-app freeze
+- **Adopted architecture: ADR-003** (output reduction + caching, v2.98)
+
+The single-template + `setStyle` visibility approach stays. ADR-002 is
+closed as REJECTED.
 
 ## Context
 
