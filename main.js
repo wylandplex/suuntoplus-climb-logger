@@ -102,23 +102,25 @@ var setOutputs = function(output) {
   output.climbing = state === 1 ? 1 : 0;
 };
 
-// ext21-backed grade text push (grade / lastGrade / bestSend). Event-driven —
-// called from goState (screen entry) + dy handlers (in-screen value change).
+// grade / lastGrade / bestSend text push. f21 (ext21) is the grade decoder;
+// setText is called HERE in main.js — setText from ext-file context is a
+// silent no-op on Vertical 2 (watch-verified). Event-driven: goState
+// (screen entry) + dy handlers (in-screen value change).
 var pushG = function() {
-  var g = -1, lg = -1;
   if (state === 5) {
     var rr = routes[editIdx];
-    lg = rr ? encGrade(rr[1], rr[0]) : -1;
+    setText('#lg5', f21(rr ? encGrade(rr[1], rr[0]) : -1));
   } else if (state === 6) {
-    g = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
+    setText('#g6', f21(projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50)));
   } else if (state === 4) {
-    g = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
+    setText('#g4', f21(encGrade(gradeSystem, DEFAULT_IDX[gradeSystem])));
   } else if (state === 2) {
-    lg = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
+    setText('#lg2', f21(lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1));
+    setText('#bs2', f21(bestSendEnc));
   } else {
-    g = encGrade(gradeSystem, climbMode > 0 ? (projGradeIdx[climbMode - 1] >= 0 ? projGradeIdx[climbMode - 1] : 50) : currentGrade);
+    setText(state === 1 ? '#g1' : '#g0',
+      f21(encGrade(gradeSystem, climbMode > 0 ? (projGradeIdx[climbMode - 1] >= 0 ? projGradeIdx[climbMode - 1] : 50) : currentGrade)));
   }
-  try { f21(state, g, lg, bestSendEnc); } catch (e) {}
 };
 
 // T5/T6: setText event-driven only — NEVER from evaluate/setOutputs (heap thrashing rule).
