@@ -1,6 +1,6 @@
 function(lgi,gs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,bsc,ps,ats,h){
 var sk=cm>0?gs+"_"+cm:null;
-if(isSend){var enc=gs*100+lgi;
+if(isSend){var enc=lgi;
 if(enc>bse){bse=enc;bsc=1;}else if(enc===bse){bsc++;}}
 var fs=0,np=null;
 if(sk){
