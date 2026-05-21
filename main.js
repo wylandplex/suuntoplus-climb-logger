@@ -138,7 +138,11 @@ var pushEdit = function() {
   setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
   setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
   setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
-  setText("#ed-pillIcon", ev === 1 ? String.fromCharCode(0xF110) : ev === 2 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF107));
+  // #101: SEND/FAIL show an icon glyph; DEL has no good icon → show the text "DEL".
+  var pd = ev === 2;
+  setStyle("#ed-pillIcon", "visibility", pd ? "HIDDEN" : "VISIBLE");
+  setStyle("#ed-pillDel", "visibility", pd ? "VISIBLE" : "HIDDEN");
+  if (!pd) setText("#ed-pillIcon", ev === 1 ? String.fromCharCode(0xF110) : String.fromCharCode(0xF107));
 };
 
 var goState = function(s, t, output) {
@@ -172,16 +176,14 @@ var toggleMode = function() {
   if (climbMode > 0) {
     climbMode = 0;
   } else {
-    var found = 0;
+    climbMode = 1;
     for (var p = 0; p < 5; p++) {
       if (projGradeIdx[p] >= 0) {
         climbMode = p + 1;
         currentGrade = projGradeIdx[p];
-        found = 1;
         break;
       }
     }
-    if (!found) return;  // #103: refuse project mode when no slot configured
   }
   // writeStats() removed from hot path — heap pressure killer.
   pushActStats();  // T5: climbMode just toggled
@@ -230,6 +232,9 @@ var commitDirty = function(input) {
 };
 
 var startClimb = function(output) {
+  // #103: in project mode, block the climb start until the active project slot has a grade.
+  // toggleMode/projSetup stay reachable so the project CAN be configured.
+  if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;
   hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
   startAsc = curAsc;
   goState(1, "cm", output);
