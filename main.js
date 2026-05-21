@@ -22,9 +22,8 @@ var lastPk1 = 0;
 var lastPk3 = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
-var lastGradeSys = 0;
 var lastHrAvg = 0;
-var bestSendEnc = -1;
+var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
@@ -40,7 +39,6 @@ var curAsc = 0;
 var startAsc = 0;
 var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
-var allProjects = {};
 var projStats = {};
 var projStatsDirty = 0;  // T8: batch LS write
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
@@ -56,24 +54,27 @@ function getUserInterface() {
   return { template: currentTemplate };
 }
 
-var encGrade = function(sys, idx) {
-  return sys * 100 + idx;
+var encGrade = function(idx) {
+  return gradeSystem * 100 + idx;
 };
 
 var loadProjects = function(sys) {
-  var sp = allProjects[sys];
+  var ws = LS.getObject("watchSetup");
+  var sp = ws && ws.proj ? ws.proj[sys] : null;
   for (var i = 0; i < 5; i++) {
     projGradeIdx[i] = (sp && sp[i] !== undefined) ? sp[i] : -1;
   }
 };
 
 var writeStats = function() {
-  f11(allTimeStats, allProjects, projStats, climbMode, projGradeIdx, gradeSystem);
+  f11(allTimeStats, projGradeIdx, projStats, climbMode, gradeSystem);
 };
 
 var saveAll = function() {
-  allProjects[gradeSystem] = projGradeIdx.slice();
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
+  var ws = LS.getObject("watchSetup") || {};
+  var proj = ws.proj || {};
+  proj[gradeSystem] = projGradeIdx.slice();
+  LS.setObject("watchSetup", { sys: gradeSystem, proj: proj });
   try { writeStats(); } catch (e) {}
 };
 
@@ -83,23 +84,23 @@ var wrap = function(idx, len, off) {
 
 var setOutputs = function(output) {
   output.vState = state;
-  output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeSys, lastGradeIdx) : -1;
+  output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
   output.routeHeight = state === 1 ? sessionH + Math.max(0, Math.round(curAsc - startAsc)) : sessionH;
   output.climbMode = climbMode;
   if (state === 5) {
     var rr = routes[editIdx];
-    output.lastGrade = rr ? encGrade(rr[1], rr[0]) : -1;
+    output.lastGrade = rr ? encGrade(rr[0]) : -1;
     output.modeSub = routes.length;
-    output.climbMode = rr ? (rr[3] || 0) : 0;
+    output.climbMode = rr ? (rr[2] || 0) : 0;
     return;
   } else if (state === 6) {
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
+    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     output.modeSub = pStep + 1;
     output.lastGrade = -1;
   } else if (state === 4) {
-    output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
+    output.grade = encGrade(DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
     output.lastGrade = -1;
   } else {
@@ -107,7 +108,7 @@ var setOutputs = function(output) {
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : rn;
   }
-  output.bestSend = bestSendEnc;
+  output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
   output.climbing = state === 1 ? 1 : 0;
 };
 
@@ -133,7 +134,7 @@ var pushBrk = function() {
 // T6: edit screen route counter + send-state icons/label pushed event-driven via setText.
 var pushEdit = function() {
   var n = routes.length, rr = routes[editIdx];
-  var ev = editDelMark ? 2 : (rr ? rr[2] : 0);
+  var ev = editDelMark ? 2 : (rr ? rr[1] : 0);
   setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
   setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
   setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
@@ -155,11 +156,11 @@ var goState = function(s, t, output) {
 };
 
 var writeG = function(o, idx) {
-  o.grade = encGrade(gradeSystem, idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
+  o.grade = encGrade(idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
 };
 
 var finishRoute = function(send, output) {
-  lastResult = send; lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
+  lastResult = send; lastGradeIdx = currentGrade;
   lastHeight = Math.max(0, Math.round(curAsc - startAsc));
   if (send) sendsCount++;
   frDirty = 1; frSend = send;
@@ -185,22 +186,19 @@ var toggleMode = function() {
 };
 
 var saveAsProject = function(output) {
-  var r = loadExt(14)(climbMode, gradeSystem, lastGradeSys, lastGradeIdx, lastResult, lastDuration, allProjects, projGradeIdx, projStats, routes, allTimeStats.sessions);
+  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routes, allTimeStats.sessions);
   if (r) {
-    gradeSystem = r[0]; currentGrade = r[1]; climbMode = r[2];
+    currentGrade = r[0]; climbMode = r[1];
     saveAll();
     goState(0, "cm", output);
   }
 };
 
 var recalcBse = function() {
-  bestSendEnc = -1;
+  bestSendIdx = -1;
   for (var i = 0; i < routes.length; i++) {
     var rr = routes[i];
-    if (rr[2]) {
-      var e = rr[1] * 100 + rr[0];
-      if (e > bestSendEnc) bestSendEnc = e;
-    }
+    if (rr[1] && rr[0] > bestSendIdx) bestSendIdx = rr[0];
   }
 };
 
@@ -211,9 +209,9 @@ var commitDirty = function(input) {
     lastDuration = rSec > 0 ? rSec : (input.D || 0);
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var r = f10(lastGradeIdx, lastGradeSys, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
-      frSend, climbMode, bestSendEnc, 0, projStats, allTimeStats, lastHeight);
-    bestSendEnc = r[0];
+    var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
+      frSend, climbMode, bestSendIdx, 0, projStats, allTimeStats, lastHeight);
+    bestSendIdx = r[0];
     if (r[2]) {
       routes.push(r[2]);
       if (routes.length > 80) routes.splice(0, routes.length - 80);
@@ -280,15 +278,15 @@ var evClimb = function(output, eid) {
 
 var evBreak = function(output, eid, dy) {
   if (dy) {
-    var L = GRADE_LENS[lastGradeSys];
+    var L = GRADE_LENS[gradeSystem];
     lastGradeIdx = ((lastGradeIdx + dy) % L + L) % L;
     currentGrade = lastGradeIdx;
     if (routes.length > 0) routes[routes.length - 1][0] = lastGradeIdx;
-    output.lastGrade = encGrade(lastGradeSys, lastGradeIdx);
+    output.lastGrade = encGrade(lastGradeIdx);
     writeG(output);
     if (lastResult) {
       recalcBse();
-      output.bestSend = bestSendEnc;
+      output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
     }
   } else if (eid === 4) {
     saveAsProject(output);
@@ -302,7 +300,7 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
-    output.grade = encGrade(gradeSystem, DEFAULT_IDX[gradeSystem]);
+    output.grade = encGrade(DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
   } else if (eid === 6) {
     try {
@@ -319,14 +317,14 @@ var evProjSetup = function(output, eid, dy) {
   if (dy) {
     var L = GRADE_LENS[gradeSystem], v = projGradeIdx[pStep] + dy;
     projGradeIdx[pStep] = v >= L ? -1 : v < -1 ? L - 1 : v;
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
+    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     output.modeSub = pStep + 1;
   } else if (eid === 5) {
     saveAll();
     goState(0, "cm", output);
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(gradeSystem, projGradeIdx[pStep]) : encGrade(gradeSystem, 50);
+    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     output.modeSub = pStep + 1;
   }
 };
@@ -338,18 +336,18 @@ var evEdit = function(output, eid) {
       var dr = routes[editIdx];
       if (dr) {
         allTimeStats.totalRoutes--;
-        if (dr[2]) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
+        if (dr[1]) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
         allTimeStats.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
-        if (dr[3] > 0) {
-          var dk = dr[1] + "_" + dr[3], dp = projStats[dk];
+        if (dr[2] > 0) {
+          var dk = gradeSystem + "_" + dr[2], dp = projStats[dk];
           if (dp) {
             if (dp.attempts > 0) dp.attempts--;
-            if (dr[2] && dp.sends > 0) dp.sends--;
+            if (dr[1] && dp.sends > 0) dp.sends--;
             if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
             projStatsDirty = 1;
           }
         }
-        if (dr[4] > 0) sessionH = Math.max(0, sessionH - dr[4]);
+        if (dr[3] > 0) sessionH = Math.max(0, sessionH - dr[3]);
         routes.splice(editIdx, 1);
         recalcBse();
         if (routeNumber > 1) routeNumber--;
@@ -363,9 +361,9 @@ var evEdit = function(output, eid) {
       editIdx = (editIdx - 1 + n) % n;
       var pr = routes[editIdx];
       if (pr) {
-        output.lastGrade = encGrade(pr[1], pr[0]);
+        output.lastGrade = encGrade(pr[0]);
         output.modeSub = n;
-        output.climbMode = pr[3] || 0;
+        output.climbMode = pr[2] || 0;
       }
       pushEdit();  // T6: routeNum + editSend display moved to setText
       // save&next: keep editDirty across cycles, persist only on save&back
@@ -381,19 +379,19 @@ var evEdit = function(output, eid) {
     if (r) {
       if (editDelMark) {
         editDelMark = 0;
-        r[2] = 1;
+        r[1] = 1;
         sendsCount++;
         allTimeStats.totalSends++;
-        if (r[3] > 0) {
-          var k = r[1] + "_" + r[3], p = projStats[k];
+        if (r[2] > 0) {
+          var k = gradeSystem + "_" + r[2], p = projStats[k];
           if (p) { p.sends++; projStatsDirty = 1; }
         }
-      } else if (r[2]) {
-        r[2] = 0;
+      } else if (r[1]) {
+        r[1] = 0;
         if (sendsCount > 0) sendsCount--;
         allTimeStats.totalSends--;
-        if (r[3] > 0) {
-          var k2 = r[1] + "_" + r[3], p2 = projStats[k2];
+        if (r[2] > 0) {
+          var k2 = gradeSystem + "_" + r[2], p2 = projStats[k2];
           if (p2 && p2.sends > 0) { p2.sends--; projStatsDirty = 1; }
         }
       } else {
@@ -401,19 +399,19 @@ var evEdit = function(output, eid) {
       }
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
       recalcBse();
-      output.bestSend = bestSendEnc;
+      output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
       pushEdit();  // T6: editSend icons/label moved to setText
       editDirty = 1;
     }
   } else if (eid === 1 || eid === 2) {
     var rr = routes[editIdx];
-    if (rr && !rr[3]) {
-      var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[rr[1]];
+    if (rr && !rr[2]) {
+      var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[gradeSystem];
       rr[0] = ((rr[0] + dy5) % L + L) % L;
-      output.lastGrade = encGrade(rr[1], rr[0]);
-      if (rr[2]) {
+      output.lastGrade = encGrade(rr[0]);
+      if (rr[1]) {
         recalcBse();
-        output.bestSend = bestSendEnc;
+        output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
       }
     }
   }
@@ -422,11 +420,10 @@ var evEdit = function(output, eid) {
 
 function onLoad(_input, output) {
   f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17);  // T7: cache once
-  var r = loadExt(12)(allTimeStats, allProjects, GRADE_LENS);
+  var r = loadExt(12)(allTimeStats);
   gradeSystem = r[0];
-  allProjects = r[1];
+  projGradeIdx = r[1];
   projStats = r[2];
-  loadProjects(gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
   var ws = LS.getObject("watchSetup");
@@ -461,7 +458,7 @@ function evaluate(input, output) {
 
 function onExerciseEnd(input, _output) {
   if (state === 1) {
-    lastGradeIdx = currentGrade; lastGradeSys = gradeSystem;
+    lastGradeIdx = currentGrade;
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
     frDirty = 1; frSend = 0;
     routeNumber++;
@@ -495,7 +492,7 @@ function getSummaryOutputs(input, output) {
   // SUMMARY ONLY — no LS writes here (heap pressure can hang ext11 parse and lose the summary entirely).
   // Stats persistence is done in onExerciseEnd and per-route via ext10 (climbProjStats).
   if (routes.length > 0) {
-    try { return loadExt(19)(routes, routeNumber, sendsCount); } catch (e) {}
+    try { return loadExt(19)(routes, routeNumber, sendsCount, gradeSystem); } catch (e) {}
   }
   return loadExt(9)();
 }
