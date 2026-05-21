@@ -138,7 +138,14 @@ var pushEdit = function() {
   setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
   setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
   setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
-  setText("#ed-pillIcon", ev === 1 ? String.fromCharCode(0xF110) : ev === 2 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF107));
+  // #101: mid-pill shows the NEXT MID action (cycle DEL→SEND→FAIL→DEL):
+  //   ev=0 FAIL → next is DEL  → text "DEL"
+  //   ev=1 SEND → next is FAIL → F110 glyph
+  //   ev=2 DEL  → next is SEND → F200 glyph
+  var pd = ev === 0;
+  setStyle("#ed-pillIcon", "visibility", pd ? "HIDDEN" : "VISIBLE");
+  setStyle("#ed-pillDel", "visibility", pd ? "VISIBLE" : "HIDDEN");
+  if (!pd) setText("#ed-pillIcon", ev === 2 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
 };
 
 var goState = function(s, t, output) {
@@ -228,6 +235,9 @@ var commitDirty = function(input) {
 };
 
 var startClimb = function(output) {
+  // #103: in project mode, block the climb start until the active project slot has a grade.
+  // toggleMode/projSetup stay reachable so the project CAN be configured.
+  if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;
   hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
   startAsc = curAsc;
   goState(1, "cm", output);
@@ -466,6 +476,8 @@ function onExerciseEnd(input, _output) {
   try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   try { writeStats(); } catch (e) {}
+  // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
+  try { if (routes.length > 0) LS.setObject("lastSummary", loadExt(19)(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
 }
 
 function onEvent(_input, output, eventId) {
