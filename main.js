@@ -474,7 +474,7 @@ function onExerciseEnd(input, _output) {
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   try { writeStats(); } catch (e) {}
   // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
-  try { if (routes.length > 0) LS.setObject("lastSummary", loadExt(19)(routes, routeNumber, sendsCount)); } catch (e) {}
+  try { if (routes.length > 0) LS.setObject("lastSummary", loadExt(19)(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
 }
 
 function onEvent(_input, output, eventId) {
