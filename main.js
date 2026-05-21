@@ -138,11 +138,14 @@ var pushEdit = function() {
   setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
   setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
   setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
-  // #101: SEND/FAIL show an icon glyph; DEL has no good icon → show the text "DEL".
-  var pd = ev === 2;
+  // #101: mid-pill shows the NEXT MID action (cycle DEL→SEND→FAIL→DEL):
+  //   ev=0 FAIL → next is DEL  → text "DEL"
+  //   ev=1 SEND → next is FAIL → F110 glyph
+  //   ev=2 DEL  → next is SEND → F200 glyph
+  var pd = ev === 0;
   setStyle("#ed-pillIcon", "visibility", pd ? "HIDDEN" : "VISIBLE");
   setStyle("#ed-pillDel", "visibility", pd ? "VISIBLE" : "HIDDEN");
-  if (!pd) setText("#ed-pillIcon", ev === 1 ? String.fromCharCode(0xF110) : String.fromCharCode(0xF107));
+  if (!pd) setText("#ed-pillIcon", ev === 2 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
 };
 
 var goState = function(s, t, output) {
