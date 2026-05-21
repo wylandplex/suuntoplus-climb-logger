@@ -1,9 +1,64 @@
 # ADR-002: Binding Architecture — From Monolithic Template to State-Cluster Split
 
-**Status:** PENDING — awaiting Phase 0 empirical validation
+**Status:** REJECTED — Variant A empirically killed on watch; Variant B not pursued. ADR-003 (output reduction) is the adopted architecture.
 **Date:** 2026-05-18
 **Deciders:** App owner (skyfi)
 **Supersedes:** Implicit "single-template-with-visibility-toggle" approach from v3.0
+
+## Update 2026-05-20 — Variant A (`<uiViewSet>`) EMPIRICALLY KILLED on watch
+
+Variant A was fully implemented and watch-tested (branch `experimental/adr-002-variant-a-uiviewset`, since deleted). **Result: catastrophic failure, reproducible across watch restarts.**
+
+### Watch-test 2026-05-20 (log: `logging/log.log` 08:02–09:14)
+
+```
+08:02:50  climbl01 (uiViewSet build) enabled
+08:03:33  ERR WBMAIN "Too many sim. path-param calls cli:32921 res:2129" ×19
+          JsTotMem 129876→131676 (97.6% → 98.9%)
+08:03:43  relMemCb → "Zapp:RelMem->None avail"  (heap fully exhausted)
+08:04:30  path-param overflow ×18 again
+09:14:31  ERR DUKTAPE JSalloc:2445 fail
+09:14:34  ERR FAULT *ASSERT* file.cpp:149 task:ui → EVT BOOTLOOP
+```
+
+Crash within ~40 s of app launch. Reproduced identically after a full watch restart.
+
+### Root cause — Variant A's premise was INVERTED
+
+ADR-002 assumed `<uiViewSet>` registers child bindings lazily (only the
+active view) → fewer simultaneous paths. **The opposite is true.**
+
+`<uiViewSet>` holds **ALL** children's `<eval>` path-params SIMULTANEOUSLY
+resolved — for the transition system, even with `transition.duration="0"`.
+The path-param dump at 08:03:33 shows ~19+ paths from `lcli:8083` (UI
+client) all active at once. 6 sections × ~8 eval bindings each → the
+firmware path-param resolver (`res:2129`) overflows immediately.
+
+Plain `visibility:HIDDEN` divs do NOT all count against the simultaneous
+path-param budget — the framework handles hidden-div bindings differently.
+`<uiViewSet>` forces every child's bindings into the resolver at once.
+
+**Therefore the v2.98 `setStyle` visibility-toggle pattern is not just
+"acceptable" — it is the ONLY structure that respects the path-param
+budget. uiViewSet is strictly worse.**
+
+### zappsim blind spot
+
+zappsim gave a false-green: heap estimator 97.7% (looked fine), pathBudget
+detector WB-load 35 (looked fine). Neither models the *simultaneous*
+path-param resolver that `<uiViewSet>` inflates. Logged as a zappsim
+enhancement (uiViewSet path-param amplification detector).
+
+### Verdict
+
+- **Variant A: REJECTED** — empirically catastrophic, do not revisit
+- **Variant B (2-cluster template split): NOT PURSUED** — would also keep
+  all cluster bindings simultaneously active within a cluster; same risk
+  class, and ADR-003 output reduction already solved the multi-app freeze
+- **Adopted architecture: ADR-003** (output reduction + caching, v2.98)
+
+The single-template + `setStyle` visibility approach stays. ADR-002 is
+closed as REJECTED.
 
 ## Context
 
