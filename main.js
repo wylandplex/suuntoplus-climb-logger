@@ -40,6 +40,7 @@ var curAsc = 0;
 var startAsc = 0;
 var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
+var allProjects = {};
 var projStats = {};
 var projStatsDirty = 0;  // T8: batch LS write
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
@@ -60,8 +61,7 @@ var encGrade = function(idx) {
 };
 
 var loadProjects = function(sys) {
-  var ws = LS.getObject("watchSetup");
-  var sp = ws && ws.proj ? ws.proj[sys] : null;
+  var sp = allProjects[sys];
   for (var i = 0; i < 5; i++) {
     projGradeIdx[i] = (sp && sp[i] !== undefined) ? sp[i] : -1;
   }
@@ -72,18 +72,14 @@ var writeStats = function() {
 };
 
 var saveAll = function() {
-  var ws = LS.getObject("watchSetup") || {};
-  var proj = ws.proj || {};
-  proj[gradeSystem] = projGradeIdx.slice();
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: proj });
+  allProjects[gradeSystem] = projGradeIdx.slice();
+  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
   try { writeStats(); } catch (e) {}
 };
 
 var saveSetup = function() {
-  var ws = LS.getObject("watchSetup") || {};
-  var proj = ws.proj || {};
-  proj[gradeSystem] = projGradeIdx.slice();
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: proj });
+  allProjects[gradeSystem] = projGradeIdx.slice();
+  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
 };
 
 var wrap = function(idx, len, off) {
@@ -445,6 +441,7 @@ function onLoad(_input, output) {
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
   var ws = LS.getObject("watchSetup");
+  if (ws && ws.proj) allProjects = ws.proj;
   var sv = LS.getObject("stats");
   if (ws && !(sv && sv.showSetupOnStart)) { state = 0; currentTemplate = "cm"; }
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
