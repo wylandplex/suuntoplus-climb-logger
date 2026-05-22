@@ -33,6 +33,7 @@ var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
+var pendF17 = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -76,6 +77,13 @@ var saveAll = function() {
   proj[gradeSystem] = projGradeIdx.slice();
   LS.setObject("watchSetup", { sys: gradeSystem, proj: proj });
   try { writeStats(); } catch (e) {}
+};
+
+var saveSetup = function() {
+  var ws = LS.getObject("watchSetup") || {};
+  var proj = ws.proj || {};
+  proj[gradeSystem] = projGradeIdx.slice();
+  LS.setObject("watchSetup", { sys: gradeSystem, proj: proj });
 };
 
 var wrap = function(idx, len, off) {
@@ -196,7 +204,8 @@ var saveAsProject = function(output) {
   var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routes, allTimeStats.sessions);
   if (r) {
     currentGrade = r[0]; climbMode = r[1];
-    saveAll();
+    projStatsDirty = 1;
+    saveSetup();
     goState(0, "cm", output);
   }
 };
@@ -314,8 +323,7 @@ var evSetup = function(output, eid, dy) {
     output.modeSub = gradeSystem;
   } else if (eid === 6) {
     try {
-      f17(gradeSystem);
-      saveAll();
+      pendF17 = 1; saveSetup();
       goState(0, "cm", output);
     } catch (e) {
       LS.setObject("dbgEvErr", { msg: "" + e });
@@ -330,7 +338,7 @@ var evProjSetup = function(output, eid, dy) {
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     output.modeSub = pStep + 1;
   } else if (eid === 5) {
-    saveAll();
+    saveSetup();
     goState(0, "cm", output);
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
@@ -460,6 +468,7 @@ function evaluate(input, output) {
   }
 
   commitDirty(input);
+  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }
   // Skip setOutputs in edit (5) — eval-script churn in session.html bindings is OOM-risky at high routes.
   // state=4 (setup) needs it to publish vState so cm.html applyVis fires correctly on initial entry.
   if (state !== 5) setOutputs(output);
@@ -474,6 +483,7 @@ function onExerciseEnd(input, _output) {
     routeNumber++;
   }
   try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
+  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   try { writeStats(); } catch (e) {}
   // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
