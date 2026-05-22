@@ -28,7 +28,6 @@ var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
 var editIdx = 0;
-var editDirty = 0;
 var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
@@ -216,7 +215,7 @@ var commitDirty = function(input) {
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
     var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
-      frSend, climbMode, bestSendIdx, 0, projStats, allTimeStats, lastHeight);
+      frSend, climbMode, bestSendIdx, projStats, allTimeStats, lastHeight);
     bestSendIdx = r[0];
     if (r[2]) {
       routes.push(r[2]);
@@ -363,7 +362,6 @@ var evEdit = function(output, eid) {
         if (editIdx >= n && n > 0) editIdx = n - 1;
       }
       editDelMark = 0;
-      editDirty = 1;
     }
     if (eid === 6 && n > 0) {
       editIdx = (editIdx - 1 + n) % n;
@@ -374,9 +372,7 @@ var evEdit = function(output, eid) {
         output.climbMode = pr[2] || 0;
       }
       pushEdit();  // T6: routeNum + editSend display moved to setText
-      // save&next: keep editDirty across cycles, persist only on save&back
     } else {
-      editDirty = 0;  // T8: flush handled in goState(0)
       goState(0, "cm", output);
     }
     return;
@@ -409,7 +405,6 @@ var evEdit = function(output, eid) {
       recalcBse();
       output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
       pushEdit();  // T6: editSend icons/label moved to setText
-      editDirty = 1;
     }
   } else if (eid === 1 || eid === 2) {
     var rr = routes[editIdx];
@@ -423,7 +418,6 @@ var evEdit = function(output, eid) {
       }
     }
   }
-  editDirty = 1;
 };
 
 function onLoad(_input, output) {
@@ -434,8 +428,8 @@ function onLoad(_input, output) {
   projStats = r[2];
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
+  if (r[3]) allProjects = r[3];
   var ws = LS.getObject("watchSetup");
-  if (ws && ws.proj) allProjects = ws.proj;
   var sv = LS.getObject("stats");
   if (ws && !(sv && sv.showSetupOnStart)) { state = 0; currentTemplate = "cm"; }
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
@@ -502,11 +496,7 @@ function onExercisePause(_input, _output) { isPaused = 1; }
 function onExerciseContinue(_input, _output) { isPaused = 0; }
 
 function getSummaryOutputs(input, output) {
-  // SUMMARY ONLY — no LS writes here (heap pressure can hang ext11 parse and lose the summary entirely).
-  // Stats persistence is done in onExerciseEnd and per-route via ext10 (climbProjStats).
-  if (routes.length > 0) {
-    try { return loadExt(19)(routes, routeNumber, sendsCount, gradeSystem); } catch (e) {}
-  }
+  // SUMMARY ONLY — ext9 serves lastSummary cached by onExerciseEnd; no ext19 re-parse per view.
   return loadExt(9)();
 }
 
