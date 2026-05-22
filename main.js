@@ -71,12 +71,6 @@ var writeStats = function() {
   f11(allTimeStats, projGradeIdx, projStats, climbMode, gradeSystem);
 };
 
-var saveAll = function() {
-  allProjects[gradeSystem] = projGradeIdx.slice();
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
-  try { writeStats(); } catch (e) {}
-};
-
 var saveSetup = function() {
   allProjects[gradeSystem] = projGradeIdx.slice();
   LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
