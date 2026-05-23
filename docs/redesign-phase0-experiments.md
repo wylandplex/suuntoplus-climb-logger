@@ -5,9 +5,16 @@
 
 Each experiment below: question → action → falsification table → decision deliverable. Ranked by ROI; run order at the bottom.
 
+## Post-forum update (2026-05-23 evening)
+
+- **Exp 3 (3-app probe) DROPPED.** Suunto-Forum bestätigt 3-App offiziell auf Vertical 2 + Race 2 ab fw 2.50.26 ([Q4 2025 Release Notes](https://forum.suunto.com/topic/14379/suunto-2.50.26-q4-2025-release-notes)). skyfis Real-Test mit Climb-Logger + zzwethen + zzmoveen bestätigt es. Spart 4 h Watch-Zeit.
+- **Exp 2 jetzt Priority #1**, nicht mehr Exp 7. Begründung: Real-Watch-Test 2026-05-23 hat den Mid-Session-Freeze entkräftet — der echte Freeze ist beim `pause→end`-Burst. Exp 2 ist der Direct-Input für Phase 2c (climbProjStats split), die jetzt die priorisierte Architektur-Änderung ist.
+- **Exp 9 zielt Race 2 (nicht Race).** Race 2 ist neben Vertical 2 der zweite Watch mit 3-App-Support.
+- **Exp 6 ist nicht mehr "der" Gate.** Phase 2c kann unabhängig shippen. Exp 6 gated nur noch Phase 2b (additional headroom).
+
 ---
 
-## Exp 7 — Fresh v3.1 LID enumeration (1 h) — RUN FIRST
+## Exp 7 — Fresh v3.1 LID enumeration (1 h)
 
 **Question:** does Climb-Logger v3.1 still hold 23 unique LIDs on the WB resolver (per `docs/freeze-analysis-2026-05-18.md:49`), or has the binding inventory shifted since 2026-05-18?
 
@@ -33,7 +40,9 @@ Each experiment below: question → action → falsification table → decision 
 
 ---
 
-## Exp 9 — Heap ceiling on Race / 9 Peak Pro (2 h) — RUN SECOND
+## Exp 9 — Heap ceiling on Race 2 / 9 Peak Pro (2 h)
+
+**Note:** target is **Race 2** (not original Race). Race 2 is the second 3-app-supported model per Suunto Q4 2025 release notes.
 
 **Question:** is the 133,120 B heap ceiling the same across all target watches per `README.md:147-151` (Vertical 2, Race, Race S, Race 2, Ocean, Ocean Lite, 9 Peak Pro)? If lower on Race/9 Peak Pro, every Phase 2 target needs to be re-scaled.
 
@@ -154,33 +163,14 @@ Flash. Run a 5-route session. Observe the SA value on screen between routes and 
 
 ---
 
-## Exp 3 — 3-app coexistence with positive control (4 h)
+## ~~Exp 3 — 3-app coexistence with positive control~~ DROPPED 2026-05-23
 
-**Question:** is the 2-app cap a config-time rejection, an engine-time limit, or just a paths-overflow consequence?
+**Status:** dropped after Suunto-Forum research + skyfis Real-Test.
 
-**Round 3 protocol fix:** must use a **published, known-good** 3rd app as positive control. A custom probe that we wrote might be rejected for unrelated manifest reasons, confounding the result.
+- [Q4 2025 Release Notes / fw 2.50.26](https://forum.suunto.com/topic/14379/suunto-2.50.26-q4-2025-release-notes): *"Up to 3 SuuntoPlus apps running simultaneously during an activity (Exclusive to Suunto Race 2 and Suunto Vertical 2)"*
+- skyfi confirmed: Climb-Logger + zzwethen + zzmoveen loaded simultaneously on Vertical 2 fw 2.53.42, no install-time rejection.
 
-**Action:**
-1. Find a known-published SuuntoPlus app (e.g. from the app store: "Coffee Tracker", "SuuntoSpace", whatever skyfi can install). NOT a probe we built — we need to know the manifest is good.
-2. Power-cycle. Install: Climb-Logger v3.1 + zzmoveen + known-good 3rd app.
-3. Configure watch to load all 3 apps. Power-cycle again.
-4. Start a free climbing exercise. Capture log:
-   ```bash
-   grep "Zapp\|max apps\|res:2129\|engine" log/vertical2.log > exp3-result.txt
-   ```
-
-**Falsification table (need 2-app baselines for comparison):**
-| Observable | Conclusion |
-|---|---|
-| 2-app baseline: all `Zapp X:Load script` lines appear, no `res:2129` overflow | Baseline established. |
-| 3-app: third app's `Zapp X:Load script` line MISSING from log | Config rejected app at install time. **H1: hard config cap.** SDK relaxation required. |
-| 3-app: log line `engine: max apps reached` at boot/load | Engine refused at runtime. **H2: hard engine cap.** Same conclusion as H1. |
-| 3-app: all 3 apps load, but `Too many sim. path-param calls cli:32921 res:2129` appears | **H3: paths-overflow only.** 3-app is achievable with our binding budget reduction. Confirms the FINAL.md architecture is sound. |
-| 3-app: all 3 apps load AND no path overflow | Excellent — we have headroom. Phase 2b targets can be relaxed. |
-
-**Decision deliverable:** binary on whether 3-app is even technically possible.
-
-**Cleanup:** uninstall the test apps; revert to Climb-Logger-only.
+The 3-app loading question is **answered**. Remaining question is reliability/eviction under our load profile — that's Exp 2's domain, not Exp 3's.
 
 ---
 
