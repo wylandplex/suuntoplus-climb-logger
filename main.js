@@ -41,7 +41,8 @@ var lastHeight = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
-var projStatsDirty = 0;  // T8: batch LS write
+var projStatsDirty = 0;  // psA/psB-equivalent dirty marker — climbProjStats unconditionally written at onExerciseEnd
+var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on flash — saveSetup() at onExerciseEnd (defer-to-end)
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
@@ -104,29 +105,36 @@ var setOutputs = function(output) {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : rn;
+    // Break counter — output bindings (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
+    if (state === 2) { output.brkSends = sendsCount; output.brkRoutes = rn; }
+    // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
+    if (state === 0 && climbMode > 0) {
+      var ap0 = projStats[gradeSystem + "_" + climbMode] || {};
+      output.actT = ap0.attempts || 0;
+      output.actS = ap0.sends || 0;
+      output.actB = ap0.bestTime || 0;
+    } else { output.actT = -1; output.actS = -1; output.actB = -1; }
   }
   output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
   output.climbing = state === 1 ? 1 : 0;
 };
 
-// T5/T6: setText event-driven only — NEVER from evaluate/setOutputs (heap thrashing rule).
-var pushActStats = function() {
+// Project stats line — output bindings (setText on hidden sc0 is a no-op).
+// Called from event handlers that change climbMode for immediate UI refresh;
+// setOutputs also writes these on every evaluate tick in state=0.
+var writeActStats = function(output) {
   if (climbMode > 0) {
     var ap = projStats[gradeSystem + "_" + climbMode] || {};
-    var b = ap.bestTime || 0;
-    setText("#actT", (ap.attempts || 0) + "T");
-    setText("#actS", (ap.sends || 0) + "S");
-    setText("#actB", b > 0 ? Math.floor(b / 60) + ":" + (b % 60 < 10 ? "0" : "") + (b % 60) : "");
-  } else {
-    setText("#actT", ""); setText("#actS", ""); setText("#actB", "");
-  }
+    output.actT = ap.attempts || 0;
+    output.actS = ap.sends || 0;
+    output.actB = ap.bestTime || 0;
+  } else { output.actT = -1; output.actS = -1; output.actB = -1; }
 };
 
-// T6: break screen totals + route counter pushed event-driven via setText.
-var pushBrk = function() {
-  setText("#brk-totalSends", "" + sendsCount);
-  setText("#brk-routeNum", "" + (routeNumber > 0 ? routeNumber - 1 : 0));
-};
+// pushBrk / pushActStats removed — break counter + project stats migrated to output
+// bindings (brkSends/brkRoutes/actT/actS/actB). setText on a HIDDEN section is a
+// silent no-op on this platform; sc0/sc2 are still hidden when goState(N) runs
+// from the event handler (applyVis(N) is async via the vState output binding).
 
 // T6: edit screen route counter + send-state icons/label pushed event-driven via setText.
 var pushEdit = function() {
@@ -151,12 +159,11 @@ var goState = function(s, t, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (s === 1) dwell = 1;
-  if (output) setOutputs(output);
-  if (s === 0) {
-    pushActStats();
-    if (projStatsDirty) { try { LS.setObject("climbProjStats", projStats); } catch (e) {} projStatsDirty = 0; }
-  } else if (s === 2) pushBrk();
-  else if (s === 5) pushEdit();
+  if (output) setOutputs(output);  // publishes actT/actS/actB (s=0) and brkSends/brkRoutes (s=2)
+  // climbProjStats write removed from goState(0) — was a mid-session LS write that
+  // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
+  // write at onExerciseEnd covers it (psA/psB-equivalent persisted only at session end).
+  if (s === 5) pushEdit();
 };
 
 var writeG = function(o, idx) {
@@ -186,16 +193,17 @@ var toggleMode = function() {
     }
   }
   // writeStats() removed from hot path — heap pressure killer.
-  pushActStats();  // T5: climbMode just toggled
+  // actT/actS/actB refresh: caller (evReady eid=4) calls writeActStats(output).
 };
 
 var saveAsProject = function(output) {
   var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routes, allTimeStats.sessions);
   if (r) {
     currentGrade = r[0]; climbMode = r[1];
-    projStatsDirty = 1;
-    saveSetup();
-    goState(0, "cm", output);
+    allProjects[gradeSystem] = projGradeIdx.slice();  // in-memory update only
+    wsDirty = 1;  // ext14 mutated projGradeIdx — persist watchSetup at onExerciseEnd
+    // projStats mutated by ext14 → already covered by unconditional climbProjStats write at onExerciseEnd
+    goState(0, "cm", output);  // instant; no mid-session LS write (reference-app pattern, see feedback_no_midsession_ls_writes)
   }
 };
 
@@ -227,8 +235,7 @@ var commitDirty = function(input) {
       sessionH += lastHeight || 0;
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
-    if (climbMode > 0) pushActStats();  // T5
-    if (state === 2) pushBrk();         // T6: sendsCount + routeNumber just changed
+    // brkSends/brkRoutes/actT/actS/actB updated by setOutputs (called at end of evaluate).
   }
 };
 
@@ -261,7 +268,7 @@ var evReady = function(output, eid, dy) {
     writeG(output);
     output.climbMode = climbMode;
     output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
-    if (modeChanged) pushActStats();  // T5: project slot switched
+    if (modeChanged) writeActStats(output);  // refresh project stats line for the new slot
   } else if (eid === 5) {
     if (climbMode === 0) {
       editIdx = routes.length > 0 ? routes.length - 1 : 0;
@@ -275,6 +282,7 @@ var evReady = function(output, eid, dy) {
     writeG(output);
     output.climbMode = climbMode;
     output.modeSub = climbMode > 0 ? -climbMode : routeNumber;
+    writeActStats(output);  // refresh project stats line after climbMode toggle
   } else if (eid === 6) {
     startClimb(output);
   }
@@ -310,13 +318,10 @@ var evSetup = function(output, eid, dy) {
     loadProjects(gradeSystem);
     output.grade = encGrade(DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
+    wsDirty = 1;   // watchSetup needs persisting at session end
+    pendF17 = 1;   // ext17 grade-system snapshot swap also runs at session end
   } else if (eid === 6) {
-    try {
-      pendF17 = 1; saveSetup();
-      goState(0, "cm", output);
-    } catch (e) {
-      LS.setObject("dbgEvErr", { msg: "" + e });
-    }
+    goState(0, "cm", output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
 };
 
@@ -326,9 +331,9 @@ var evProjSetup = function(output, eid, dy) {
     projGradeIdx[pStep] = v >= L ? -1 : v < -1 ? L - 1 : v;
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     output.modeSub = pStep + 1;
+    wsDirty = 1;   // watchSetup needs persisting at session end
   } else if (eid === 5) {
-    saveSetup();
-    goState(0, "cm", output);
+    goState(0, "cm", output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
@@ -453,7 +458,9 @@ function evaluate(input, output) {
   }
 
   commitDirty(input);
-  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }
+  // pendF17 / projStatsDirty drain removed from evaluate — all LS writes deferred to
+  // onExerciseEnd (reference-app pattern). The previous per-tick f17() flush caused
+  // mid-session flash-GC stalls. See feedback_no_midsession_ls_writes.
   // Skip setOutputs in edit (5) — eval-script churn in session.html bindings is OOM-risky at high routes.
   // state=4 (setup) needs it to publish vState so cm.html applyVis fires correctly on initial entry.
   if (state !== 5) setOutputs(output);
@@ -468,8 +475,10 @@ function onExerciseEnd(input, _output) {
     routeNumber++;
   }
   try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
-  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }
+  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
+  projStatsDirty = 0;
+  if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
   try { writeStats(); } catch (e) {}
   // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
   try { if (routes.length > 0) LS.setObject("lastSummary", loadExt(19)(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
@@ -477,7 +486,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (dwell && state === 1 && (eventId === 5 || eventId === 6)) return;
+  if (dwell && state === 1 && eventId === 6) return;  // climb-entry guard: only suppress start-button(6); fast FAIL(5) MUST reach onEvent (sets selfLapExpected) — else onLap finishes as SEND
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
@@ -503,6 +512,9 @@ function getSummaryOutputs(input, output) {
 function onLap(_input, output) {
   if (selfLapExpected) { selfLapExpected = 0; return; }
   if (state === 0) startClimb(output);
-  else if (state === 1) finishRoute(1, output);
+  // state=1 (climbing) finish handled ONLY by onEvent (which carries the FAIL/SEND eid).
+  // onLap fires BEFORE onEvent on this platform — the old finishRoute(1) here was
+  // hardcoded send and overrode whatever button the user pressed (every-route-is-a-send bug).
+  // The lap() trigger from evL still creates the firmware Lap/-2 record for HR/duration stats.
   else if (state === 2 && !frDirty) startClimb(output);
 }
