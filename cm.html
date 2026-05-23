@@ -73,12 +73,14 @@
       </div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <!-- Project stats (visible only in project mode, climbMode>0) -->
-      <!-- T5: outputs removed from manifest. Values pushed via setText from main.js, event-driven only. -->
+      <!-- Project stats — visible only in project mode (climbMode>0). actT/actS/actB
+           are -1 in non-project mode → script formats return '' to hide. Migrated from
+           setText to output bindings because sc0 is HIDDEN when goState(0) runs from
+           the event handler — setText on hidden elements is a silent no-op. -->
       <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
-        <span id="actT" class="sp-b-s"></span>
-        <span id="actS" class="sp-b-s" style="padding-left:6px"></span>
-        <span id="actB" class="sp-b-s" style="padding-left:6px"></span>
+        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/actT" outputFormat="script x => x < 0 ? '' : x + 'T'" default="" /></span>
+        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actS" outputFormat="script x => x < 0 ? '' : x + 'S'" default="" /></span>
+        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actB" outputFormat="script x => x <= 0 ? '' : Math.floor(x/60) + ':' + ('0'+(x%60)).slice(-2)" default="" /></span>
       </div>
 
       <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
@@ -191,7 +193,7 @@
       <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
         <span class="f-ico" style="padding-right:14px">&#xF107;</span>
         <span class="f-ico" style="padding-right:6px">&#xF200;</span>
-        <span id="brk-totalSends" class="sp-b-s f-num">0</span><span class="sp-b-s f-num">/</span><span id="brk-routeNum" class="sp-b-s f-num">0</span>
+        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/brkSends" outputFormat="script x => ''+x" default="0" /></span><span class="sp-b-s f-num">/</span><span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/brkRoutes" outputFormat="script x => ''+x" default="0" /></span>
         <span class="f-ico" style="padding-left:16px;padding-right:6px">&#xF118;</span>
         <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/bestSend" outputFormat="script x => dG(x)" default="--" /></span>
         <span class="sp-b-s" style="padding-left:16px">H</span>
