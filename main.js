@@ -294,15 +294,30 @@ var evClimb = function(output, eid) {
 
 var evBreak = function(output, eid, dy) {
   if (dy) {
-    var L = GRADE_LENS[gradeSystem];
-    lastGradeIdx = ((lastGradeIdx + dy) % L + L) % L;
-    currentGrade = lastGradeIdx;
-    if (routes.length > 0) routes[routes.length - 1][0] = lastGradeIdx;
-    output.lastGrade = encGrade(lastGradeIdx);
-    writeG(output);
-    if (lastResult) {
-      recalcBse();
-      output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
+    if (climbMode > 0) {
+      var start = climbMode, next = climbMode, ddir = -dy;
+      do {
+        next += ddir;
+        if (next > 5) next = 1;
+        if (next < 1) next = 5;
+        if (projGradeIdx[next - 1] >= 0) break;
+      } while (next !== start);
+      climbMode = next;
+      if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
+      output.climbMode = climbMode;
+      output.modeSub = -climbMode;
+      writeG(output);
+    } else {
+      var L = GRADE_LENS[gradeSystem];
+      lastGradeIdx = ((lastGradeIdx + dy) % L + L) % L;
+      currentGrade = lastGradeIdx;
+      if (routes.length > 0) routes[routes.length - 1][0] = lastGradeIdx;
+      output.lastGrade = encGrade(lastGradeIdx);
+      writeG(output);
+      if (lastResult) {
+        recalcBse();
+        output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
+      }
     }
   } else if (eid === 4) {
     saveAsProject(output);
