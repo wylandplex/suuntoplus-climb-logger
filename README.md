@@ -1,6 +1,6 @@
-# Climb Log v3.0
+# Climb Log v3.1
 
-[![Latest](https://img.shields.io/badge/release-v3.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
+[![Latest](https://img.shields.io/badge/release-v3.1-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
 A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 8 grade systems, 5 project slots per system, heart rate, height gain, recovery, and multi-year grade progression.
 
@@ -158,4 +158,4 @@ MIT — see [LICENSE](LICENSE) if present. Contributions welcome via pull reques
 
 ## Credits
 
-Built by [@wylandplex](https://github.com/wylandplex). Refactoring and v3.0 UX rework with Claude.
+Built by [@wylandplex](https://github.com/wylandplex).

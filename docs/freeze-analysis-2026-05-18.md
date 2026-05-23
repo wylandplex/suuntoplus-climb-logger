@@ -203,7 +203,7 @@ Die heutige Multi-App-Aktivierung verschärfte das Problem zusätzlich durch UI-
 ## Fix-Strategie (siehe Implementations-Plan)
 
 Detaillierter Plan in:
-- Plan-Datei: `~/.claude/plans/i-had-some-elegant-flamingo.md`
+- Plan-Datei: *(internes Planungsdokument)*
 - ADR-002: `docs/adr/ADR-002-binding-architecture.md` (PENDING Phase 0)
 
 **Kurzfassung:**

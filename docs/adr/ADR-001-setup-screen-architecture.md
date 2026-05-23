@@ -144,5 +144,5 @@ A secondary trade-off was **on-watch vs. companion editing**. Pure companion-onl
 ## References
 
 - Memory: `reference_watch_limits.md`, `reference_hard_limits.md`, `feedback_architecture_first.md`
-- Related: System-locked-per-workout plan at `C:\Users\timob\.claude\plans\habe-eine-suunto-9-atomic-mango.md`
+- Related: System-locked-per-workout plan *(internes Planungsdokument)*
 - Affected files: `main.js`, `manifest.json`, `data.json`, `setup.html`, `projsetup.html`, `menu.html`, `ext17.js`, `ext18.js`

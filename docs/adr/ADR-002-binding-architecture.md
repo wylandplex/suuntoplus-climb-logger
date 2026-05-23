@@ -118,7 +118,7 @@ Four watch tests must run with current v3.0 build:
   - `project_v3_status.md` — v3 architecture history
   - `reference_watch_limits.md` — hardware constraints
 - **Analysis source:** `docs/freeze-analysis-2026-05-18.md` (today's session forensic)
-- **Plan file:** `~/.claude/plans/i-had-some-elegant-flamingo.md` (Implementations-Roadmap)
+- **Plan file:** *(internes Planungsdokument — Implementations-Roadmap)*
 
 ## Reviewers
 
