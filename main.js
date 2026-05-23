@@ -108,12 +108,8 @@ var setOutputs = function(output) {
     // Break counter — output bindings (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
     if (state === 2) { output.brkSends = sendsCount; output.brkRoutes = rn; }
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
-    if (state === 0 && climbMode > 0) {
-      var ap0 = projStats[gradeSystem + "_" + climbMode] || {};
-      output.actT = ap0.attempts || 0;
-      output.actS = ap0.sends || 0;
-      output.actB = ap0.bestTime || 0;
-    } else { output.actT = -1; output.actS = -1; output.actB = -1; }
+    if (state === 0) writeActStats(output);
+    else { output.actT = -1; output.actS = -1; output.actB = -1; }
   }
   output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
   output.climbing = state === 1 ? 1 : 0;
@@ -215,6 +211,25 @@ var recalcBse = function() {
   }
 };
 
+var pubBestSend = function(output) {
+  recalcBse();
+  output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
+};
+
+// Step climbMode by `dir` (±1), wrapping 1..5 and skipping empty slots.
+// Caller must ensure climbMode > 0. Updates climbMode + currentGrade globals.
+var stepProjSlot = function(dir) {
+  var start = climbMode, next = climbMode;
+  do {
+    next += dir;
+    if (next > 5) next = 1;
+    if (next < 1) next = 5;
+    if (projGradeIdx[next - 1] >= 0) break;
+  } while (next !== start);
+  climbMode = next;
+  if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
+};
+
 var commitDirty = function(input) {
   if (frDirty) {
     frDirty = 0;
@@ -227,7 +242,7 @@ var commitDirty = function(input) {
     bestSendIdx = r[0];
     if (r[2]) {
       routes.push(r[2]);
-      if (routes.length > 80) routes.splice(0, routes.length - 80);
+      if (routes.length > 80) { routes.splice(0, routes.length - 80); recalcBse(); }
       allTimeStats.totalRoutes++;
       if (frSend) allTimeStats.totalSends++;
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
@@ -254,15 +269,7 @@ var evReady = function(output, eid, dy) {
     if (climbMode === 0) {
       currentGrade = wrap(currentGrade + dy, GRADE_LENS[gradeSystem], 0);
     } else if (dy === 1 || dy === -1) {
-      var start = climbMode, next = climbMode, ddir = -dy;
-      do {
-        next += ddir;
-        if (next > 5) next = 1;
-        if (next < 1) next = 5;
-        if (projGradeIdx[next - 1] >= 0) break;
-      } while (next !== start);
-      climbMode = next;
-      if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
+      stepProjSlot(-dy);
       modeChanged = 1;
     }
     writeG(output);
@@ -295,15 +302,7 @@ var evClimb = function(output, eid) {
 var evBreak = function(output, eid, dy) {
   if (dy) {
     if (climbMode > 0) {
-      var start = climbMode, next = climbMode, ddir = -dy;
-      do {
-        next += ddir;
-        if (next > 5) next = 1;
-        if (next < 1) next = 5;
-        if (projGradeIdx[next - 1] >= 0) break;
-      } while (next !== start);
-      climbMode = next;
-      if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
+      stepProjSlot(-dy);
       output.climbMode = climbMode;
       output.modeSub = -climbMode;
       writeG(output);
@@ -314,10 +313,7 @@ var evBreak = function(output, eid, dy) {
       if (routes.length > 0) routes[routes.length - 1][0] = lastGradeIdx;
       output.lastGrade = encGrade(lastGradeIdx);
       writeG(output);
-      if (lastResult) {
-        recalcBse();
-        output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-      }
+      if (lastResult) pubBestSend(output);
     }
   } else if (eid === 4) {
     saveAsProject(output);
@@ -422,8 +418,7 @@ var evEdit = function(output, eid) {
         editDelMark = 1;
       }
       allTimeStats.sendPct = Math.round(allTimeStats.totalSends * 100 / Math.max(1, allTimeStats.totalRoutes));
-      recalcBse();
-      output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
+      pubBestSend(output);
       pushEdit();  // T6: editSend icons/label moved to setText
     }
   } else if (eid === 1 || eid === 2) {
@@ -432,10 +427,7 @@ var evEdit = function(output, eid) {
       var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[gradeSystem];
       rr[0] = ((rr[0] + dy5) % L + L) % L;
       output.lastGrade = encGrade(rr[0]);
-      if (rr[1]) {
-        recalcBse();
-        output.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-      }
+      if (rr[1]) pubBestSend(output);
     }
   }
 };
