@@ -1,2 +1,11 @@
 logging/
 zappsim-timeline.ndjson
+
+# SuuntoPlus VSCode-extension auto-allocates climbl0N slots for additional
+# worktrees (slots 1 and 2 are reserved for production/test and stay tracked).
+# climbl03+ are per-worktree build artifacts that should not be committed.
+climbl0[3-9]-?.fea
+
+# OneDrive / cloud-sync conflict artifacts
+*# Name clash *
+*# Conflict *

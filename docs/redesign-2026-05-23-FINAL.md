@@ -5,6 +5,12 @@
 **Status:** Decision-locked playbook (Round 4, post-adversarial; skyfi answers baked in)
 **Discussion rounds:** Brief + 3 parallel critiques + Round 2 synthesis + Round 3 adversarial + Round 4 consolidation + skyfi lock-ins. Codex MCP timed out 3× — discussion ran entirely via Claude Plan agents.
 
+> **Note on line numbers.** All `main.js:NNN` references in this memo (and in the sibling `critique-*.md` files) point to **pre-Phase-1 main.js** (master at commit `00021a8`, 537 lines, 20,763 B). Phase 1 prep inserts 19 lines of helpers around line 211; downstream references shift by ~+19. Specifically: `routes.splice` is now main.js:245 (was :230); `LS.setObject("climbProjStats")` is now main.js:486 (was :494); `LS.setObject("lastSummary")` is now main.js:492 (was :500). Mental-shift these +19 when reading post-Phase-1.
+
+> **Documented follow-ups** (from PR #127 code review, not blocking):
+> - **zappsim regression scenario** for the splice-stale-`bestSendIdx` bug: add `zappsim/scenarios/bestsend-after-splice.json` that pushes 81 routes where route[0] is a SEND of higher grade than any subsequent route → assert `bestSendIdx` after splice. Locks the Phase 1 bug-fix against regression. Lives in the `zappsim` repo, not this one.
+> - **zappsim assertion for Phase 2c stringify peak**: after Phase 2c ships, add `peak JSON.stringify ≤ 0.6 KB at onExerciseEnd` assertion to the `session-end-flow` scenario. Pre-commit gate.
+
 ## Locked decisions (skyfi, 2026-05-23)
 
 - **E.1 — 3-app coexistence is HARD.** LID target is now **≤12** (not ≤17).
