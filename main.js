@@ -50,7 +50,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-var f10, f11, f17;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
+var f10, f11, f17, f19;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -73,6 +73,16 @@ var writeStats = function() {
 
 var saveSetup = function() {
   allProjects[gradeSystem] = projGradeIdx.slice();
+  // Sync sv keys that ext12 boot-load uses as overrides for watchSetup.
+  // Without this, ext12 lines (~7 + 18-25 in ext12.js) override watchSetup with
+  // stale defaults from data.default.json — projects AND chosen grade system
+  // both get reset if writeStats never ran (e.g. on session-end crash).
+  var sv = LS.getObject("stats") || {};
+  sv.system = gradeSystem;
+  for (var _i = 0; _i < 5; _i++) {
+    sv["p" + gradeSystem + "_" + (_i + 1)] = projGradeIdx[_i];
+  }
+  LS.setObject("stats", sv);
   LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
 };
 
@@ -213,6 +223,20 @@ var recalcBse = function() {
     var rr = routes[i];
     if (rr[1] && rr[0] > bestSendIdx) bestSendIdx = rr[0];
   }
+};
+
+// Recompute projStats[<gs>_<slot>].bestTime from current routes[] after a SEND
+// gets un-sent or deleted. Iterates routes[] for the slot, takes min duration
+// among remaining sends. Caller must call AFTER mutating r[1]/splicing.
+var recalcProjBest = function(slot) {
+  var key = gradeSystem + "_" + slot, p = projStats[key];
+  if (!p) return;
+  var newBest = 0;
+  for (var i = 0; i < routes.length; i++) {
+    var rr = routes[i];
+    if (rr[1] && rr[2] === slot && rr[4] > 0 && (newBest === 0 || rr[4] < newBest)) newBest = rr[4];
+  }
+  p.bestTime = newBest;
 };
 
 var commitDirty = function(input) {
@@ -365,6 +389,7 @@ var evEdit = function(output, eid) {
         allTimeStats.totalRoutes--;
         if (dr[1]) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
         allTimeStats.sendPct = allTimeStats.totalRoutes > 0 ? Math.round(allTimeStats.totalSends * 100 / allTimeStats.totalRoutes) : 0;
+        var delWasSend = dr[1], delSlot = dr[2], delDur = dr[4];
         if (dr[2] > 0) {
           var dk = gradeSystem + "_" + dr[2], dp = projStats[dk];
           if (dp) {
@@ -377,6 +402,8 @@ var evEdit = function(output, eid) {
         if (dr[3] > 0) sessionH = Math.max(0, sessionH - dr[3]);
         routes.splice(editIdx, 1);
         recalcBse();
+        // Bug 2 fix: recompute bestTime if a SEND with duration just got deleted
+        if (delWasSend && delSlot > 0 && delDur > 0) recalcProjBest(delSlot);
         if (routeNumber > 1) routeNumber--;
         n = routes.length;
         if (editIdx >= n && n > 0) editIdx = n - 1;
@@ -416,7 +443,12 @@ var evEdit = function(output, eid) {
         allTimeStats.totalSends--;
         if (r[2] > 0) {
           var k2 = gradeSystem + "_" + r[2], p2 = projStats[k2];
-          if (p2 && p2.sends > 0) { p2.sends--; projStatsDirty = 1; }
+          if (p2 && p2.sends > 0) {
+            p2.sends--;
+            projStatsDirty = 1;
+            // Bug 2 fix: recompute bestTime — r[1] is now 0 so r excluded from iteration
+            if (r[4] > 0) recalcProjBest(r[2]);
+          }
         }
       } else {
         editDelMark = 1;
@@ -441,7 +473,7 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
-  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17);  // T7: cache once
+  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17); f19 = loadExt(19);  // T7: cache once (incl. f19 to avoid evalFile in onExerciseEnd burst)
   var r = loadExt(12)(allTimeStats);
   gradeSystem = r[0];
   projGradeIdx = r[1];
@@ -483,6 +515,8 @@ function evaluate(input, output) {
 }
 
 function onExerciseEnd(input, _output) {
+  // saveSetup FIRST — user-defined projects must survive even if burst crashes.
+  if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }
   if (state === 1) {
     lastGradeIdx = currentGrade;
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
@@ -490,14 +524,14 @@ function onExerciseEnd(input, _output) {
     routeNumber++;
   }
   try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
+  // Summary cache MOVED to position 3 (was last) — was the most likely write to
+  // die when the burst crashed. Uses cached f19 (no evalFile residue in burst).
+  try { if (routes.length > 0) LS.setObject("lastSummary", f19(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
   if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
-  if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
   allTimeStats.totalHeight = (allTimeStats.totalHeight || 0) + sessionH;
   try { writeStats(); } catch (e) {}
-  // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
-  try { if (routes.length > 0) LS.setObject("lastSummary", loadExt(19)(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
 }
 
 function onEvent(_input, output, eventId) {
