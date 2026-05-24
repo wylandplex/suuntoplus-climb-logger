@@ -61,10 +61,13 @@ var encGrade = function(idx) {
 };
 
 var loadProjects = function(sys) {
+  // CRITICAL: must REASSIGN projGradeIdx to a new array, not mutate in-place.
+  // onLoad sets projGradeIdx = aps[gs] AND allProjects = aps, so projGradeIdx
+  // and allProjects[gs] share the SAME array reference. Mutating projGradeIdx
+  // here would corrupt allProjects[old_gs] when cycling in the setup screen.
+  // .slice() creates an independent copy.
   var sp = allProjects[sys];
-  for (var i = 0; i < 5; i++) {
-    projGradeIdx[i] = (sp && sp[i] !== undefined) ? sp[i] : -1;
-  }
+  projGradeIdx = sp ? sp.slice() : [-1, -1, -1, -1, -1];
 };
 
 var writeStats = function() {
