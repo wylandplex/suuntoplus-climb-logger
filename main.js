@@ -32,7 +32,6 @@ var editDelMark = 0;
 var isPaused = 0;
 var pStep = 0;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
-var pendF17 = 0;
 
 var climbMode = 0;
 var curAsc = 0;
@@ -50,7 +49,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-var f10, f11, f17, f19;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
+var f10, f19;  // T7: cache parsed ext fns (f11/f17 inlined as commitEndState — see below)
 
 function getUserInterface() {
   return { template: currentTemplate };
@@ -70,23 +69,105 @@ var loadProjects = function(sys) {
   projGradeIdx = sp ? sp.slice() : [-1, -1, -1, -1, -1];
 };
 
-var writeStats = function() {
-  f11(allTimeStats, projGradeIdx, projStats, climbMode, gradeSystem);
+// Whitelist of allowed keys in the LS "stats" object. Drops anything else
+// (legacy migration leftovers, dbgEndErr, accidental writes). Prevents the
+// monotonic-bloat → flash-GC-timeout → truncated-write → onLoad-crash cascade
+// that was forcing app delete+reinstall to recover.
+var STATS_KEYS = ("system,showSetupOnStart,pyramid,totalRoutes,totalSends,sendPct,"
+  + "sessions,totalHeight,peakGrade,sessionsAtPeak,lastSessionGrade,bestOfLast5,"
+  + "bestSessionHm,bestSessionHmRecent,longestProjectSes,longestProjectGrade,"
+  + "mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,"
+  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,v").split(",");
+
+// Build a single canonical "stats" — whitelisted, overlaid with current state.
+// One write target instead of the old triple-write (saveSetup + f17 + writeStats).
+var buildStats = function(oldSv) {
+  var sv = {};
+  for (var i = 0; i < STATS_KEYS.length; i++) {
+    var key = STATS_KEYS[i];
+    if (oldSv[key] !== undefined) sv[key] = oldSv[key];
+  }
+  for (var s = 0; s < 10; s++) for (var n = 1; n <= 5; n++) {
+    var pk = "p" + s + "_" + n;
+    if (oldSv[pk] !== undefined) sv[pk] = oldSv[pk];
+  }
+  for (var k in allTimeStats) sv[k] = allTimeStats[k];
+  sv.system = gradeSystem;
+  for (var _i = 0; _i < 5; _i++) sv["p" + gradeSystem + "_" + (_i + 1)] = projGradeIdx[_i];
+  var ap = climbMode > 0 ? (projStats[gradeSystem + "_" + climbMode] || {}) : {};
+  sv.activeGrade = climbMode > 0 && projGradeIdx[climbMode - 1] >= 0 ? gradeSystem * 100 + projGradeIdx[climbMode - 1] : -1;
+  sv.activeTries = ap.attempts || 0;
+  sv.activeSends = ap.sends || 0;
+  sv.activeBest = ap.bestTime || 0;
+  sv.v = 2;
+  return sv;
 };
 
-var saveSetup = function() {
+// Per-grade-system snapshot built from stats. Used for "s<gs>" key.
+var buildSnap = function(sv) {
+  return {
+    totalRoutes: sv.totalRoutes | 0,
+    totalSends: sv.totalSends | 0,
+    sendPct: sv.sendPct | 0,
+    sessions: sv.sessions | 0,
+    totalHeight: sv.totalHeight | 0,
+    peakGrade: sv.peakGrade !== undefined ? sv.peakGrade : -1,
+    lastSessionGrade: sv.lastSessionGrade !== undefined ? sv.lastSessionGrade : -1,
+    bestOfLast5: sv.bestOfLast5 !== undefined ? sv.bestOfLast5 : -1,
+    sessionsAtPeak: sv.sessionsAtPeak | 0,
+    bestSessionHm: sv.bestSessionHm | 0,
+    longestProjectSes: sv.longestProjectSes | 0,
+    longestProjectGrade: sv.longestProjectGrade !== undefined ? sv.longestProjectGrade : -1,
+    mostTriesProject: sv.mostTriesProject | 0,
+    mostTriesGrade: sv.mostTriesGrade !== undefined ? sv.mostTriesGrade : -1
+  };
+};
+
+// Single end-of-session writer. Replaces saveSetup + writeStats(f11) + f17 snap-swap.
+// Each LS key written AT MOST ONCE per call. Whitelisted "stats" prevents bloat.
+// Worst case: 6 LS.setObject (was 6-9 with triple-write of "stats" + dual-write of "climbProjStats").
+var commitEndState = function() {
+  // Sync in-memory projects so watchSetup write captures the latest edits
   allProjects[gradeSystem] = projGradeIdx.slice();
-  // Sync sv keys that ext12 boot-load uses as overrides for watchSetup.
-  // Without this, ext12 lines (~7 + 18-25 in ext12.js) override watchSetup with
-  // stale defaults from data.default.json — projects AND chosen grade system
-  // both get reset if writeStats never ran (e.g. on session-end crash).
-  var sv = LS.getObject("stats") || {};
-  sv.system = gradeSystem;
-  for (var _i = 0; _i < 5; _i++) {
-    sv["p" + gradeSystem + "_" + (_i + 1)] = projGradeIdx[_i];
+
+  // Read OLD stats once — used for both snap-swap detection AND as base for new stats
+  var oldSv = LS.getObject("stats") || {};
+  var oldSys = oldSv.system !== undefined ? oldSv.system | 0 : gradeSystem;
+
+  // Snap-swap: if grade system changed since last write, preserve OLD system's
+  // snapshot BEFORE we overwrite "stats" with new data. (Replaces ext17/f17
+  // logic which had a silent-no-op bug after a4617db reordered saveSetup first.)
+  if (oldSys !== gradeSystem && oldSv.totalRoutes !== undefined) {
+    try { LS.setObject("s" + oldSys, buildSnap(oldSv)); } catch (e) {}
   }
-  LS.setObject("stats", sv);
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
+
+  // Build new canonical stats (whitelisted, overlaid with current state)
+  var sv = buildStats(oldSv);
+
+  // Clean up projStats entries for dropped/regraded projects (was inside ext11)
+  for (var s = 0; s < 10; s++) for (var n = 1; n <= 5; n++) {
+    var v = sv["p" + s + "_" + n];
+    if (v === undefined) continue;
+    var pk = s + "_" + n, p = projStats[pk];
+    if (p && (v === -1 || (p.g !== undefined && p.g !== v))) {
+      delete projStats[pk]; projStatsDirty = 1;
+    }
+  }
+
+  // Writes — each key exactly once. Each wrapped so one failure doesn't skip the rest.
+  try { LS.setObject("stats", sv); } catch (e) {}
+  if (wsDirty) {
+    wsDirty = 0;
+    try { LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects }); } catch (e) {}
+  }
+  try { LS.setObject("s" + gradeSystem, buildSnap(sv)); } catch (e) {}
+  if (projStatsDirty) {
+    projStatsDirty = 0;
+    try { LS.setObject("climbProjStats", projStats); } catch (e) {}
+  }
+  if (routes.length > 0) {
+    try { LS.setObject("lastSummary", f19(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
+  }
 };
 
 var wrap = function(idx, len, off) {
@@ -361,9 +442,9 @@ var evSetup = function(output, eid, dy) {
     output.grade = encGrade(DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
-    pendF17 = 1;   // ext17 grade-system snapshot swap also runs at session end
+    // (pendF17 removed — commitEndState detects gs change by comparing oldSv.system to gradeSystem)
   } else if (eid === 6) {
-    goState(0, "cm", output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
+    goState(0, "cm", output);  // instant — commitEndState deferred to onExerciseEnd (defer-to-end)
   }
 };
 
@@ -475,18 +556,43 @@ var evEdit = function(output, eid) {
   }
 };
 
-function onLoad(_input, output) {
-  f10 = loadExt(10); f11 = loadExt(11); f17 = loadExt(17); f19 = loadExt(19);  // T7: cache once (incl. f19 to avoid evalFile in onExerciseEnd burst)
-  var r = loadExt(12)(allTimeStats);
-  gradeSystem = r[0];
-  projGradeIdx = r[1];
-  projStats = r[2];
+// POISON RECOVERY — invoked from onLoad's catch when corrupt JSON in LS would
+// otherwise propagate the throw to the WB framework and cause a whole-watch-crash
+// requiring app-delete+reinstall to recover. Extracted from onLoad to keep that
+// function under the Duktape function-bytecode-chunk limit (~1900 B [EMPIRISCH]).
+var resetCorrupted = function(reason) {
+  try { LS.setObject("stats", { v: 2, mig: 1, system: 0, showSetupOnStart: 1 }); } catch (e) {}
+  try { LS.setObject("watchSetup", null); } catch (e) {}
+  try { LS.setObject("climbProjStats", {}); } catch (e) {}
+  try { LS.setObject("lastSummary", null); } catch (e) {}
+  try { LS.setObject("dbgEndErr", { msg: "onLoad recovery: " + reason }); } catch (e) {}
+  allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0 };
+  gradeSystem = 0;
+  projGradeIdx = [-1, -1, -1, -1, -1];
+  projStats = {};
+  allProjects = {};
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
-  if (r[3]) allProjects = r[3];
-  var ws = LS.getObject("watchSetup");
-  var sv = LS.getObject("stats");
-  if (ws && !(sv && sv.showSetupOnStart)) { state = 0; currentTemplate = "cm"; }
+  state = 4; currentTemplate = "cm";  // force user into setup screen after recovery
+};
+
+function onLoad(_input, output) {
+  f10 = loadExt(10); f19 = loadExt(19);  // T7: cache parsed ext fns still called from main.js
+  try {
+    var r = loadExt(12)(allTimeStats);
+    gradeSystem = r[0];
+    projGradeIdx = r[1] ? r[1].slice() : [-1, -1, -1, -1, -1];
+    projStats = r[2] || {};
+    if (r[3]) allProjects = r[3];
+    currentGrade = DEFAULT_IDX[gradeSystem];
+    var ws = LS.getObject("watchSetup");
+    var sv = LS.getObject("stats");
+    allTimeStats.sessions++;
+    if (ws && !(sv && sv.showSetupOnStart)) { state = 0; currentTemplate = "cm"; }
+    try { LS.setObject("dbgEndErr", null); } catch (e2) {}  // clear stale debug-error from previous interrupted burst
+  } catch (e) {
+    resetCorrupted("" + e);
+  }
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
@@ -518,23 +624,18 @@ function evaluate(input, output) {
 }
 
 function onExerciseEnd(input, _output) {
-  // saveSetup FIRST — user-defined projects must survive even if burst crashes.
-  if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }
   if (state === 1) {
     lastGradeIdx = currentGrade;
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
     frDirty = 1; frSend = 0;
     routeNumber++;
   }
-  try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
-  // Summary cache MOVED to position 3 (was last) — was the most likely write to
-  // die when the burst crashed. Uses cached f19 (no evalFile residue in burst).
-  try { if (routes.length > 0) LS.setObject("lastSummary", f19(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
-  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap
-  try { LS.setObject("climbProjStats", projStats); } catch (e) {}
-  projStatsDirty = 0;
+  try { commitDirty(input || {}); } catch (e) { try { LS.setObject("dbgEndErr", { msg: "commitDirty: " + e }); } catch (e2) {} }
   allTimeStats.totalHeight = (allTimeStats.totalHeight || 0) + sessionH;
-  try { writeStats(); } catch (e) {}
+  // Single consolidated end-write. Replaces saveSetup + writeStats(f11) + f17 snap-swap.
+  // Worst case 6 LS.setObject (was 6-9 with triple-write of "stats" and dual-write of "climbProjStats").
+  // The stats payload is whitelisted (see STATS_KEYS) so it cannot grow monotonically across sessions.
+  try { commitEndState(); } catch (e) { try { LS.setObject("dbgEndErr", { msg: "commitEndState: " + e }); } catch (e2) {} }
 }
 
 function onEvent(_input, output, eventId) {
