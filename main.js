@@ -115,8 +115,9 @@ var buildStats = function(oldSv) {
   sv.activeTries = ap.attempts || 0;
   sv.activeSends = ap.sends || 0;
   sv.activeBest = ap.bestTime || 0;
-  // Encode active system's stats as compact string "R,S,%,N,Pk_or_Hm"
-  // 5th value: peakGrade for s0-s7 (preserved from old string), totalHeight for s8/s9
+  // Encode active system's stats as readable labeled string "R: 100, S: 50, %: 50, N: 5, Pk: 9".
+  // Labels: R=routes, S=sends, %=sendPct, N=sessions, Pk=peakGrade index (s0-s7) or height in m (s8/s9).
+  // Decoder uses regex \-?\d+ so any label format that surrounds numbers works.
   var oldStr = oldSv["s" + gradeSystem];
   var fifth;
   if (gradeSystem >= 8) {
@@ -124,12 +125,16 @@ var buildStats = function(oldSv) {
   } else {
     // Preserve peakGrade from old string (not tracked in allTimeStats)
     fifth = -1;
-    if (oldStr) { var op = oldStr.split(","); if (op[4] !== undefined) fifth = op[4] | 0; }
+    if (oldStr) {
+      var m = oldStr.match(/-?\d+/g);
+      if (m && m[4] !== undefined) fifth = m[4] | 0;
+    }
   }
-  sv["s" + gradeSystem] = (allTimeStats.totalRoutes | 0) + "," +
-                          (allTimeStats.totalSends | 0) + "," +
-                          (allTimeStats.sendPct | 0) + "," +
-                          (allTimeStats.sessions | 0) + "," + fifth;
+  sv["s" + gradeSystem] = "R: " + (allTimeStats.totalRoutes | 0) +
+                          ", S: " + (allTimeStats.totalSends | 0) +
+                          ", %: " + (allTimeStats.sendPct | 0) +
+                          ", N: " + (allTimeStats.sessions | 0) +
+                          ", Pk: " + fifth;
   sv.v = 2;
   return sv;
 };

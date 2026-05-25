@@ -32,8 +32,8 @@ if(oldSnap){for(var sk in oldSnap)sv["s"+s2+"_"+sk]=oldSnap[sk]}
 }}
 sv.mig2=1;sd=1
 }
-// v3.flat -> v3.string: stats.s<n>_<field> -> stats.s<n>="R,S,%,N,Pk_or_Hm"
-// Encodes 5 manifest-exposed fields per system as comma-separated string.
+// v3.flat -> v3.string: stats.s<n>_<field> -> stats.s<n>="R: 100, S: 50, %: 50, N: 5, Pk: 9"
+// Encodes 5 manifest-exposed fields per system as a readable labeled string.
 // Frees ~1KB of stats payload; flat fields deleted to prevent re-encoding next boot.
 if(sv.mig3!==1){
 for(var s3=0;s3<10;s3++){
@@ -45,19 +45,21 @@ var ses=sv["s"+s3+"_sessions"]|0;
 var fifth;
 if(s3>=8){fifth=sv["s"+s3+"_totalHeight"]|0}
 else{fifth=sv["s"+s3+"_peakGrade"]!==undefined?(sv["s"+s3+"_peakGrade"]|0):-1}
-sv["s"+s3]=tr+","+ts+","+sp+","+ses+","+fifth;
+sv["s"+s3]="R: "+tr+", S: "+ts+", %: "+sp+", N: "+ses+", Pk: "+fifth;
 // Delete flat fields (no longer manifest-exposed; saves ~1KB on next write)
 delete sv["s"+s3+"_totalRoutes"];delete sv["s"+s3+"_totalSends"];delete sv["s"+s3+"_sendPct"];
 delete sv["s"+s3+"_sessions"];delete sv["s"+s3+"_peakGrade"];delete sv["s"+s3+"_totalHeight"];
 }}
 sv.mig3=1;sd=1
 }
-// Active system totals -> ats (parse the encoded string "R,S,%,N,Pk_or_Hm")
+// Active system totals -> ats (extract integers from labeled string via regex)
 var sysStr=sv["s"+gs];
 if(sysStr&&typeof sysStr==="string"){
-var p=sysStr.split(",");
-ats.totalRoutes=p[0]|0;ats.totalSends=p[1]|0;ats.sendPct=p[2]|0;ats.sessions=p[3]|0;
-ats.totalHeight=gs>=8?(p[4]|0):0;
+var m=sysStr.match(/-?\d+/g);
+if(m){
+ats.totalRoutes=m[0]|0;ats.totalSends=m[1]|0;ats.sendPct=m[2]|0;ats.sessions=m[3]|0;
+ats.totalHeight=gs>=8?(m[4]|0):0;
+}
 }else{
 // Legacy fallback for partially-migrated data: read top-level (active system was implicit)
 ats.totalRoutes=sv.totalRoutes|0;ats.totalSends=sv.totalSends|0;ats.sendPct=sv.sendPct|0;ats.sessions=sv.sessions|0;
