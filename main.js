@@ -83,8 +83,8 @@ var STATS_KEYS = ("system,showSetupOnStart,pyramid,totalRoutes,totalSends,sendPc
   + "mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,"
   + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,mig2,mig3,v,_ws,_ps,_ls").split(",");
 
-// Per-system stats encoded as compact comma-separated strings: "R,S,%,N,Pk"
-// (for s0-s7: 5th value = peakGrade index; for s8-s9: 5th value = totalHeight in meters).
+// Per-system stats encoded as compact labeled strings: "R: 100, S: 50, Pct: 50, N: 5, Pk: 9"
+// (for s0-s7: Pk = peakGrade index; for s8-s9: Pk = totalHeight in meters).
 // Replaces 50 individual stats.s<n>_<field> manifest paths with 10 stats.s<n> string paths.
 // Cuts stats payload by ~1KB which keeps it within a single flash sector for typical data.
 
@@ -115,24 +115,27 @@ var buildStats = function(oldSv) {
   sv.activeTries = ap.attempts || 0;
   sv.activeSends = ap.sends || 0;
   sv.activeBest = ap.bestTime || 0;
-  // Encode active system's stats as readable labeled string "R: 100, S: 50, %: 50, N: 5, Pk: 9".
-  // Labels: R=routes, S=sends, %=sendPct, N=sessions, Pk=peakGrade index (s0-s7) or height in m (s8/s9).
-  // Decoder uses regex \-?\d+ so any label format that surrounds numbers works.
+  // Encode active system's stats as readable labeled string "R: 100, S: 50, Pct: 50, N: 5, Pk: 9".
+  // Labels: R=routes, S=sends, Pct=sendPct, N=sessions, Pk=peakGrade index (s0-s7) or height in m (s8/s9).
+  // No regex / no percent char — Duktape compile-safe under SuuntoPlus minifier pipeline.
   var oldStr = oldSv["s" + gradeSystem];
   var fifth;
   if (gradeSystem >= 8) {
     fifth = allTimeStats.totalHeight | 0;
   } else {
-    // Preserve peakGrade from old string (not tracked in allTimeStats)
+    // Preserve peakGrade from old string (not tracked in allTimeStats) by parsing the 5th comma-part.
     fifth = -1;
     if (oldStr) {
-      var m = oldStr.match(/-?\d+/g);
-      if (m && m[4] !== undefined) fifth = m[4] | 0;
+      var op = oldStr.split(",");
+      if (op[4] !== undefined) {
+        var oc = op[4].indexOf(":");
+        fifth = (oc >= 0 ? op[4].substring(oc + 1) : op[4]) | 0;
+      }
     }
   }
   sv["s" + gradeSystem] = "R: " + (allTimeStats.totalRoutes | 0) +
                           ", S: " + (allTimeStats.totalSends | 0) +
-                          ", %: " + (allTimeStats.sendPct | 0) +
+                          ", Pct: " + (allTimeStats.sendPct | 0) +
                           ", N: " + (allTimeStats.sessions | 0) +
                           ", Pk: " + fifth;
   sv.v = 2;

@@ -131,16 +131,16 @@
     {"shownName": "Avg Peak 1min HR [bpm]", "path": "stats.avgPk1", "type": "int"},
     {"shownName": "Avg Peak 3min HR [bpm]", "path": "stats.avgPk3", "type": "int"},
     {"shownName": "Avg HRR [bpm drop in 60s]", "path": "stats.avgHrr", "type": "int"},
-    {"shownName": "French Stats [R,S,%,N,Pk]", "path": "stats.s0", "type": "string"},
-    {"shownName": "UIAA Stats [R,S,%,N,Pk]", "path": "stats.s1", "type": "string"},
-    {"shownName": "YDS Stats [R,S,%,N,Pk]", "path": "stats.s2", "type": "string"},
-    {"shownName": "British Stats [R,S,%,N,Pk]", "path": "stats.s3", "type": "string"},
-    {"shownName": "V-Scale Stats [R,S,%,N,Pk]", "path": "stats.s4", "type": "string"},
-    {"shownName": "Font Stats [R,S,%,N,Pk]", "path": "stats.s5", "type": "string"},
-    {"shownName": "Ice Stats [R,S,%,N,Pk]", "path": "stats.s6", "type": "string"},
-    {"shownName": "Mixed Stats [R,S,%,N,Pk]", "path": "stats.s7", "type": "string"},
-    {"shownName": "Hangboard Stats [Sets,S,%,N,Hm]", "path": "stats.s8", "type": "string"},
-    {"shownName": "Scrambling Stats [Laps,S,%,N,Hm]", "path": "stats.s9", "type": "string"}
+    {"shownName": "French Stats [R,S,Pct,N,Pk]", "path": "stats.s0", "type": "string"},
+    {"shownName": "UIAA Stats [R,S,Pct,N,Pk]", "path": "stats.s1", "type": "string"},
+    {"shownName": "YDS Stats [R,S,Pct,N,Pk]", "path": "stats.s2", "type": "string"},
+    {"shownName": "British Stats [R,S,Pct,N,Pk]", "path": "stats.s3", "type": "string"},
+    {"shownName": "V-Scale Stats [R,S,Pct,N,Pk]", "path": "stats.s4", "type": "string"},
+    {"shownName": "Font Stats [R,S,Pct,N,Pk]", "path": "stats.s5", "type": "string"},
+    {"shownName": "Ice Stats [R,S,Pct,N,Pk]", "path": "stats.s6", "type": "string"},
+    {"shownName": "Mixed Stats [R,S,Pct,N,Pk]", "path": "stats.s7", "type": "string"},
+    {"shownName": "Hangboard Stats [Sets,S,Pct,N,Hm]", "path": "stats.s8", "type": "string"},
+    {"shownName": "Scrambling Stats [Laps,S,Pct,N,Hm]", "path": "stats.s9", "type": "string"}
   ],
   "settings": [
     {
