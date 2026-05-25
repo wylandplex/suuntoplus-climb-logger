@@ -74,13 +74,14 @@ var loadProjects = function(sys) {
 // monotonic-bloat → flash-GC-timeout → truncated-write → onLoad-crash cascade
 // that was forcing app delete+reinstall to recover.
 // Mirrors stats.* in data.default.json — keys outside this list get dropped
-// when commitEndState writes to flash. Keep in sync with data.default.json so
-// App-Store-version users don't lose fields on first save with this build.
+// when commitEndState writes to flash. _ws/_ps/_ls are the consolidated
+// embed-fields (previously separate LS keys watchSetup/climbProjStats/lastSummary).
+// Companion never reads these (no manifest path) — they're internal-only.
 var STATS_KEYS = ("system,showSetupOnStart,pyramid,totalRoutes,totalSends,sendPct,"
   + "sessions,totalHeight,peakGrade,peakSession,sessionsAtPeak,lastSessionGrade,bestOfLast5,"
   + "bestSessionHm,bestSessionHmRecent,longestProjectSes,longestProjectGrade,"
   + "mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,"
-  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,v").split(",");
+  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,v,_ws,_ps,_ls").split(",");
 
 // Build a single canonical "stats" — whitelisted, overlaid with current state.
 // One write target instead of the old triple-write (saveSetup + f17 + writeStats).
@@ -144,14 +145,6 @@ var commitEndState = function() {
     try { LS.setObject("s" + oldSys, buildSnap(oldSv)); } catch (e) {}
   }
 
-  // lastSummary FIRST after snap-swap — most user-visible (ext9 reads this).
-  // If the burst dies later under heap pressure, at least the summary survives.
-  // Was the symptom "ext9 0 im summary" — caused by lastSummary being written
-  // LAST in the old code and dying when the watchdog cut the burst short.
-  if (routes.length > 0) {
-    try { LS.setObject("lastSummary", f19(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
-  }
-
   // Build new canonical stats (whitelisted, overlaid with current state)
   var sv = buildStats(oldSv);
 
@@ -161,21 +154,28 @@ var commitEndState = function() {
     if (v === undefined) continue;
     var pk = s + "_" + n, p = projStats[pk];
     if (p && (v === -1 || (p.g !== undefined && p.g !== v))) {
-      delete projStats[pk]; projStatsDirty = 1;
+      delete projStats[pk];
     }
   }
 
-  // Remaining writes — each key exactly once. Each wrapped so one failure doesn't skip the rest.
+  // EMBED ALL INTERNAL STATE INTO stats — eliminates separate LS keys for
+  // watchSetup, climbProjStats, lastSummary. Companion app never reads these
+  // sub-fields (no manifest path resolves to stats._ws/_ps/_ls) so they're
+  // invisible to phone sync; the app reads them directly from sv at boot.
+  // Cuts the end-of-session burst from 4-6 LS.setObject calls down to 2.
+  sv._ws = { sys: gradeSystem, proj: allProjects };
+  sv._ps = projStats;
+  if (routes.length > 0) {
+    try { sv._ls = f19(routes, routeNumber, sendsCount, gradeSystem); } catch (e) {}
+  }
+  wsDirty = 0;
+  projStatsDirty = 0;
+
+  // SINGLE consolidated write — covers companion-visible scalars AND embedded
+  // internal state in one flash transaction. Was 4-6 writes.
   try { LS.setObject("stats", sv); } catch (e) {}
-  if (wsDirty) {
-    wsDirty = 0;
-    try { LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects }); } catch (e) {}
-  }
+  // Companion-visible per-system snap (manifest variables s0.totalRoutes etc.)
   try { LS.setObject("s" + gradeSystem, buildSnap(sv)); } catch (e) {}
-  if (projStatsDirty) {
-    projStatsDirty = 0;
-    try { LS.setObject("climbProjStats", projStats); } catch (e) {}
-  }
 };
 
 var wrap = function(idx, len, off) {
@@ -673,11 +673,11 @@ function onExercisePause(_input, _output) { isPaused = 1; }
 function onExerciseContinue(_input, _output) { isPaused = 0; }
 
 function getSummaryOutputs(input, output) {
-  // Inlined from ext9.js — eliminates the evalFile call (and its heap residue)
-  // during the end-of-session summary load. evalFile was being called WHILE
-  // commitEndState's LS burst was still flushing → stacked latency that pushed
-  // the app-thread event over the WBMAIN 1s watchdog window.
-  return LS.getObject("lastSummary") || [{ id: "x", name: "NoLS", format: "Count_Fourdigits", value: 0 }];
+  // Read lastSummary from the embedded stats._ls field (consolidated write).
+  // Falls back to legacy separate "lastSummary" key for users coming from
+  // older builds before the consolidation. Inlined from ext9.js (no evalFile).
+  var sv = LS.getObject("stats") || {};
+  return sv._ls || LS.getObject("lastSummary") || [{ id: "x", name: "NoLS", format: "Count_Fourdigits", value: 0 }];
 }
 
 function onLap(_input, output) {
