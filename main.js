@@ -73,8 +73,11 @@ var loadProjects = function(sys) {
 // (legacy migration leftovers, dbgEndErr, accidental writes). Prevents the
 // monotonic-bloat → flash-GC-timeout → truncated-write → onLoad-crash cascade
 // that was forcing app delete+reinstall to recover.
+// Mirrors stats.* in data.default.json — keys outside this list get dropped
+// when commitEndState writes to flash. Keep in sync with data.default.json so
+// App-Store-version users don't lose fields on first save with this build.
 var STATS_KEYS = ("system,showSetupOnStart,pyramid,totalRoutes,totalSends,sendPct,"
-  + "sessions,totalHeight,peakGrade,sessionsAtPeak,lastSessionGrade,bestOfLast5,"
+  + "sessions,totalHeight,peakGrade,peakSession,sessionsAtPeak,lastSessionGrade,bestOfLast5,"
   + "bestSessionHm,bestSessionHmRecent,longestProjectSes,longestProjectGrade,"
   + "mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,"
   + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,v").split(",");
