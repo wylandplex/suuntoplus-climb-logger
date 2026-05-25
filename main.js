@@ -141,6 +141,14 @@ var commitEndState = function() {
     try { LS.setObject("s" + oldSys, buildSnap(oldSv)); } catch (e) {}
   }
 
+  // lastSummary FIRST after snap-swap — most user-visible (ext9 reads this).
+  // If the burst dies later under heap pressure, at least the summary survives.
+  // Was the symptom "ext9 0 im summary" — caused by lastSummary being written
+  // LAST in the old code and dying when the watchdog cut the burst short.
+  if (routes.length > 0) {
+    try { LS.setObject("lastSummary", f19(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
+  }
+
   // Build new canonical stats (whitelisted, overlaid with current state)
   var sv = buildStats(oldSv);
 
@@ -154,7 +162,7 @@ var commitEndState = function() {
     }
   }
 
-  // Writes — each key exactly once. Each wrapped so one failure doesn't skip the rest.
+  // Remaining writes — each key exactly once. Each wrapped so one failure doesn't skip the rest.
   try { LS.setObject("stats", sv); } catch (e) {}
   if (wsDirty) {
     wsDirty = 0;
@@ -164,9 +172,6 @@ var commitEndState = function() {
   if (projStatsDirty) {
     projStatsDirty = 0;
     try { LS.setObject("climbProjStats", projStats); } catch (e) {}
-  }
-  if (routes.length > 0) {
-    try { LS.setObject("lastSummary", f19(routes, routeNumber, sendsCount, gradeSystem)); } catch (e) {}
   }
 };
 
@@ -632,9 +637,15 @@ function onExerciseEnd(input, _output) {
   }
   try { commitDirty(input || {}); } catch (e) { try { LS.setObject("dbgEndErr", { msg: "commitDirty: " + e }); } catch (e2) {} }
   allTimeStats.totalHeight = (allTimeStats.totalHeight || 0) + sessionH;
+  // EARLY-RETURN — no-activity session (typical pause→end without climbing) skips
+  // the entire LS burst. sessions++ at onLoad was in-memory only; without writing
+  // it back to flash this session simply doesn't count, which is fine — empty
+  // sessions shouldn't count anyway. Eliminates the 1300ms WBMAIN-event freeze
+  // that triggered the JS-discard-needs-VBUS-resume cascade in 3-app mode.
+  if (routes.length === 0 && !wsDirty && !projStatsDirty && sessionH === 0) return;
   // Single consolidated end-write. Replaces saveSetup + writeStats(f11) + f17 snap-swap.
   // Worst case 6 LS.setObject (was 6-9 with triple-write of "stats" and dual-write of "climbProjStats").
-  // The stats payload is whitelisted (see STATS_KEYS) so it cannot grow monotonically across sessions.
+  // lastSummary is written FIRST so it survives even if the burst dies later under heap pressure.
   try { commitEndState(); } catch (e) { try { LS.setObject("dbgEndErr", { msg: "commitEndState: " + e }); } catch (e2) {} }
 }
 
@@ -659,8 +670,11 @@ function onExercisePause(_input, _output) { isPaused = 1; }
 function onExerciseContinue(_input, _output) { isPaused = 0; }
 
 function getSummaryOutputs(input, output) {
-  // SUMMARY ONLY — ext9 serves lastSummary cached by onExerciseEnd; no ext19 re-parse per view.
-  return loadExt(9)();
+  // Inlined from ext9.js — eliminates the evalFile call (and its heap residue)
+  // during the end-of-session summary load. evalFile was being called WHILE
+  // commitEndState's LS burst was still flushing → stacked latency that pushed
+  // the app-thread event over the WBMAIN 1s watchdog window.
+  return LS.getObject("lastSummary") || [{ id: "x", name: "NoLS", format: "Count_Fourdigits", value: 0 }];
 }
 
 function onLap(_input, output) {
