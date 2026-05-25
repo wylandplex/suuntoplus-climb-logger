@@ -69,7 +69,17 @@
     "bestOfLast5": -1,
     "buckets": {},
     "pyramid": "",
-    "showSetupOnStart": 1
+    "showSetupOnStart": 1,
+    "s0_totalRoutes": 0, "s0_totalSends": 0, "s0_sendPct": 0, "s0_sessions": 0, "s0_peakGrade": -1,
+    "s1_totalRoutes": 0, "s1_totalSends": 0, "s1_sendPct": 0, "s1_sessions": 0, "s1_peakGrade": -1,
+    "s2_totalRoutes": 0, "s2_totalSends": 0, "s2_sendPct": 0, "s2_sessions": 0, "s2_peakGrade": -1,
+    "s3_totalRoutes": 0, "s3_totalSends": 0, "s3_sendPct": 0, "s3_sessions": 0, "s3_peakGrade": -1,
+    "s4_totalRoutes": 0, "s4_totalSends": 0, "s4_sendPct": 0, "s4_sessions": 0, "s4_peakGrade": -1,
+    "s5_totalRoutes": 0, "s5_totalSends": 0, "s5_sendPct": 0, "s5_sessions": 0, "s5_peakGrade": -1,
+    "s6_totalRoutes": 0, "s6_totalSends": 0, "s6_sendPct": 0, "s6_sessions": 0, "s6_peakGrade": -1,
+    "s7_totalRoutes": 0, "s7_totalSends": 0, "s7_sendPct": 0, "s7_sessions": 0, "s7_peakGrade": -1,
+    "s8_totalRoutes": 0, "s8_totalSends": 0, "s8_sendPct": 0, "s8_sessions": 0, "s8_totalHeight": 0,
+    "s9_totalRoutes": 0, "s9_totalSends": 0, "s9_sendPct": 0, "s9_sessions": 0, "s9_totalHeight": 0
   },
   "projNames0": "",
   "projNames1": "",
