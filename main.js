@@ -81,18 +81,17 @@ var STATS_KEYS = ("system,showSetupOnStart,pyramid,totalRoutes,totalSends,sendPc
   + "sessions,totalHeight,peakGrade,peakSession,sessionsAtPeak,lastSessionGrade,bestOfLast5,"
   + "bestSessionHm,bestSessionHmRecent,longestProjectSes,longestProjectGrade,"
   + "mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,"
-  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,mig2,v,_ws,_ps,_ls").split(",");
+  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,mig2,mig3,v,_ws,_ps,_ls").split(",");
 
-// Per-system snap fields — used by buildStats to whitelist and by commitEndState
-// to sync the ACTIVE system's per-system flat fields into stats (e.g. s0_totalRoutes).
-// Replaces the previously-separate "s<n>" top-level LS keys (manifest paths now
-// point to "stats.s<n>_<field>"). Cuts the end-burst from 2 writes down to 1.
-var SNAP_FIELDS = ("totalRoutes,totalSends,sendPct,sessions,totalHeight,peakGrade,"
-  + "lastSessionGrade,bestOfLast5,sessionsAtPeak,bestSessionHm,"
-  + "longestProjectSes,longestProjectGrade,mostTriesProject,mostTriesGrade").split(",");
+// Per-system stats encoded as compact comma-separated strings: "R,S,%,N,Pk"
+// (for s0-s7: 5th value = peakGrade index; for s8-s9: 5th value = totalHeight in meters).
+// Replaces 50 individual stats.s<n>_<field> manifest paths with 10 stats.s<n> string paths.
+// Cuts stats payload by ~1KB which keeps it within a single flash sector for typical data.
 
 // Build a single canonical "stats" — whitelisted, overlaid with current state.
-// One write target instead of the old triple-write (saveSetup + f17 + writeStats).
+// Per-system data is encoded as 10 compact strings (sv.s0 .. sv.s9), saving ~1KB
+// vs the previous 50 flat fields. Active system's string rebuilt from allTimeStats;
+// inactive systems' strings pass through untouched (implicit snap-swap via whitelist).
 var buildStats = function(oldSv) {
   var sv = {};
   for (var i = 0; i < STATS_KEYS.length; i++) {
@@ -103,13 +102,10 @@ var buildStats = function(oldSv) {
     var pk = "p" + s + "_" + n;
     if (oldSv[pk] !== undefined) sv[pk] = oldSv[pk];
   }
-  // Per-system flat fields (e.g. s0_totalRoutes) — whitelist preserves all 10 systems'
-  // history. Active system's fields get overwritten further down via allTimeStats sync.
+  // Per-system encoded strings (sv.s0 .. sv.s9) — preserved from oldSv across writes
   for (var s2 = 0; s2 < 10; s2++) {
-    for (var f = 0; f < SNAP_FIELDS.length; f++) {
-      var sk = "s" + s2 + "_" + SNAP_FIELDS[f];
-      if (oldSv[sk] !== undefined) sv[sk] = oldSv[sk];
-    }
+    var sk = "s" + s2;
+    if (oldSv[sk] !== undefined) sv[sk] = oldSv[sk];
   }
   for (var k in allTimeStats) sv[k] = allTimeStats[k];
   sv.system = gradeSystem;
@@ -119,35 +115,23 @@ var buildStats = function(oldSv) {
   sv.activeTries = ap.attempts || 0;
   sv.activeSends = ap.sends || 0;
   sv.activeBest = ap.bestTime || 0;
-  // Sync active system's per-system flat fields (companion reads these via stats.s<gs>_<field>)
-  var gsp = "s" + gradeSystem + "_";
-  sv[gsp + "totalRoutes"] = allTimeStats.totalRoutes | 0;
-  sv[gsp + "totalSends"] = allTimeStats.totalSends | 0;
-  sv[gsp + "sendPct"] = allTimeStats.sendPct | 0;
-  sv[gsp + "sessions"] = allTimeStats.sessions | 0;
-  sv[gsp + "totalHeight"] = allTimeStats.totalHeight | 0;
+  // Encode active system's stats as compact string "R,S,%,N,Pk_or_Hm"
+  // 5th value: peakGrade for s0-s7 (preserved from old string), totalHeight for s8/s9
+  var oldStr = oldSv["s" + gradeSystem];
+  var fifth;
+  if (gradeSystem >= 8) {
+    fifth = allTimeStats.totalHeight | 0;
+  } else {
+    // Preserve peakGrade from old string (not tracked in allTimeStats)
+    fifth = -1;
+    if (oldStr) { var op = oldStr.split(","); if (op[4] !== undefined) fifth = op[4] | 0; }
+  }
+  sv["s" + gradeSystem] = (allTimeStats.totalRoutes | 0) + "," +
+                          (allTimeStats.totalSends | 0) + "," +
+                          (allTimeStats.sendPct | 0) + "," +
+                          (allTimeStats.sessions | 0) + "," + fifth;
   sv.v = 2;
   return sv;
-};
-
-// Per-grade-system snapshot built from stats. Used for "s<gs>" key.
-var buildSnap = function(sv) {
-  return {
-    totalRoutes: sv.totalRoutes | 0,
-    totalSends: sv.totalSends | 0,
-    sendPct: sv.sendPct | 0,
-    sessions: sv.sessions | 0,
-    totalHeight: sv.totalHeight | 0,
-    peakGrade: sv.peakGrade !== undefined ? sv.peakGrade : -1,
-    lastSessionGrade: sv.lastSessionGrade !== undefined ? sv.lastSessionGrade : -1,
-    bestOfLast5: sv.bestOfLast5 !== undefined ? sv.bestOfLast5 : -1,
-    sessionsAtPeak: sv.sessionsAtPeak | 0,
-    bestSessionHm: sv.bestSessionHm | 0,
-    longestProjectSes: sv.longestProjectSes | 0,
-    longestProjectGrade: sv.longestProjectGrade !== undefined ? sv.longestProjectGrade : -1,
-    mostTriesProject: sv.mostTriesProject | 0,
-    mostTriesGrade: sv.mostTriesGrade !== undefined ? sv.mostTriesGrade : -1
-  };
 };
 
 // Single end-of-session writer. Replaces saveSetup + writeStats(f11) + f17 snap-swap +

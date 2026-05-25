@@ -23,7 +23,7 @@ localStorage.setObject("s"+ms,mg)
 sv.mig=1;sd=1
 }
 // v2.x -> v3.flat: separate s<n> top-level -> stats.s<n>_<field> flat keys
-// One-time migration; mig2 flag in stats prevents re-running.
+// (mig2 path remains for users migrating up from before the string-encoded format)
 if(sv.mig2!==1){
 for(var s2=0;s2<10;s2++){
 if(sv["s"+s2+"_totalRoutes"]===undefined){
@@ -32,21 +32,46 @@ if(oldSnap){for(var sk in oldSnap)sv["s"+s2+"_"+sk]=oldSnap[sk]}
 }}
 sv.mig2=1;sd=1
 }
-// Active system totals -> ats (prefer flat s<gs>_<field>, fall back to top-level for legacy)
-ats.totalRoutes=sv["s"+gs+"_totalRoutes"]!==undefined?sv["s"+gs+"_totalRoutes"]:(sv.totalRoutes|0);
-ats.totalSends=sv["s"+gs+"_totalSends"]!==undefined?sv["s"+gs+"_totalSends"]:(sv.totalSends|0);
-ats.sendPct=sv["s"+gs+"_sendPct"]!==undefined?sv["s"+gs+"_sendPct"]:(sv.sendPct|0);
-ats.sessions=sv["s"+gs+"_sessions"]!==undefined?sv["s"+gs+"_sessions"]:(sv.sessions|0);
-ats.totalHeight=sv["s"+gs+"_totalHeight"]!==undefined?sv["s"+gs+"_totalHeight"]:(sv.totalHeight|0);
+// v3.flat -> v3.string: stats.s<n>_<field> -> stats.s<n>="R,S,%,N,Pk_or_Hm"
+// Encodes 5 manifest-exposed fields per system as comma-separated string.
+// Frees ~1KB of stats payload; flat fields deleted to prevent re-encoding next boot.
+if(sv.mig3!==1){
+for(var s3=0;s3<10;s3++){
+if(typeof sv["s"+s3]!=="string"){
+var tr=sv["s"+s3+"_totalRoutes"]|0;
+var ts=sv["s"+s3+"_totalSends"]|0;
+var sp=sv["s"+s3+"_sendPct"]|0;
+var ses=sv["s"+s3+"_sessions"]|0;
+var fifth;
+if(s3>=8){fifth=sv["s"+s3+"_totalHeight"]|0}
+else{fifth=sv["s"+s3+"_peakGrade"]!==undefined?(sv["s"+s3+"_peakGrade"]|0):-1}
+sv["s"+s3]=tr+","+ts+","+sp+","+ses+","+fifth;
+// Delete flat fields (no longer manifest-exposed; saves ~1KB on next write)
+delete sv["s"+s3+"_totalRoutes"];delete sv["s"+s3+"_totalSends"];delete sv["s"+s3+"_sendPct"];
+delete sv["s"+s3+"_sessions"];delete sv["s"+s3+"_peakGrade"];delete sv["s"+s3+"_totalHeight"];
+}}
+sv.mig3=1;sd=1
+}
+// Active system totals -> ats (parse the encoded string "R,S,%,N,Pk_or_Hm")
+var sysStr=sv["s"+gs];
+if(sysStr&&typeof sysStr==="string"){
+var p=sysStr.split(",");
+ats.totalRoutes=p[0]|0;ats.totalSends=p[1]|0;ats.sendPct=p[2]|0;ats.sessions=p[3]|0;
+ats.totalHeight=gs>=8?(p[4]|0):0;
+}else{
+// Legacy fallback for partially-migrated data: read top-level (active system was implicit)
+ats.totalRoutes=sv.totalRoutes|0;ats.totalSends=sv.totalSends|0;ats.sendPct=sv.sendPct|0;ats.sessions=sv.sessions|0;
+ats.totalHeight=sv.totalHeight|0;
+}
 // Project init
 for(var s=0;s<10;s++){
-var sp=aps[s]||[-1,-1,-1,-1,-1];
+var sp2=aps[s]||[-1,-1,-1,-1,-1];
 for(var i=0;i<5;i++){
-var pk="p"+s+"_"+(i+1);var p=sv[pk];
-if(p>=-1&&p<GL[s])sp[i]=p|0;
-if(sv[pk]===undefined){sv[pk]=sp[i];sd=1}
+var pk="p"+s+"_"+(i+1);var p2=sv[pk];
+if(p2>=-1&&p2<GL[s])sp2[i]=p2|0;
+if(sv[pk]===undefined){sv[pk]=sp2[i];sd=1}
 }
-aps[s]=sp
+aps[s]=sp2
 }
 if(sd)localStorage.setObject("stats",sv);
 return[gs,aps[gs]||[-1,-1,-1,-1,-1],ps,aps]
