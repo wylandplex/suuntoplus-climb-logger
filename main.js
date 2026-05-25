@@ -81,7 +81,15 @@ var STATS_KEYS = ("system,showSetupOnStart,pyramid,totalRoutes,totalSends,sendPc
   + "sessions,totalHeight,peakGrade,peakSession,sessionsAtPeak,lastSessionGrade,bestOfLast5,"
   + "bestSessionHm,bestSessionHmRecent,longestProjectSes,longestProjectGrade,"
   + "mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,"
-  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,v,_ws,_ps,_ls").split(",");
+  + "activeBest,activeHrr,avgHr,avgMaxHr,avgPk1,avgPk3,avgHrr,buckets,mig,mig2,v,_ws,_ps,_ls").split(",");
+
+// Per-system snap fields — used by buildStats to whitelist and by commitEndState
+// to sync the ACTIVE system's per-system flat fields into stats (e.g. s0_totalRoutes).
+// Replaces the previously-separate "s<n>" top-level LS keys (manifest paths now
+// point to "stats.s<n>_<field>"). Cuts the end-burst from 2 writes down to 1.
+var SNAP_FIELDS = ("totalRoutes,totalSends,sendPct,sessions,totalHeight,peakGrade,"
+  + "lastSessionGrade,bestOfLast5,sessionsAtPeak,bestSessionHm,"
+  + "longestProjectSes,longestProjectGrade,mostTriesProject,mostTriesGrade").split(",");
 
 // Build a single canonical "stats" — whitelisted, overlaid with current state.
 // One write target instead of the old triple-write (saveSetup + f17 + writeStats).
@@ -95,6 +103,14 @@ var buildStats = function(oldSv) {
     var pk = "p" + s + "_" + n;
     if (oldSv[pk] !== undefined) sv[pk] = oldSv[pk];
   }
+  // Per-system flat fields (e.g. s0_totalRoutes) — whitelist preserves all 10 systems'
+  // history. Active system's fields get overwritten further down via allTimeStats sync.
+  for (var s2 = 0; s2 < 10; s2++) {
+    for (var f = 0; f < SNAP_FIELDS.length; f++) {
+      var sk = "s" + s2 + "_" + SNAP_FIELDS[f];
+      if (oldSv[sk] !== undefined) sv[sk] = oldSv[sk];
+    }
+  }
   for (var k in allTimeStats) sv[k] = allTimeStats[k];
   sv.system = gradeSystem;
   for (var _i = 0; _i < 5; _i++) sv["p" + gradeSystem + "_" + (_i + 1)] = projGradeIdx[_i];
@@ -103,6 +119,13 @@ var buildStats = function(oldSv) {
   sv.activeTries = ap.attempts || 0;
   sv.activeSends = ap.sends || 0;
   sv.activeBest = ap.bestTime || 0;
+  // Sync active system's per-system flat fields (companion reads these via stats.s<gs>_<field>)
+  var gsp = "s" + gradeSystem + "_";
+  sv[gsp + "totalRoutes"] = allTimeStats.totalRoutes | 0;
+  sv[gsp + "totalSends"] = allTimeStats.totalSends | 0;
+  sv[gsp + "sendPct"] = allTimeStats.sendPct | 0;
+  sv[gsp + "sessions"] = allTimeStats.sessions | 0;
+  sv[gsp + "totalHeight"] = allTimeStats.totalHeight | 0;
   sv.v = 2;
   return sv;
 };
@@ -127,25 +150,22 @@ var buildSnap = function(sv) {
   };
 };
 
-// Single end-of-session writer. Replaces saveSetup + writeStats(f11) + f17 snap-swap.
-// Each LS key written AT MOST ONCE per call. Whitelisted "stats" prevents bloat.
-// Worst case: 6 LS.setObject (was 6-9 with triple-write of "stats" + dual-write of "climbProjStats").
+// Single end-of-session writer. Replaces saveSetup + writeStats(f11) + f17 snap-swap +
+// the s<gs> separate-key write. ONE LS.setObject covers EVERYTHING: companion-visible
+// scalars + per-system flat fields (s0_totalRoutes etc.) + embedded internal state
+// (_ws/_ps/_ls). Each manifest variable still resolves correctly via stats.<field>.
+// Down from 6-9 writes (master) to 1 write — fits well inside the WBMAIN 1s watchdog.
 var commitEndState = function() {
-  // Sync in-memory projects so watchSetup write captures the latest edits
+  // Sync in-memory projects so embedded _ws captures the latest edits
   allProjects[gradeSystem] = projGradeIdx.slice();
 
-  // Read OLD stats once — used for both snap-swap detection AND as base for new stats
+  // Read OLD stats once — preserves "frozen" per-system snap fields for inactive systems
   var oldSv = LS.getObject("stats") || {};
-  var oldSys = oldSv.system !== undefined ? oldSv.system | 0 : gradeSystem;
 
-  // Snap-swap: if grade system changed since last write, preserve OLD system's
-  // snapshot BEFORE we overwrite "stats" with new data. (Replaces ext17/f17
-  // logic which had a silent-no-op bug after a4617db reordered saveSetup first.)
-  if (oldSys !== gradeSystem && oldSv.totalRoutes !== undefined) {
-    try { LS.setObject("s" + oldSys, buildSnap(oldSv)); } catch (e) {}
-  }
-
-  // Build new canonical stats (whitelisted, overlaid with current state)
+  // Build new canonical stats (whitelisted, overlaid with current state).
+  // Active system's s<gs>_<field> are synced from allTimeStats inside buildStats.
+  // Other systems' s<n>_<field> are preserved from oldSv via whitelist (this IS the
+  // snap-swap mechanism now — no separate LS write needed).
   var sv = buildStats(oldSv);
 
   // Clean up projStats entries for dropped/regraded projects (was inside ext11)
@@ -158,11 +178,7 @@ var commitEndState = function() {
     }
   }
 
-  // EMBED ALL INTERNAL STATE INTO stats — eliminates separate LS keys for
-  // watchSetup, climbProjStats, lastSummary. Companion app never reads these
-  // sub-fields (no manifest path resolves to stats._ws/_ps/_ls) so they're
-  // invisible to phone sync; the app reads them directly from sv at boot.
-  // Cuts the end-of-session burst from 4-6 LS.setObject calls down to 2.
+  // EMBED INTERNAL STATE — invisible to companion (no manifest path), app reads directly
   sv._ws = { sys: gradeSystem, proj: allProjects };
   sv._ps = projStats;
   if (routes.length > 0) {
@@ -171,11 +187,10 @@ var commitEndState = function() {
   wsDirty = 0;
   projStatsDirty = 0;
 
-  // SINGLE consolidated write — covers companion-visible scalars AND embedded
-  // internal state in one flash transaction. Was 4-6 writes.
+  // SINGLE consolidated write — covers companion-visible scalars (stats.*) +
+  // per-system flat fields (stats.s<n>_<field>) + embedded blobs (_ws/_ps/_ls)
+  // in ONE flash transaction. Was 4-6 writes; now 1.
   try { LS.setObject("stats", sv); } catch (e) {}
-  // Companion-visible per-system snap (manifest variables s0.totalRoutes etc.)
-  try { LS.setObject("s" + gradeSystem, buildSnap(sv)); } catch (e) {}
 };
 
 var wrap = function(idx, len, off) {
