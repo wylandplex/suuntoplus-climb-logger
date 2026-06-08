@@ -6,8 +6,8 @@ Complete climbing session tracker — log sends & fails, configure projects per 
 
 ## Features
 
-- **8 Grade Systems** — French, UIAA, YDS, British, Ice (WI), Mixed, V-Scale, Font
-- **5 Projects per system** (40 total) — fully configurable on watch or companion app
+- **10 Grade Systems** — French, UIAA, YDS, British Trad, V-Scale, Font, Ice (WI), Mixed, Hangboard, Scrambling
+- **5 Projects per system** (50 total) — fully configurable on watch or companion app
 - **Auto-save as project** from break screen with one button — last climbed route becomes active project
 - **Live heart rate tracking** during climb — peak 1-min and 3-min sliding averages
 - **HRR (Heart Rate Recovery)** — 60s post-route delta, averaged per project + session + all-time
@@ -19,7 +19,7 @@ Complete climbing session tracker — log sends & fails, configure projects per 
 - **Top-10 achievements** — hardest sent projects ranked cross-system with relative difficulty
 - **Route height graph** — live altimeter recorded as time-series in Suunto app
 - **Climbing vs rest graph** — overlay with heart rate to analyze session structure
-- **Companion App** — 49 read-only stats + 46 editable settings (grade system, all 40 projects across systems, project names)
+- **Companion App** — read-only stats + editable settings (grade system, all 50 project slots across systems, project names)
 - **Full touch + button support** — gloves-friendly for outdoor climbing
 
 ## Screen flow

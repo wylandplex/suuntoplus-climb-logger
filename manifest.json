@@ -1,9 +1,9 @@
 {
   "name": "Climb Log",
-  "description": "Climb logger: 8 grade systems, 40 projects, HR/HRR, height tracking, multi-year grade ramp.",
-  "version": "3.1",
+  "description": "Climb logger: 10 grade systems, 50 project slots, HR + HRR peaks, height tracking, multi-year grade ramp.",
+  "version": "3.0",
   "author": "skyfi",
-  "modificationTime": 1779184009,
+  "modificationTime": 1780930662,
   "type": "feature",
   "usage": "workout",
   "in": [

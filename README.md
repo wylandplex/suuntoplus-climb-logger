@@ -1,8 +1,8 @@
-# Climb Log v3.1
+# Climb Log v3.0
 
-[![Latest](https://img.shields.io/badge/release-v3.1-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
+[![Latest](https://img.shields.io/badge/release-v3.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
-A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 8 grade systems, 5 project slots per system, heart rate, height gain, recovery, and multi-year grade progression.
+A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 10 grade systems, 5 project slots per system (50 total), heart rate, height gain, recovery, and multi-year grade progression.
 
 **For the end-user app description** → see [APPSTORE.md](APPSTORE.md)
 
@@ -139,7 +139,7 @@ Suunto watches have a startup parser budget that limits main.js size. Refer to t
 
 Each manifest output costs ~36 B of startup budget. Template files (break.html, ext10.js, etc.) are lazy-loaded and don't count against startup budget.
 
-Current v3.1 footprint:
+Current v3.0 footprint:
 - `main.js` minified: ~5.9 KB
 - `.fea` (q-display): ~68 KB
 

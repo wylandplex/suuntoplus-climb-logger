@@ -1,9 +1,9 @@
 # ADR-002: Binding Architecture — From Monolithic Template to State-Cluster Split
 
-**Status:** PENDING — awaiting Phase 0 empirical validation
-**Date:** 2026-05-18
+**Status:** ACCEPTED — shipped in v3.0 (2026-06-08). Variant B (2-cluster split) implemented: `cm.html` → `active.html` (READY/CLIMB/BREAK) + `manage.html` (SETUP/EDIT/PROJSETUP), cutting live `<eval>` bindings ~43 → ~25 during a workout. On-watch the `-`/`?`/freeze symptoms are resolved; the residual hard crash is the shared cross-app path ceiling (see `docs/BACKLOG.md`), mitigated by the v3.0 route limit.
+**Date:** 2026-05-18 (decided) · 2026-06-08 (accepted/shipped)
 **Deciders:** App owner (skyfi)
-**Supersedes:** Implicit "single-template-with-visibility-toggle" approach from v3.0
+**Supersedes:** the earlier single-template `cm.html` monolith (visibility-toggle) approach
 
 ## Context
 
