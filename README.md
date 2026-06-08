@@ -2,73 +2,54 @@
 
 [![Latest](https://img.shields.io/badge/release-v3.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
-A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 10 grade systems, 5 project slots per system (50 total), heart rate, height gain, recovery, and multi-year grade progression.
+A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 10 grade systems, 5 project slots per system (50 total), heart rate, height gain, and multi-year grade progression.
 
-**For the end-user app description** → see [APPSTORE.md](APPSTORE.md)
+**For the end-user app description** → see [APPSTORE.md](APPSTORE.md). **Release notes** → [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
 ## Screen Flow
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  Climb Log — state machine                  │
-└─────────────────────────────────────────────────────────────┘
+The UI is split into two template clusters, loaded on demand (only the active cluster's
+Watch-Bridge bindings are subscribed — see [ADR-002](docs/adr/ADR-002-binding-architecture.md)):
 
-                  ┌───────────────┐
-                  │    SETUP      │  configure grade system
-                  │  Step 0-5     │  + 5 project slots per system
-                  └───▲───┬───────┘
-                      │   │ down-long (save & exit)
-                      │   │ mid-long  (→ READY)
-                      │   ▼
-                      │   ┌───────────────┐
-           mid-long   │   │               │
-           (→ SETUP)  │   │    READY      │
-                      ├───┤     home      │
-                      │   │               │
-                      │   └───┬───────▲───┘
-                      │       │       │
-                      ▼       │       │
-                  ┌──────────┐│       │
-                  │  STATS   ││       │ down-long
-                  │scrollable││       │ (NEXT)
-                  │          ││       │
-                  └──────────┘│       │
-                              │       │
-                 down-long    │       │
-                 (START)      │       │
-                              ▼       │
-                      ┌───────────────┐│
-                      │               ││
-                      │    CLIMB      ││  up-long = FAIL ✗
-                      │               ││  down-long = SEND ✓
-                      └─────┬─────────┘│
-                            │          │
-                            ▼          │
-                      ┌───────────────┐│
-                      │               ││
-                      │    BREAK      ├┘  up-long = save as project
-                      │               │   up/down short = adjust grade
-                      └───────────────┘
+- **`active.html`** — READY · CLIMB · BREAK · LIMIT (states 0/1/2/3)
+- **`manage.html`** — SETUP · EDIT · PROJSETUP (states 4/5/6)
+
+```
+  manage.html                         active.html
+  ───────────                         ───────────
+  SETUP ──save──►  READY  ──START──►  CLIMB  ──SEND/FAIL──►  BREAK
+  (first run)      ▲   │                                       │
+                   │   └──────────────── NEXT ─────────────────┘
+  EDIT  ◄─up-long──┤
+  PROJSETUP ◄──────┘   READY ──START @ 35 routes──► LIMIT ──any──► READY
+  (──save──► READY)                                  (save & restart to log more)
 ```
 
 ### Per-screen button matrix
 
-| Screen  | Up short            | Down short           | Mid long            | Up long                 | Down long      |
-|---------|---------------------|----------------------|---------------------|-------------------------|----------------|
-| READY   | grade / proj cycle  | grade / proj cycle   | → STATS             | toggle freeflow/project | START          |
-| CLIMB   | — *(safety lock)*   | — *(safety lock)*    | — *(locked)*        | FAIL ✗                  | SEND ✓         |
-| BREAK   | last-grade adjust + | last-grade adjust −  | —                   | ★ save as project       | NEXT           |
-| STATS   | scroll up           | scroll down          | → READY             | → SETUP                 | → READY        |
-| SETUP   | field +             | field −              | → READY *(save)*    | next step               | → READY *(save)* |
+Physical buttons: `mid-short` is OS-reserved. Events — up-short/down-short = grade nudges,
+up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
+
+| Screen    | Up short            | Down short          | Mid long             | Up long                     | Down long            |
+|-----------|---------------------|---------------------|----------------------|-----------------------------|----------------------|
+| READY     | grade / project cycle | grade / project cycle | toggle free/project | → EDIT (free) / PROJSETUP (project) | START          |
+| CLIMB     | — *(locked)*        | — *(locked)*        | — *(locked)*         | FAIL ✗                      | SEND ✓               |
+| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | —                           | NEXT                 |
+| LIMIT     | → READY             | → READY             | → READY              | → READY                     | → READY              |
+| SETUP     | grade system +      | grade system −      | —                    | —                           | save & → READY       |
+| EDIT      | route grade +       | route grade −       | cycle SEND/FAIL/DEL  | → READY                     | prev route / → READY |
+| PROJSETUP | slot grade +        | slot grade −        | —                    | save & → READY              | save & next slot     |
 
 **Universal rules:**
-- `mid-short` is OS-reserved (scrolls through Suunto's native activity screens)
-- `mid-long` switches between main workflow and utility screens
-- `down-long` commits / advances forward
-- Touch tap-zones mirror long-press action on their respective button pills
-- Flicks fire the underlying short-press event 3× (quick cycle)
+- `mid-short` is OS-reserved (scrolls Suunto's native activity screens).
+- `down-long` commits / advances forward.
+- Touch tap-zones mirror the long-press action on their respective button pills.
+- Flicks fire the short-press grade step ×3; in project mode (READY/BREAK) flicks are a no-op
+  (project cycling is single-step only).
+- At 35 logged routes (`ROUTE_LIMIT`), START is blocked → LIMIT screen → save & restart. This
+  caps per-session resource accumulation (see [CHANGELOG](CHANGELOG.md) / issue #121).
 
 ---
 
@@ -77,42 +58,54 @@ A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes 
 | File                | Role                                                       | Loaded         |
 |---------------------|------------------------------------------------------------|----------------|
 | `main.js`           | State machine, event dispatcher, HR buffer, save logic    | App start      |
-| `active.html`       | READY / CLIMB / BREAK cluster (states 0/1/2)              | Workout        |
-| `manage.html`       | SETUP / EDIT / PROJSETUP cluster (states 4/5/6)          | Config         |
-| `ext9.js`           | Summary viewer — serves cached lastSummary, resolves grade names | On summary view |
-| `ext10.js`          | Route end — update projStats + route record               | On SEND/FAIL   |
-| `ext11.js`          | Persist all-time / per-system stats (writeStats)          | On workout end |
-| `ext12.js`          | Load stats + one-time migration                           | App start      |
-| `ext14.js`          | Save current route as a project slot                      | On save-project |
+| `active.html`       | READY / CLIMB / BREAK / LIMIT cluster (states 0/1/2/3)     | Workout        |
+| `manage.html`       | SETUP / EDIT / PROJSETUP cluster (states 4/5/6)            | Config         |
+| `ext9.js`           | Summary viewer — serves cached `lastSummary`, resolves grade names | On summary view |
+| `ext10.js`          | Route end — build route record + update project stats      | On SEND/FAIL   |
+| `ext11.js`          | Persist all-time / per-system stats (writeStats)           | On workout end |
+| `ext12.js`          | Load stats + one-time migration                            | App start      |
+| `ext14.js`          | Save current route as a project slot                       | On save-project |
 | `ext17.js`          | Grade-system snapshot swap                                 | On system change |
-| `ext19.js`          | Build workout summary tiles (emits grade indices)         | On workout end |
-| `manifest.json`     | Outputs, variables, settings, templates                   | App config     |
-| `data.json`         | Companion app defaults                                    | First install  |
+| `ext19.js`          | Build workout summary tiles (emits grade indices)          | On workout end |
+| `manifest.json`     | Outputs, variables, settings, templates                    | App config     |
+| `data.json`         | Companion app defaults                                     | First install  |
 
-Two-cluster template split (active/manage) keeps live WB `<eval>` bindings ~25 during a workout (vs ~43 if all six screens were one template); see `docs/adr/ADR-002`.
+The two-cluster split keeps live WB `<eval>` bindings ~25 during a workout (vs ~43 if all
+screens were one template) — the mitigation for the multi-app path-param ceiling.
 
 ### Data model (localStorage)
 
-- **`watchSetup`**: `{sys, proj}` — per-system project cache
-- **`climbProjStats`**: `{"sys_slot": {attempts, sends, bestTime, g, hrrSum, hrrN, hrr}}` — per-slot stats
-- **`stats`**: route totals + HR aggregates + active-project mirror + top-10 ranked + peak grade + session history
-- **`gradeHistory`**: rolling 200-session snapshots `{s, g, r, v}` for multi-year ramp
-- *(`climbRoutes` removed in favour of in-memory-only `routes[]` — persisted data was never read)*
+- **`watchSetup`**: `{sys, proj}` — current grade system + per-system project-slot cache.
+- **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
+  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror.
+- **`climbProjStats`**: `{"sys_slot": {attempts, sends, bestTime, g}}` — per-slot stats.
+- **`s<sys>`**: per-grade-system snapshot of `stats` (swapped in by `ext17` on system change).
+- **`lastSummary`**: cached session-summary tiles, served by `ext9` on the post-activity view.
+
+*(In-session `routes[]` is in-memory only — capped at the route limit; persisted route history
+was removed as it was never read back.)*
 
 ### Height tracking
 
-Route height uses `/Fusion/Altitude/Ascent` (cumulative ascent, meters) provided by the watch firmware. Per-route height = `ascentAtRouteEnd − ascentAtRouteStart`. This is "total vertical climbed this route" — matches the system's hardened noise filtering, and on up-down-up profiles it counts the re-ascents (unlike peak-altitude).
+Route height uses `/Fusion/Altitude/Ascent` (cumulative ascent, meters) from the watch firmware.
+Per-route height = `ascentAtRouteEnd − ascentAtRouteStart` — "total vertical climbed this route",
+matching the system's noise filtering and counting re-ascents on up-down-up profiles.
 
 ### External lap integration
 
-The watch's physical lap button (and auto-lap, if enabled) is detected via the `onLap` lifecycle callback. On the BREAK screen, an external lap fires a state transition straight to CLIMB, skipping READY — useful for fast multi-route sessions. In CLIMB and READY states external laps are ignored (the app's own SEND/FAIL/START buttons manage laps there).
+The physical lap button (and auto-lap, if enabled) is detected via the `onLap` callback. On the
+BREAK screen an external lap starts the next route directly (skipping READY) — handy for fast
+multi-route sessions; if the route limit is reached it routes to the LIMIT screen instead. In
+CLIMB/READY, external laps are ignored (the app's own SEND/FAIL/START manage laps there).
 
 ### Work split: route-end vs session-end
 
-- **Route-end (ext10.js, runs per SEND/FAIL):** route push + persist, active project stat update, running HR aggregates, totals, peak-grade O(1) comparison, active-project mirror.
-- **Session-end (ext9.js, runs on activity finish):** top-10 sort across projStats, grade-history append, multi-year ramp recompute, summary tiles.
-
-Top-10 on the STATS screen therefore refreshes at activity end, not mid-session. This keeps the CLIMB → BREAK transition snappy.
+- **Route-end** (`commitDirty` → `ext10`, per SEND/FAIL): build the route record, increment
+  per-project attempts/sends/best-time, update running HR aggregates and totals — all in memory.
+- **Session-end** (`onExerciseEnd`): persist stats (`ext11`/writeStats, incl. peak-grade and the
+  per-system snapshot via `ext17`) and build the summary tiles (`ext19`).
+- **Summary view** (`getSummaryOutputs` → `ext9`): serve the cached `lastSummary` and resolve
+  grade-index → name. localStorage writes are kept at session end to avoid mid-session flash-GC stalls.
 
 ---
 
@@ -122,38 +115,37 @@ Top-10 on the STATS screen therefore refreshes at activity end, not mid-session.
 ```bash
 # VS Code + SuuntoPlus editor extension required
 #   Command Palette → SuuntoPlus: Open Simulator    (test locally)
-#   Command Palette → SuuntoPlus: Build App         (creates .zip)
+#   Command Palette → SuuntoPlus: Build App         (creates the .fea / .zip)
 #   Command Palette → SuuntoPlus: Deploy to Watch   (USB or BT)
 ```
 
-### Push to GitHub
-```bash
-./push-apps.sh climb-logger        # from workspace root
-```
+A build produces one `.fea` per supported display (`climbl01-{l,m,n,o,q,s}.fea`); the Vertical 2
+uses the **q** variant. The manifest `description` must stay ≤ 100 characters or the build fails.
 
 ### Parser budget
 
-Suunto watches have a startup parser budget that limits main.js size. Refer to the minifier pipeline:
-- Terser (toplevel=true, reserved=["_e","_","_d"]) for initial mangling
-- SuuntoPlus property-to-array-index transform (outputs become `_[N]`)
+Suunto watches have a startup parser budget that limits `main.js` size. The minifier pipeline:
+- Terser (`toplevel=true`, `reserved=["_e","_","_d"]`) for initial mangling.
+- SuuntoPlus property-to-array-index transform (outputs become `_[N]`).
 
-Each manifest output costs ~36 B of startup budget. Template files (break.html, ext10.js, etc.) are lazy-loaded and don't count against startup budget.
+Each manifest output costs ~36 B of startup budget. Template files (`active.html`, `manage.html`,
+`ext*.js`) are lazy-loaded and don't count against the startup budget.
 
 Current v3.0 footprint:
-- `main.js` minified: ~5.9 KB
-- `.fea` (q-display): ~68 KB
+- `main.js` minified: ~6 KB
+- `.fea` (q-display): ~70 KB
+
+### Backlog
+
+Open work and deferred ideas live in **GitHub Issues**, indexed in [docs/BACKLOG.md](docs/BACKLOG.md).
 
 ---
 
 ## Compatibility
 
-**UI2 watches only** (starting v2.82):
-- Suunto Vertical, Vertical 2
-- Suunto Race, Race S, Race 2
-- Suunto Ocean, Ocean Lite
-- Suunto 9 Peak Pro
-
-Older UI1 watches (9 Peak, 5 Peak, 5, 3, Vertical Solar, etc.) are excluded at the manifest `displays` level because they hit memory limits.
+**UI2 watches only** (since v2.82): Suunto Vertical / Vertical 2, Race / Race S / Race 2,
+Ocean / Ocean Lite, 9 Peak Pro. Older UI1 watches (9 Peak, 5 Peak, 5, 3, Vertical Solar, …) are
+excluded at the manifest `displays` level — they hit memory limits.
 
 ## License
 
