@@ -127,7 +127,7 @@ var setOutputs = function(output) {
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
-  output.routeHeight = state === 1 ? sessionH + Math.max(0, Math.round(curAsc - startAsc)) : sessionH;
+  output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
   output.climbMode = climbMode;
   if (state === 5) {
     var rr = routes[editIdx];
