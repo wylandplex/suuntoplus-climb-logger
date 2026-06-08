@@ -77,16 +77,19 @@ A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes 
 | File                | Role                                                       | Loaded         |
 |---------------------|------------------------------------------------------------|----------------|
 | `main.js`           | State machine, event dispatcher, HR buffer, save logic    | App start      |
-| `ready.html`        | Home screen, grade display, arrow tap-bars                | On navigation  |
-| `climb.html`        | Active route timer, live HR + height                      | On START       |
-| `break.html`        | Route summary, HRR capture at 60s                         | On SEND/FAIL   |
-| `setup.html`        | Grade system + per-system project config                  | On mid-long    |
-| `stats.html`        | Scrollable all-time stats + TOP-10                        | On STATS entry |
-| `ext9.js`           | Workout summary tiles + grade ramp persist at session end | On workout end |
-| `ext10.js`          | Route end — update projStats + all-time + top-10          | On SEND/FAIL   |
-| `ext12.js`          | Recompute best-send on break grade edit                   | On grade edit  |
-| `manifest.json`     | Outputs, variables (49), settings (46), templates          | App config     |
+| `active.html`       | READY / CLIMB / BREAK cluster (states 0/1/2)              | Workout        |
+| `manage.html`       | SETUP / EDIT / PROJSETUP cluster (states 4/5/6)          | Config         |
+| `ext9.js`           | Summary viewer — serves cached lastSummary, resolves grade names | On summary view |
+| `ext10.js`          | Route end — update projStats + route record               | On SEND/FAIL   |
+| `ext11.js`          | Persist all-time / per-system stats (writeStats)          | On workout end |
+| `ext12.js`          | Load stats + one-time migration                           | App start      |
+| `ext14.js`          | Save current route as a project slot                      | On save-project |
+| `ext17.js`          | Grade-system snapshot swap                                 | On system change |
+| `ext19.js`          | Build workout summary tiles (emits grade indices)         | On workout end |
+| `manifest.json`     | Outputs, variables, settings, templates                   | App config     |
 | `data.json`         | Companion app defaults                                    | First install  |
+
+Two-cluster template split (active/manage) keeps live WB `<eval>` bindings ~25 during a workout (vs ~43 if all six screens were one template); see `docs/adr/ADR-002`.
 
 ### Data model (localStorage)
 
@@ -136,9 +139,9 @@ Suunto watches have a startup parser budget that limits main.js size. Refer to t
 
 Each manifest output costs ~36 B of startup budget. Template files (break.html, ext10.js, etc.) are lazy-loaded and don't count against startup budget.
 
-Current v3.0 footprint:
-- `main.js` minified: ~3.5 KB
-- `.fea` (q-display): ~44 KB
+Current v3.1 footprint:
+- `main.js` minified: ~5.9 KB
+- `.fea` (q-display): ~68 KB
 
 ---
 

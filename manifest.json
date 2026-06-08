@@ -62,12 +62,6 @@
       "name": "modeSub"
     },
     {
-      "name": "climbing",
-      "log": true,
-      "shownName": "Climbing",
-      "format": "Count_Twodigits"
-    },
-    {
       "name": "routeHeight"
     },
     {
@@ -91,7 +85,18 @@
   ],
   "template": [
     {
-      "name": "cm.html",
+      "name": "active.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
+    },
+    {
+      "name": "manage.html",
       "displays": [
         "l",
         "m",
