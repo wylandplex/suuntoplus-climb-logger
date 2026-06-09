@@ -49,7 +49,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 30;  // in-session route cap — at this many logged routes, block new climbs and show the LIMIT screen (state 3). Save+restart resets per-session heap/subscriptions: the safety valve for the shared 3-app path/heap ceiling that crashes long multi-app sessions. (35 crashed at ~34 routes on-watch; 30 leaves headroom.)
+var ROUTE_LIMIT = 50;  // in-session route cap — block new climbs + show the LIMIT screen (state 3) at this many. Relaxed 30→50 for now: the long-session crash is the shared WB path-param ceiling, NOT route count (see [[path-param-ceiling-model]] / #121), so this cap was the wrong lever. 50 coincides with the routes[] last-50 splice; the real fix is the Output-packing path reduction (#129).
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -122,9 +122,6 @@ var cycleSlot = function(dy) {
   if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
 };
 
-var pushBest = function(o) {
-  o.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-};
 
 var pushMode = function(o) {
   writeG(o);
@@ -172,7 +169,6 @@ var setOutputs = function(output) {
     // manage.html still reads grade/lastGrade directly (separate cluster).
     output.dispGrade = state === 2 ? output.lastGrade : output.grade;
   }
-  pushBest(output);
 };
 
 // Project stats line — output bindings (setText on hidden sc0 is a no-op).
@@ -368,7 +364,6 @@ var evBreak = function(output, eid, dy) {
       writeG(output);
       if (lastResult) {
         recalcBse();
-        pushBest(output);
       }
     }
   } else if (eid === 4) {
@@ -475,7 +470,6 @@ var evEdit = function(output, eid) {
       }
       recPct();
       recalcBse();
-      pushBest(output);
       pushEdit();  // T6: editSend icons/label moved to setText
     }
   } else if (eid === 1 || eid === 2) {
@@ -486,7 +480,6 @@ var evEdit = function(output, eid) {
       output.lastGrade = encGrade(rr[0]);
       if (rr[1]) {
         recalcBse();
-        pushBest(output);
       }
     }
   }
