@@ -49,7 +49,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 30;  // in-session route cap — block new climbs + show LIMIT (state 3); save+restart resets RAM. PROTECTS THE SINGLE-APP MEMORY CEILING: ~40 fast routes triggered a relMem unload (WBMAIN "pool full 120/120" → "RelMem->unload", buttons dead). This is DISTINCT from the multi-app WB path-param ceiling (#121, addressed by the Output packing). BOTH crashes are real — do NOT raise this much above ~30 without cutting per-route RAM. (35 crashed ~34; 50 crashed ~40.)
+var ROUTE_LIMIT = 50;  // in-session route cap — block new climbs + show LIMIT (state 3); save+restart resets RAM. NOTE: ~40 fast routes single-app triggered a relMem memory-unload (WBMAIN "pool full 120/120" → "RelMem->unload", buttons dead) — kept at 50 for on-watch testing per user; the memory ceiling is ~40, so this WILL crash near there until per-route RAM is cut (#130). Distinct from the multi-app WB path ceiling (#121, addressed by Output packing).
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -156,9 +156,6 @@ var setOutputs = function(output) {
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
     if (state === 0) writeActStats(output);
     else { output.actLine = -1; }
-    // Active-cluster grade: one state-aware output replaces grade(READY/CLIMB)+lastGrade(BREAK).
-    // manage.html still reads grade/lastGrade directly (separate cluster).
-    output.dispGrade = state === 2 ? output.lastGrade : output.grade;
   }
 };
 

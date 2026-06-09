@@ -41,9 +41,6 @@
       "name": "lastGrade"
     },
     {
-      "name": "dispGrade"
-    },
-    {
       "name": "routePk1",
       "log": true,
       "shownName": "Peak HR 1min",
