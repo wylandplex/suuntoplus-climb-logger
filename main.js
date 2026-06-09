@@ -22,11 +22,13 @@ var lastPk1 = 0;
 var lastPk3 = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
+var lastClimbMode = 0;   // project slot snapshot taken at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (which cycleSlot may change in BREAK to prep the next burn). See finishRoute / onEvent commit-window note.
 var lastHrAvg = 0;
 var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
 var selfLapExpected = 0;
+var extLapPending = 0;   // a watch-native lap fired during a CLIMB (onLap can't finish here directly — see onLap). Drained one tick later in evaluate(); an app FAIL/SEND finishing first clears it, so a real result always wins over the lap's default SEND.
 var editIdx = 0;
 var editDelMark = 0;
 var isPaused = 0;
@@ -47,7 +49,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 35;  // in-session route cap — at this many logged routes, block new climbs and show the LIMIT screen (state 3). Save+restart resets per-session heap/subscriptions: the safety valve for the shared 3-app path/heap ceiling that crashes long multi-app sessions.
+var ROUTE_LIMIT = 30;  // in-session route cap — at this many logged routes, block new climbs and show the LIMIT screen (state 3). Save+restart resets per-session heap/subscriptions: the safety valve for the shared 3-app path/heap ceiling that crashes long multi-app sessions. (35 crashed at ~34 routes on-watch; 30 leaves headroom.)
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -212,7 +214,8 @@ var writeG = function(o, idx) {
 };
 
 var finishRoute = function(send, output) {
-  lastResult = send; lastGradeIdx = currentGrade;
+  extLapPending = 0;  // an explicit FAIL/SEND (or this finish itself) cancels any deferred watch-lap finish — the real result wins
+  lastResult = send; lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // snapshot the slot NOW: cycleSlot in the BREAK commit window changes climbMode for the next climb and must not re-attribute this route
   lastHeight = Math.max(0, Math.round(curAsc - startAsc));
   if (send) sendsCount++;
   frDirty = 1; frSend = send;
@@ -264,7 +267,7 @@ var commitDirty = function(input) {
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
     var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
-      frSend, climbMode, bestSendIdx, projStats, allTimeStats, lastHeight);
+      frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lastClimbMode (slot at finish), NOT live climbMode — see finishRoute snapshot
     bestSendIdx = r[0];
     if (r[2]) {
       routes.push(r[2]);
@@ -503,6 +506,11 @@ function evaluate(input, output) {
   }
 
   commitDirty(input);
+  // Deferred watch-native-lap finish: onLap set this during a CLIMB and no app FAIL/SEND cleared it
+  // (those call finishRoute, which clears extLapPending). A bare lap = finish the route as a SEND → BREAK.
+  // !dwell mirrors the eid6 climb-entry guard (this runs before dwell is cleared below): a lap in the
+  // one-tick entry window can't insta-finish the just-started climb (fumbled double-press / lap-at-start).
+  if (extLapPending) { extLapPending = 0; if (state === 1 && !dwell) finishRoute(1, output); }
   // pendF17 / projStatsDirty drain removed from evaluate — all LS writes deferred to
   // onExerciseEnd (reference-app pattern). The previous per-tick f17() flush caused
   // mid-session flash-GC stalls. See feedback_no_midsession_ls_writes.
@@ -516,9 +524,11 @@ function evaluate(input, output) {
 
 function onExerciseEnd(input, _output) {
   if (state === 1) {
-    lastGradeIdx = currentGrade;
+    lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
-    frDirty = 1; frSend = 0;
+    // A watch lap finished this climb (extLapPending) just before the session ended, before evaluate could
+    // drain it: honor its SEND. A plain interrupted climb (no pending lap) flushes as a FAIL.
+    frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
     routeNumber++;
   }
   try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
@@ -534,6 +544,16 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  // Commit-window lock: while a just-finished route awaits commitDirty (~1 tick, state 2/BREAK), drop
+  // route ACTIONS — a too-fast press would otherwise save-as-project without the pending route (eid 4,
+  // previously unguarded) or bounce BREAK→READY pre-commit (eid 6; also belt-and-suspenders-guarded by
+  // !frDirty in evBreak). Grade/slot events (eid 1/2/7/8) are deliberately NOT gated, so switching stays
+  // fluid — and they CAN fire in this window (e.g. cycling the slot in BREAK to prep the next burn). They
+  // are safe because the pending route is attributed to snapshots taken at finish: lastGradeIdx (a free-mode
+  // BREAK grade edit intentionally corrects it) and lastClimbMode (project slot — cycleSlot mutates the live
+  // climbMode for the NEXT climb, but commitDirty reads the snapshot, so this route can't be re-tagged).
+  // frDirty is 0 in every non-BREAK state, so this guard only ever fires in the BREAK commit window.
+  if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && state === 1 && eventId === 6) return;  // climb-entry guard: only suppress start-button(6); fast FAIL(5) MUST reach onEvent (sets selfLapExpected) — else onLap finishes as SEND
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
@@ -559,11 +579,9 @@ function getSummaryOutputs(input, output) {
 }
 
 function onLap(_input, output) {
-  if (selfLapExpected) { selfLapExpected = 0; return; }
-  if (state === 0) startClimb(output);
-  // state=1 (climbing) finish handled ONLY by onEvent (which carries the FAIL/SEND eid).
-  // onLap fires BEFORE onEvent on this platform — the old finishRoute(1) here was
-  // hardcoded send and overrode whatever button the user pressed (every-route-is-a-send bug).
-  // The lap() trigger from evL still creates the firmware Lap/-2 record for HR/duration stats.
-  else if (state === 2 && !frDirty) startClimb(output);
+  if (selfLapExpected) { selfLapExpected = 0; return; }  // app START/FAIL/SEND self-lap (evL) — onEvent owns it; swallow the firmware echo
+  // A watch lap (lap button / auto-lap, no app event) ADVANCES the phase: READY→CLIMB→BREAK→CLIMB→…
+  if (state === 0) startClimb(output);                   // READY → CLIMB: start the climb
+  else if (state === 1) extLapPending = 1;               // CLIMB → finish: DEFER one tick (evaluate drains it as a SEND). Can't finish here — onLap fires around onEvent on this platform, and a direct finishRoute would race the app's FAIL/SEND eid (the old "every-route-is-a-send" bug). Deferring lets an in-flight app finish win first; a lap with no event then finishes as SEND.
+  else if (state === 2 && !frDirty) startClimb(output);  // BREAK → CLIMB: start the next climb, SKIPPING READY (!frDirty waits out the ~1-tick commit window so the just-finished route is logged first)
 }
