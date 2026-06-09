@@ -49,7 +49,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 50;  // in-session route cap — block new climbs + show the LIMIT screen (state 3) at this many. Relaxed 30→50 for now: the long-session crash is the shared WB path-param ceiling, NOT route count (see [[path-param-ceiling-model]] / #121), so this cap was the wrong lever. 50 coincides with the routes[] last-50 splice; the real fix is the Output-packing path reduction (#129).
+var ROUTE_LIMIT = 30;  // in-session route cap — block new climbs + show LIMIT (state 3); save+restart resets RAM. PROTECTS THE SINGLE-APP MEMORY CEILING: ~40 fast routes triggered a relMem unload (WBMAIN "pool full 120/120" → "RelMem->unload", buttons dead). This is DISTINCT from the multi-app WB path-param ceiling (#121, addressed by the Output packing). BOTH crashes are real — do NOT raise this much above ~30 without cutting per-route RAM. (35 crashed ~34; 50 crashed ~40.)
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -267,8 +267,12 @@ var recalcBse = function() {
 var commitDirty = function(input) {
   if (frDirty) {
     frDirty = 0;
-    lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : (input.A || 0);
-    lastDuration = rSec > 0 ? rSec : (input.D || 0);
+    // No firmware-lap fallbacks: a route too fast to sample (rSec/hrCnt = 0) has no real HR/duration.
+    // input.A is garbage (~1) for a sub-second lap and input.D is a smaller unit (~ms) → bestTime blew up
+    // to the 99999 cap (1666:39) and HR peaks showed 1. Use the app's own per-second counters only:
+    // 0 HR → peaks render '--'; 0 duration → 0:00 (honest for a sub-second route).
+    lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
+    lastDuration = rSec;
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
     var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
