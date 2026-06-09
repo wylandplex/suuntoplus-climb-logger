@@ -49,7 +49,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 50;  // in-session route cap — block new climbs + show the LIMIT screen (state 3) at this many. Relaxed 30→50: the long-session crash is the shared WB path-param ceiling, NOT route count (see [[path-param-ceiling-model]] / #121), so this cap was the wrong lever. 50 coincides with the routes[] last-50 splice.
+var ROUTE_LIMIT = 50;  // in-session route cap — block new climbs + show the LIMIT screen (state 3) at this many. Relaxed 30→50 for now: the long-session crash is the shared WB path-param ceiling, NOT route count (see [[path-param-ceiling-model]] / #121), so this cap was the wrong lever. 50 coincides with the routes[] last-50 splice; the real fix is the Output-packing path reduction (#129).
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -114,9 +114,6 @@ var cycleSlot = function(dy) {
   if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
 };
 
-var pushBest = function(o) {
-  o.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-};
 
 var pushMode = function(o) {
   writeG(o);
@@ -129,6 +126,9 @@ var setOutputs = function(output) {
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
+  // Display composite, NUMERIC pack (outputs are float64 — strings are discarded). pk1*1000+pk3;
+  // template decodes. Peaks remain logged via the routePk1/routePk3 manifest out entries.
+  output.routePks = Math.round(lastPk1) * 1000 + Math.round(lastPk3);
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
   output.climbMode = climbMode;
   if (state === 5) {
@@ -150,12 +150,16 @@ var setOutputs = function(output) {
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : rn;
     // Break counter — output bindings (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
-    if (state === 2) { output.brkSends = sendsCount; output.brkRoutes = rn; }
+    // Composite BREAK line, NUMERIC pack: sends*1e6 + routes*1e4 + encodedBestGrade (9999 = no send).
+    // Template decodes sends/routes and dG()'s the grade. sends/routes <100 (ROUTE_LIMIT 50); encGrade <1000.
+    if (state === 2) output.brkLine = sendsCount * 1000000 + rn * 10000 + (bestSendIdx >= 0 ? encGrade(bestSendIdx) : 9999);
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
     if (state === 0) writeActStats(output);
-    else { output.actT = -1; output.actS = -1; output.actB = -1; }
+    else { output.actLine = -1; }
+    // Active-cluster grade: one state-aware output replaces grade(READY/CLIMB)+lastGrade(BREAK).
+    // manage.html still reads grade/lastGrade directly (separate cluster).
+    output.dispGrade = state === 2 ? output.lastGrade : output.grade;
   }
-  pushBest(output);
 };
 
 // Project stats line — output bindings (setText on hidden sc0 is a no-op).
@@ -164,14 +168,15 @@ var setOutputs = function(output) {
 var writeActStats = function(output) {
   if (climbMode > 0) {
     var ap = projStats[gradeSystem + "_" + climbMode] || {};
-    output.actT = ap.attempts || 0;
-    output.actS = ap.sends || 0;
-    output.actB = ap.bestTime || 0;
-  } else { output.actT = -1; output.actS = -1; output.actB = -1; }
+    var t = ap.attempts || 0, s = ap.sends || 0, b = ap.bestTime || 0;
+    // Composite READY project-stats line, NUMERIC pack: attempts*1e9 + sends*1e5 + bestTime(sec).
+    // Template decodes (sends<10000, bestTime<100000). -1 = free mode (blank). Strings can't go through outputs.
+    output.actLine = t * 1000000000 + Math.min(s, 9999) * 100000 + Math.min(b, 99999);
+  } else { output.actLine = -1; }
 };
 
 // pushBrk / pushActStats removed — break counter + project stats migrated to output
-// bindings (brkSends/brkRoutes/actT/actS/actB). setText on a HIDDEN section is a
+// bindings (now the brkLine / actLine composites). setText on a HIDDEN section is a
 // silent no-op on this platform; sc0/sc2 are still hidden when goState(N) runs
 // from the event handler (applyVis(N) is async via the vState output binding).
 
@@ -199,7 +204,7 @@ var goState = function(s, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (s === 1) dwell = 1;
-  if (output) setOutputs(output);  // publishes actT/actS/actB (s=0) and brkSends/brkRoutes (s=2)
+  if (output) setOutputs(output);  // publishes actLine (s=0) and brkLine (s=2)
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
   // write at onExerciseEnd covers it (psA/psB-equivalent persisted only at session end).
@@ -279,7 +284,7 @@ var commitDirty = function(input) {
       sessionH += lastHeight || 0;
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
-    // brkSends/brkRoutes/actT/actS/actB updated by setOutputs (called at end of evaluate).
+    // brkLine/actLine updated by setOutputs (called at end of evaluate).
   }
 };
 
@@ -351,7 +356,6 @@ var evBreak = function(output, eid, dy) {
       writeG(output);
       if (lastResult) {
         recalcBse();
-        pushBest(output);
       }
     }
   } else if (eid === 4) {
@@ -458,7 +462,6 @@ var evEdit = function(output, eid) {
       }
       recPct();
       recalcBse();
-      pushBest(output);
       pushEdit();  // T6: editSend icons/label moved to setText
     }
   } else if (eid === 1 || eid === 2) {
@@ -469,7 +472,6 @@ var evEdit = function(output, eid) {
       output.lastGrade = encGrade(rr[0]);
       if (rr[1]) {
         recalcBse();
-        pushBest(output);
       }
     }
   }
