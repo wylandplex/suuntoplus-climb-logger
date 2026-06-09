@@ -15,7 +15,7 @@ Log your climbs and keep your stats — sends & fails, projects per grade system
 - **Session summary tiles** — sends/routes, hardest send, climb time, avg HR, total height
 - **All-time aggregates** — send rate, session count, avg HR
 - **Grade ramp / progression** — peak grade ever, session first reached, sessions-at-peak
-- **Long-session safe** — at 35 routes the app prompts you to save & start a fresh activity, so multi-hour / multi-app sessions stay stable
+- **Long-session safe** — at 30 routes the app prompts you to save & start a fresh activity, so multi-hour / multi-app sessions stay stable
 - **Companion app** — read-only stats + editable settings (grade system, all 50 project slots, project names)
 - **Full touch + button support** — gloves-friendly for outdoor, ice, and mixed climbing
 
@@ -30,7 +30,7 @@ Two clusters: the **workout** screens (READY · CLIMB · BREAK) and the **config
                    │   └──────────────── NEXT ─────────────────┘
    EDIT / PROJSETUP ◄─ up-long ─ READY        (review routes / configure slots)
 
-  At 35 routes:    READY ──START──► LIMIT ──any──► READY   (save & restart to log more)
+  At 30 routes:    READY ──START──► LIMIT ──any──► READY   (save & restart to log more)
 ```
 
 ## Button reference

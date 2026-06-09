@@ -7,7 +7,7 @@ captured in the issues below.
 
 ## The residual crash
 - **#121** — cross-app WB path-param ceiling / long-session freeze. v3.0's route limit
-  (`ROUTE_LIMIT = 35`) + the active/manage split *mitigate* it; the real cause is the shared
+  (`ROUTE_LIMIT = 30`) + the active/manage split *mitigate* it; the real cause is the shared
   ~80-path limit across all active apps. Highest-leverage fix → **#129**.
 
 ## Footprint & persistence
@@ -18,7 +18,7 @@ captured in the issues below.
 
 ## Validation & tooling
 - **#95** — long-session / on-watch validation: EDIT renders on cluster-entry, ~100× template-switch
-  churn without freeze (ADR-002 Phase 0 Test 1), 3-app repro reaching the 35-route LIMIT cleanly.
+  churn without freeze (ADR-002 Phase 0 Test 1), 3-app repro reaching the 30-route LIMIT cleanly.
 - **#117** — zappsim blind spot: no detector for uiViewSet path-param amplification.
 - **#81** — saveAsProject silent failure (mitigated, not fixed).
 
@@ -26,4 +26,6 @@ captured in the issues below.
 - zappsim `npm run test:*` fail on a pre-existing `EXPECT_HEAP_FAILED` (the sim models the app
   >96% heap even single-app, yet it runs on-watch) — recalibrate the threshold or mark as xfail
   so real regressions stand out.
-- If 35 routes still crashes in practice with 3 apps, lower `ROUTE_LIMIT` in `main.js` to 30.
+- ~~If 35 routes still crashes in practice with 3 apps, lower `ROUTE_LIMIT` in `main.js` to 30.~~
+  **Done in source** (35 crashed at ~34 routes on-watch; `ROUTE_LIMIT = 30` for headroom) — takes
+  effect on-watch once `climbl01-q.fea` is rebuilt via VS Code "Build App".

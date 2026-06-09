@@ -11,7 +11,7 @@ were development-only and never shipped; v3.0 supersedes them.
   so only the active cluster's Watch-Bridge bindings are subscribed (~43 → ~25 during a
   workout). Resolves the `-`/`?` placeholder values and the UI freeze seen when other
   SuuntoPlus apps run alongside it.
-- **Route-limit safety valve.** At 35 logged routes the app shows a LIMIT screen and
+- **Route-limit safety valve.** At 30 logged routes the app shows a LIMIT screen and
   blocks new climbs → save & start a new activity. Prevents the long-session crash on the
   shared cross-app path/heap ceiling (see issue #121).
 - **10 grade systems / 50 project slots** — added Hangboard and Scrambling (was 8 / 40).

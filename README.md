@@ -23,7 +23,7 @@ Watch-Bridge bindings are subscribed — see [ADR-002](docs/adr/ADR-002-binding-
   (first run)      ▲   │                                       │
                    │   └──────────────── NEXT ─────────────────┘
   EDIT  ◄─up-long──┤
-  PROJSETUP ◄──────┘   READY ──START @ 35 routes──► LIMIT ──any──► READY
+  PROJSETUP ◄──────┘   READY ──START @ 30 routes──► LIMIT ──any──► READY
   (──save──► READY)                                  (save & restart to log more)
 ```
 
@@ -48,7 +48,7 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 - Touch tap-zones mirror the long-press action on their respective button pills.
 - Flicks fire the short-press grade step ×3; in project mode (READY/BREAK) flicks are a no-op
   (project cycling is single-step only).
-- At 35 logged routes (`ROUTE_LIMIT`), START is blocked → LIMIT screen → save & restart. This
+- At 30 logged routes (`ROUTE_LIMIT`), START is blocked → LIMIT screen → save & restart. This
   caps per-session resource accumulation (see [CHANGELOG](CHANGELOG.md) / issue #121).
 
 ---
@@ -82,8 +82,9 @@ screens were one template) — the mitigation for the multi-app path-param ceili
 - **`s<sys>`**: per-grade-system snapshot of `stats` (swapped in by `ext17` on system change).
 - **`lastSummary`**: cached session-summary tiles, served by `ext9` on the post-activity view.
 
-*(In-session `routes[]` is in-memory only — capped at the route limit; persisted route history
-was removed as it was never read back.)*
+*(In-session `routes[]` is in-memory only. It has a defensive last-50 splice, but the 30-route
+`ROUTE_LIMIT` valve fires first, so the array tops out at ~30 and the 50-cap never engages.
+Persisted route history was removed as it was never read back.)*
 
 ### Height tracking
 
