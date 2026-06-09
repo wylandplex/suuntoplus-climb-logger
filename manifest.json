@@ -41,7 +41,7 @@
       "name": "lastGrade"
     },
     {
-      "name": "dispGrade"
+      "name": "bestSend"
     },
     {
       "name": "routePk1",
@@ -56,9 +56,6 @@
       "format": "HeartRate_Fourdigits"
     },
     {
-      "name": "routePks"
-    },
-    {
       "name": "climbMode"
     },
     {
@@ -71,10 +68,19 @@
       "name": "vState"
     },
     {
-      "name": "brkLine"
+      "name": "brkSends"
     },
     {
-      "name": "actLine"
+      "name": "brkRoutes"
+    },
+    {
+      "name": "actT"
+    },
+    {
+      "name": "actS"
+    },
+    {
+      "name": "actB"
     }
   ],
   "template": [
