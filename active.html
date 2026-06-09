@@ -155,19 +155,24 @@
         <div class="sp-b-s" style="position:absolute;top:0;left:16%;">AVG</div>
         <div class="sp-b-s f-num" style="position:absolute;top:0;left:40%;">
           <eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-        <div class="sp-b-s" style="position:absolute;top:0;left:62%;">pk</div>
+        <div class="sp-b-s" style="position:absolute;top:0;left:62%;">1'</div>
         <div class="sp-b-s f-num" style="position:absolute;top:0;left:72%;">
-          <eval input="/Zapp/{zapp_index}/Output/routePks" outputFormat="script x => x <= 0 ? '--/--' : Math.floor(x/1000) + '/' + (x%1000)" default="--/--" /></div>
+          <eval input="/Zapp/{zapp_index}/Output/routePks" outputFormat="script x => x <= 0 ? '--' : Math.floor(x/1000)" default="--" /></div>
         <div class="sp-b-s" style="position:absolute;top:50%;left:16%;">MAX</div>
         <div class="sp-b-s f-num" style="position:absolute;top:50%;left:40%;">
           <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+        <div class="sp-b-s" style="position:absolute;top:50%;left:62%;">3'</div>
+        <div class="sp-b-s f-num" style="position:absolute;top:50%;left:72%;">
+          <eval input="/Zapp/{zapp_index}/Output/routePks" outputFormat="script x => x <= 0 ? '--' : (x%1000)" default="--" /></div>
       </div>
 
       <div class="p-hc" style="top:57%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
       <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
         <span class="f-ico" style="padding-right:14px">&#xF107;</span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/brkLine" outputFormat="script x => Math.floor(x/1000000) + '/' + (Math.floor(x/10000)%100) + '  best ' + ((x%10000) === 9999 ? '--' : dG(x%10000))" default="0/0  best --" /></span>
+        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/brkLine" outputFormat="script x => Math.floor(x/1000000) + '/' + (Math.floor(x/10000)%100)" default="0/0" /></span>
+        <span class="f-ico" style="padding-left:16px;padding-right:6px">&#xF118;</span>
+        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/brkLine" outputFormat="script x => (x%10000) === 9999 ? '--' : dG(x%10000)" default="--" /></span>
         <span class="sp-b-s" style="padding-left:16px">H</span>
         <span class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'') + x + 'm'" default="--" /></span>
       </div>
