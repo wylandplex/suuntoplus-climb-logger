@@ -500,7 +500,7 @@ function evaluate(input, output) {
   if (state === 1) {
     rSec++;
     var h = input.H;
-    if (h > 0) {
+    if (h >= 30) {  // valid HR only — OHR with no lock (off-wrist / bench test) reports ~1, which was polluting avg+peaks (showed "1"). No real HR is < 30.
       hrSum += h; hrCnt++;
       if (h > hrMax) hrMax = h;
       hr1Sum += h; hr3Sum += h;
