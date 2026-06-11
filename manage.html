@@ -27,9 +27,6 @@
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
     <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (applyVis(x),'')" default="" /></div>
 
-    <!-- Grauer Rombus-Hintergrund für die Bottom-Time-Bar (auf jedem Screen sichtbar) -->
-    <div style="position:absolute;top:84%;left:15%;width:70%;height:14%;background:rgba(255,255,255,0.15);clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
-
     <div id="sc4" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
       <div class="f-ico p-hc" style="top:calc(22% - 50%e);">&#xF102;</div>
@@ -48,10 +45,8 @@
       <div class="f-ico p-hc" style="top:calc(74% - 50%e);">&#xF267;</div>
 
       <!-- Bottom pill (save) — DOWN-long = save&exit on setup -->
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
-        <div style="top:0; left:0; width:100%;height:100%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-          <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
-        </div>
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
       </div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
@@ -69,43 +64,35 @@
       </div>
 
       <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(36% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => x>0 ? '' : String.fromCharCode(0xF266)" default="" />
-      </div>
+      <!-- Static arrows (template diet): grade taps on project-tagged routes are inert in ext20
+           (rC guard) — showing the arrows anyway drops 2 climbMode eval bindings from the mount. -->
+      <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
 
       <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
         <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
       </div>
 
       <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(66% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/climbMode" outputFormat="script x => x>0 ? '' : String.fromCharCode(0xF267)" default="" />
-      </div>
+      <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
 
       <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
         <span id="ed-sendIcon" class="f-ico" style="padding-right:6px">?</span>
         <span id="ed-sendLabel" class="sp-b-m">FAIL</span>
       </div>
 
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
-        <div style="top:0; left:0; width:100%;height:100%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-          <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
-        </div>
+      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
       </div>
       <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
-        <div style="top:0; left:0; width:100%;height:100%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-          <div id="ed-pillIcon" class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xF107;</div>
-          <div id="ed-pillDel" class="sp-b-s cm-bgc" style="top:calc(50% - 50%e); left:2px;visibility:HIDDEN">DEL</div>
-        </div>
+      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div id="ed-pillIcon" class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xF107;</div>
+        <div id="ed-pillDel" class="sp-b-s cm-bgc" style="top:calc(50% - 50%e); left:2px;visibility:HIDDEN">DEL</div>
       </div>
       <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
-        <div style="top:0; left:0; width:100%;height:100%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-          <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
-        </div>
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
       </div>
       <div onTap="ev(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
@@ -129,29 +116,22 @@
       <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
 
       <!-- Top pill (save & back to ready) — UP-long = save & back -->
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
-        <div style="top:0; left:0; width:100%;height:100%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-          <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
-        </div>
+      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
       </div>
       <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
       <!-- Bottom pill (save & next slot) — DOWN-long = save & weiter -->
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
-        <div style="top:0; left:0; width:100%;height:100%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-          <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
-        </div>
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
       </div>
       <div onTap="ev(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     </div>
 
-    <!-- Shared bottom time-bar — visible on every screen (deduped from the per-section copies) -->
-    <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
-      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
-      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
-    </div>
+    <!-- Time-bar + rhombus removed from manage screens (template diet): saves the rhombus div +
+         6 elements + 2 eval bindings off the manage mount; active.html keeps its copy, so the
+         LocalTime/Duration paths stay subscribed (no LID change). -->
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">
