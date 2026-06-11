@@ -6,9 +6,10 @@
           var Gs=null,Gsi=-1;
           function dG(x){if(x<0)return'--';if(x%100>=50)return'OFF';var si=Math.floor(x/100);if(si!==Gsi){Gs=(G[si]||'').split(',');Gsi=si}return(Gs||[])[x%100]||'?'}
           function sN(x){return SN[x]||'?'}
-          var lapState=4,lock=0;
+          var lapState=4,lock=0,visState=-1;
           function applyVis(x){
-            lapState=x;
+            if(x===visState)return;
+            visState=x;lapState=x;
             setStyle('#sc4','visibility',x===4?'VISIBLE':'HIDDEN');
             setStyle('#sc5','visibility',x===5?'VISIBLE':'HIDDEN');
             setStyle('#sc6','visibility',x===6?'VISIBLE':'HIDDEN');
