@@ -26,16 +26,10 @@
       "name": "lastGrade"
     },
     {
-      "name": "routePk1",
-      "log": true,
-      "shownName": "Peak HR 1min",
-      "format": "HeartRate_Fourdigits"
+      "name": "routePk1"
     },
     {
-      "name": "routePk3",
-      "log": true,
-      "shownName": "Peak HR 3min",
-      "format": "HeartRate_Fourdigits"
+      "name": "routePk3"
     },
     {
       "name": "routePks"
