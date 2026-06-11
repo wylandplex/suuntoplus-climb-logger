@@ -137,10 +137,10 @@ var initReady = function() {
 };
 
 function getUserInterface() {
-  // Two-cluster split: active.html (states 0/1/2) vs manage.html (states 4/5/6).
+  // Three templates: active.html (states 0-3), edit.html (state 5), manage.html (states 4/6).
   // Resolve the FIRST template via initReady() so it's correct whether the framework queries this
-  // before or after onLoad (a returning user must open on active, not blank-out on manage).
-  // After first resolve, goState() owns currentTemplate.
+  // before or after onLoad (a returning user must open on active, not blank-out on manage; boot is
+  // never EDIT, so "edit" can't be the first resolve). After first resolve, goState() owns currentTemplate.
   if (!currentTemplate) currentTemplate = initReady() ? "active" : "manage";
   return { template: currentTemplate };
 }
@@ -272,7 +272,10 @@ var writeActStats = function(output) {
 var goState = function(s, output) {
   state = s;
   if (s < 4) { f20 = null; f22 = null; }  // RELEASE the manage handlers — their bytecode leaves the heap while climbing (re-parsed on next manage entry)
-  var t = s < 4 ? "active" : "manage";  // states 0/1/2 → active cluster, 4/5/6 → manage cluster
+  // Three templates: active (0/1/2/3), edit (5, own ~7KB template — the active↔manage swap at EDIT
+  // entry on a 47-min heap was the 22:20:28 relMemCb(exec:ui) eviction; a dedicated small template
+  // halves the mount side of that transient), manage (4/6, SETUP+proj-setup).
+  var t = s < 4 ? "active" : s === 5 ? "edit" : "manage";
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -281,9 +284,9 @@ var goState = function(s, output) {
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
   // write at onExerciseEnd covers it (psA/psB-equivalent persisted only at session end).
-  // EDIT (state 5) entry: schedule a couple of pushEdit() refreshes in evaluate() — they must fire
-  // AFTER manage.html mounts (this goState unloads the active cluster, so a synchronous setText here
-  // hits no DOM). evEdit() handles subsequent in-edit updates directly, so this is mount-catch only.
+  // EDIT (state 5) entry: schedule a couple of ext20 op-1 paints in evaluate() — they must fire
+  // AFTER edit.html mounts (this goState unloads the active cluster, so a synchronous setText here
+  // hits no DOM). In-edit updates run through runManage directly, so this is mount-catch only.
   if (s === 5) edRefresh = 2;
 };
 
@@ -335,7 +338,7 @@ var saveAsProject = function(output) {
 // === ext20/ext22 glue (code-residency Movement 2) ===
 // Manage-cluster handlers are split PER SCREEN so only the entered screen pays its parse transient:
 // ext20 = EDIT (st5 + op1 paint), ext22 = SETUP/proj-setup (st4/st6). Parsed on FIRST NEED (>=1 tick
-// after the manage mount, never stacked on it), RELEASED on return to climbing — their bytecode does
+// after the edit/manage mount, never stacked on it), RELEASED on return to climbing — their bytecode does
 // not exist in the heap during a single second of climbing. Both return the same 19-slot tuple, so
 // one apply path below. Kill-switch if EDIT-entry parses ever evict: move the `f20 = f20 ||
 // loadExt(20)` below into onLoad.
@@ -558,16 +561,14 @@ function evaluate(input, output) {
   // mid-session flash-GC stalls. See feedback_no_midsession_ls_writes.
   // Skip setOutputs in edit (5) — eval-script churn in the edit bindings is OOM-risky at high routes.
   // state=4 (setup) needs it to publish vState so manage.html applyVis fires correctly on initial entry.
-  // In edit (5), only a bounded post-mount pushEdit() (cheap setText) — goState's call ran pre-mount
-  // (the cluster switch unloaded the old DOM), so this catches the remount without per-tick churn.
+  // In edit (5), only a bounded post-mount ext20 op-1 paint (cheap setText) — goState's call ran
+  // pre-mount (the template switch unloaded the old DOM), so this catches the mount without per-tick
+  // churn. The old vState=5 re-publish is gone with the split: edit.html is a single always-visible
+  // screen with no vState binding (no default-section race to correct), so the write had no reader.
   if (state !== 5) setOutputs(output);
   else if (edRefresh) {
     edRefresh--;
-    // Re-publish vState DIRECTLY (bypassing pub — this is an intentional same-value re-send): goState's
-    // pre-mount publish can be dropped under WB load (precedent 6bf6731), leaving manage.html on its
-    // default-visible SETUP section while buttons drive evEdit. Bounded: fires ≤2× per EDIT entry.
-    output.vState = 5;
-    f20 = f20 || loadExt(20);  // first-need parse — >=1 tick after the mount by construction
+    f20 = f20 || loadExt(20);  // first-need parse — >=1 tick after the edit.html mount by construction
     f20(1, [editIdx, editDelMark], routesA);
   }
   dwell = 0;

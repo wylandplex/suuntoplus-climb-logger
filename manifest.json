@@ -87,6 +87,17 @@
         "q",
         "s"
       ]
+    },
+    {
+      "name": "edit.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
     }
   ],
   "variables": [

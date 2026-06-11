@@ -11,7 +11,6 @@
             if(x===visState)return;
             visState=x;lapState=x;
             setStyle('#sc4','visibility',x===4?'VISIBLE':'HIDDEN');
-            setStyle('#sc5','visibility',x===5?'VISIBLE':'HIDDEN');
             setStyle('#sc6','visibility',x===6?'VISIBLE':'HIDDEN');
           }
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
@@ -52,51 +51,8 @@
 
     </div>
 
-    <div id="sc5" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
-
-      <div class="cm-fg" style="width:100%;height:16%">
-        <div class="p-hc sp-vertical-center" style="top:calc(50% - 50%e);">
-          <span class="sp-t-s" style="padding-right:4px">EDIT</span>
-          <span id="ed-routeNum" class="sp-t-s f-num">0</span>
-          <span class="sp-t-s" style="padding:0 2px">/</span>
-          <span class="sp-t-s f-num"><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="Count_Threedigits" default="0" /></span>
-        </div>
-      </div>
-
-      <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-      <!-- Static arrows (template diet): grade taps on project-tagged routes are inert in ext20
-           (rC guard) — showing the arrows anyway drops 2 climbMode eval bindings from the mount. -->
-      <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
-
-      <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
-      </div>
-
-      <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
-
-      <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
-        <span id="ed-sendIcon" class="f-ico" style="padding-right:6px">?</span>
-        <span id="ed-sendLabel" class="sp-b-m">FAIL</span>
-      </div>
-
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
-      </div>
-      <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-        <div id="ed-pillIcon" class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xF107;</div>
-        <div id="ed-pillDel" class="sp-b-s cm-bgc" style="top:calc(50% - 50%e); left:2px;visibility:HIDDEN">DEL</div>
-      </div>
-      <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
-      </div>
-      <div onTap="ev(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-    </div>
+    <!-- EDIT (sc5) lives in its own template now (edit.html) — mounting manage.xml for SETUP/
+         proj-setup no longer carries the EDIT section, and EDIT entry mounts ~7KB instead. -->
 
     <div id="sc6" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
 
