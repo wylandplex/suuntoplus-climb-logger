@@ -1,10 +1,8 @@
 function(op,P,ra,rb,ps,ats,pgi,A,GL,DI){
-// === ext20: EDIT handlers (st5 + op1 paint) — SETUP/proj-setup split to ext22 so only the entered
-// screen pays the parse transient. Code-residency spec Movement 2.
+// === ext20: manage-cluster handlers (EDIT/SETUP/PROJ-SETUP) — code-residency spec Movement 2 ===
 // Parsed on FIRST NEED >=1 tick after the manage mount; RELEASED (f20=null) on return to climbing.
 // Exts cannot write `output` (minified main maps output names to array indices) — display values
-// return in the tuple; main applies them. Mutable objects (ra/rb/ps/ats) mutate by reference.
-// pgi/A/DI unused here (EDIT never touches projects) — kept so the glue has a single call site.
+// return in the tuple; main applies them. Mutable objects (ra/rb/ps/ats/pgi/A) mutate by reference.
 // Packed route fields (see main.js routesA/routesB):
 //   ra[i] = grade*1e6 + send*1e5 + cm*1e4 + height ; rb[i] = dur*1000 + bpm
 var rG=function(i){return Math.floor(ra[i]/1000000)%1000};
@@ -26,7 +24,23 @@ if(op===1){PE(P[0],P[1]);return null}
 var st=P[0],eid=P[1],dy=P[2],ei=P[3],dm=P[4],pS=P[5],sc=P[6],rn=P[7],sh=P[8],gs=P[9],cg=P[10],lgi=P[11];
 var ws0=0,nF17=0,rec=0,psD=0,wsD=0,pF17=0,dGr=-9999,dLG=-9999,dMS=-9999,dCM=-9999;
 var rescan=function(cm,g){var bt=0;for(var i=0;i<ra.length;i++){if(rC(i)===cm&&rS(i)&&rG(i)===g){var d=rD(i);if(d>0&&(bt===0||d<bt))bt=d}}return bt};
-if(st===5){
+if(st===4){
+if(dy){
+A[gs]=pgi.slice();
+gs=(gs+dy+10)%10;
+cg=DI[gs];
+var sp4=A[gs];for(var i4=0;i4<5;i4++)pgi[i4]=(sp4&&sp4[i4]!==undefined)?sp4[i4]:-1;
+dGr=gs*100+DI[gs];dMS=gs;
+wsD=1;pF17=1;
+}else if(eid===6){ws0=1}
+}else if(st===6){
+if(dy){
+var w6=pgi[pS]+dy,L6=GL[gs];
+pgi[pS]=w6>=L6?-1:(w6<-1?L6-1:w6);
+dGr=pgi[pS]>=0?gs*100+pgi[pS]:gs*100+50;dMS=pS+1;wsD=1;
+}else if(eid===5){ws0=1}
+else if(eid===6){pS=(pS+1)%5;dGr=pgi[pS]>=0?gs*100+pgi[pS]:gs*100+50;dMS=pS+1}
+}else if(st===5){
 var n=ra.length;
 if(eid===5||eid===6){
 if(dm){

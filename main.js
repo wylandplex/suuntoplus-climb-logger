@@ -86,7 +86,7 @@ var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
 // Folded into main.js they're MINIFIED (~40-50% smaller as bytecode), compiled once in the
 // firmware's Load-script window (where the 30KB blob already compiles reliably), zero runtime
 // parses, zero flash reads. Ext files remain ONLY for one-shot (ext12), rare (ext17), and — per
-// the code-residency spec — the future releasable manage handlers (ext20).
+// the code-residency spec — the releasable manage handlers (ext20=EDIT, ext22=SETUP/proj-setup).
 var f17;  // stay-lazy: parsed at the SETUP tap, only sessions that change grade systems
 // f11/f19/f9/f14 live in ext21 — parsed ONCE on the SECOND READY tick: by construction AFTER the
 // active-template mount has settled (the 25.7KB active.xml mount is the single most expensive moment;
@@ -271,7 +271,7 @@ var writeActStats = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  if (s < 4) f20 = null;  // RELEASE the manage handlers — their bytecode leaves the heap while climbing (re-parsed on next manage entry)
+  if (s < 4) { f20 = null; f22 = null; }  // RELEASE the manage handlers — their bytecode leaves the heap while climbing (re-parsed on next manage entry)
   var t = s < 4 ? "active" : "manage";  // states 0/1/2 → active cluster, 4/5/6 → manage cluster
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
@@ -332,14 +332,17 @@ var saveAsProject = function(output) {
 };
 
 
-// === ext20 glue (code-residency Movement 2) ===
-// Manage-cluster handlers live in ext20: parsed on FIRST NEED (>=1 tick after the manage mount,
-// never stacked on it), RELEASED on return to climbing — their bytecode does not exist in the heap
-// during a single second of climbing. Kill-switch if EDIT-entry parses ever evict: move the
-// `f20 = f20 || loadExt(20)` below into onLoad.
-var f20;
+// === ext20/ext22 glue (code-residency Movement 2) ===
+// Manage-cluster handlers are split PER SCREEN so only the entered screen pays its parse transient:
+// ext20 = EDIT (st5 + op1 paint), ext22 = SETUP/proj-setup (st4/st6). Parsed on FIRST NEED (>=1 tick
+// after the manage mount, never stacked on it), RELEASED on return to climbing — their bytecode does
+// not exist in the heap during a single second of climbing. Both return the same 19-slot tuple, so
+// one apply path below. Kill-switch if EDIT-entry parses ever evict: move the `f20 = f20 ||
+// loadExt(20)` below into onLoad.
+var f20, f22;
 var runManage = function(output, eid, dy) {
-  // FAST-PATHS — never parse ext20 for events that need no handler logic. Critically: the pure-EXIT
+  // FAST-PATHS — never parse a handler file (ext20/ext22) for events that need no handler logic.
+  // Critically: the pure-EXIT
   // taps (SETUP confirm, proj-setup back, EDIT back) trigger goState(0) → active-template REMOUNT in
   // the same tick; parsing 3.2KB there stacked the two heap spikes and froze SETUP→READY even
   // single-app (11.06 ~15:4x). Exits and no-ops resolve right here:
@@ -348,8 +351,10 @@ var runManage = function(output, eid, dy) {
         (state === 5 && !editDelMark && (eid === 5 || (eid === 6 && rN() === 0)))) { goState(0, output); return; }
     if ((state === 4 && (eid === 4 || eid === 5)) || (state === 6 && eid === 4)) return;  // no-ops in the originals
   }
-  f20 = f20 || loadExt(20);
-  var R = f20(0, [state, eid, dy, editIdx, editDelMark, pStep, sendsCount, routeNumber, sessionH, gradeSystem, currentGrade, lastGradeIdx],
+  var f;
+  if (state === 5) { f20 = f20 || loadExt(20); f = f20; }
+  else { f22 = f22 || loadExt(22); f = f22; }
+  var R = f(0, [state, eid, dy, editIdx, editDelMark, pStep, sendsCount, routeNumber, sessionH, gradeSystem, currentGrade, lastGradeIdx],
     routesA, routesB, projStats, allTimeStats, projGradeIdx, allProjects, GRADE_LENS, DEFAULT_IDX);
   editIdx = R[0]; editDelMark = R[1]; pStep = R[2]; sendsCount = R[3]; routeNumber = R[4]; sessionH = R[5];
   gradeSystem = R[6]; currentGrade = R[7]; lastGradeIdx = R[8];
@@ -573,7 +578,7 @@ function evaluate(input, output) {
 }
 
 function onExerciseEnd(input, _output) {
-  f20 = null;  // release the manage handlers before the end-window work — every free byte counts here
+  f20 = null; f22 = null;  // release the manage handlers before the end-window work — every free byte counts here
   if (state === 1) {
     lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
