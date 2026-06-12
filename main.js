@@ -530,42 +530,51 @@ function onLoad(_input, output) {
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
+// DISPATCHER SIZE BUDGET (hard, discovered 12.06 15:49): the build merges ALL lifecycle functions
+// into ONE dispatcher function whose bytecode must fit a single ~4KB compile-time allocation —
+// at 1927B minified-source it died at Load script (`JSalloc:4192 oversize` ×11 → `Compiling js
+// failed` → zapp disabled, watch shows the "max app" warning); at 1874B it compiled. Keep the
+// dispatcher's minified source comfortably under ~1800B: put logic in TOP-LEVEL function
+// expressions (own compile units) and call them from the lifecycle bodies — as below.
+
+// Staggered PINNED parses on READY ticks 2/3/4 — exactly ONE parse per tick (bursts evict, 11.06):
+// t2 ext21 (end-pack), t3 ext20 (EDIT handlers), t4 ext22 (SETUP/proj handlers). f20/f22 stay
+// pinned all session: the 12.06 10:26:47 EDIT-entry parse died (JSalloc:2092, RelMem->None avail)
+// — the merged template's +5.7KB residency ate the mid-session slack — while THIS window parsed
+// 3.5KB clean 8s earlier in the same session. EDIT entered before t3 degrades to the first-need
+// fallback parse in runManage/edRefresh (same as the old behavior, ~1-2s exposure).
+var pinTick = function() {
+  f21d++;
+  if (f21d === 2 && !f9) { var F21 = loadExt(21)(); f11 = F21[0]; f19 = F21[1]; f9 = F21[2]; f14 = F21[3]; }
+  else if (f21d === 3) f20 = f20 || loadExt(20);
+  else if (f21d === 4) f22 = f22 || loadExt(22);
+};
+
+// Per-CLIMB-second HR sampling into the packed ring (sums stay Hz-equivalent via /1200, /3600).
+// input.H is Hz (0.5-4 Hz = 30-240 bpm; real HR ~1.0-3.3 Hz) — the old bpm-scale ">= 30" rejected
+// EVERY on-watch sample, zeroing avg+peaks. Upper band keeps the bpm byte (<=240) safe from bursts.
+var hrTick = function(h) {
+  if (h >= 0.5 && h <= 4) {
+    hrSum += h; hrCnt++;
+    if (h > hrMax) hrMax = h;
+    hrDec++;
+    if (hrDec >= 3) {  // every 3rd valid sample into the ring
+      hrDec = 0;
+      var nb = Math.round(h * 60);  // bpm byte 0..255
+      hr1Sum += nb; hr3Sum += nb;
+      if (hrIdx >= 20) { hr1Sum -= rdPk((hrIdx - 20) % 60); if (hr1Sum / 1200 > bestPk1) bestPk1 = hr1Sum / 1200; }
+      if (hrIdx >= 60) { hr3Sum -= rdPk(hrIdx % 60); if (hr3Sum / 3600 > bestPk3) bestPk3 = hr3Sum / 3600; }
+      wrPk(hrIdx % 60, nb);
+      hrIdx++;
+    }
+  }
+};
+
 function evaluate(input, output) {
   if (isPaused) return;
   if (input.Asc !== undefined) curAsc = input.Asc;
-  // ext21 (end-pack: f11/f19/f9/f14) parses ONCE, on the 2nd READY tick — guaranteed AFTER the
-  // active-template mount settled (READY ticks only exist with active mounted). One 3.5KB parse at
-  // the calmest possible post-mount moment; the end window then only calls pre-parsed closures.
-  // Staggered PINNED parses on READY ticks 2/3/4 — exactly ONE parse per tick (bursts evict, 11.06):
-  // t2 ext21 (end-pack), t3 ext20 (EDIT handlers), t4 ext22 (SETUP/proj handlers). f20/f22 stay
-  // pinned all session: the 12.06 10:26:47 EDIT-entry parse died (JSalloc:2092, RelMem->None avail)
-  // — the merged template's +5.7KB residency ate the mid-session slack — while THIS window parsed
-  // 3.5KB clean 8s earlier in the same session. EDIT entered before t3 degrades to the first-need
-  // fallback parse in runManage/edRefresh (same as the old behavior, ~1-2s exposure).
-  if (state === 0 && f21d < 4) {
-    f21d++;
-    if (f21d === 2 && !f9) { var F21 = loadExt(21)(); f11 = F21[0]; f19 = F21[1]; f9 = F21[2]; f14 = F21[3]; }
-    else if (f21d === 3) f20 = f20 || loadExt(20);
-    else if (f21d === 4) f22 = f22 || loadExt(22);
-  }
-  if (state === 1) {
-    rSec++;
-    var h = input.H;
-    if (h >= 0.5 && h <= 4) {  // valid HR only — input.H is Hz (0.5-4 Hz = 30-240 bpm; real HR ~1.0-3.3 Hz). The old bpm-scale ">= 30" rejected EVERY on-watch sample, zeroing avg+peaks. The earlier "showed 1" was real HR (~1 Hz = 60 bpm) collapsed by integer rounding in the routePks pack, not a no-lock artifact. Upper band keeps the bpm byte (<=240) and the routePks 3-digit fields safe from glitch bursts.
-      hrSum += h; hrCnt++;
-      if (h > hrMax) hrMax = h;
-      hrDec++;
-      if (hrDec >= 3) {  // store every 3rd valid sample into the packed ring — sums stay Hz-equivalent via /1200, /3600
-        hrDec = 0;
-        var nb = Math.round(h * 60);  // bpm byte 0..255
-        hr1Sum += nb; hr3Sum += nb;
-        if (hrIdx >= 20) { hr1Sum -= rdPk((hrIdx - 20) % 60); if (hr1Sum / 1200 > bestPk1) bestPk1 = hr1Sum / 1200; }
-        if (hrIdx >= 60) { hr3Sum -= rdPk(hrIdx % 60); if (hr3Sum / 3600 > bestPk3) bestPk3 = hr3Sum / 3600; }
-        wrPk(hrIdx % 60, nb);
-        hrIdx++;
-      }
-    }
-  }
+  if (state === 0 && f21d < 4) pinTick();
+  if (state === 1) { rSec++; hrTick(input.H); }
 
   commitDirty();
   if (selfLapTtl) { selfLapTtl--; if (!selfLapTtl) selfLapExpected = 0; }  // expire ALL outstanding echo expectations ~3s after the last app self-lap — a lost echo must not eat the next genuine lap
