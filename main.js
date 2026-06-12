@@ -137,10 +137,10 @@ var initReady = function() {
 };
 
 function getUserInterface() {
-  // Three templates: active.html (states 0-3), edit.html (state 5), manage.html (states 4/6).
+  // Two templates: active.html (states 0-3 + 5/EDIT as a hidden section) and manage.html (4/6).
   // Resolve the FIRST template via initReady() so it's correct whether the framework queries this
-  // before or after onLoad (a returning user must open on active, not blank-out on manage; boot is
-  // never EDIT, so "edit" can't be the first resolve). After first resolve, goState() owns currentTemplate.
+  // before or after onLoad (a returning user must open on active, not blank-out on manage).
+  // After first resolve, goState() owns currentTemplate.
   if (!currentTemplate) currentTemplate = initReady() ? "active" : "manage";
   return { template: currentTemplate };
 }
@@ -272,10 +272,13 @@ var writeActStats = function(output) {
 var goState = function(s, output) {
   state = s;
   if (s < 4) { f20 = null; f22 = null; }  // RELEASE the manage handlers — their bytecode leaves the heap while climbing (re-parsed on next manage entry)
-  // Three templates: active (0/1/2/3), edit (5, own ~7KB template — the active↔manage swap at EDIT
-  // entry on a 47-min heap was the 22:20:28 relMemCb(exec:ui) eviction; a dedicated small template
-  // halves the mount side of that transient), manage (4/6, SETUP+proj-setup).
-  var t = s < 4 ? "active" : s === 5 ? "edit" : "manage";
+  // Two templates: active (0/1/2/3 AND 5 — EDIT is a hidden SECTION of active, flipped via
+  // vState/applyVis, zero template swap in either direction) and manage (4/6, boot-SETUP+proj-setup).
+  // Log forensics (11-12.06): every eviction was relMemCb(exec:ui) at EDIT template machinery or a
+  // system overlay — the dedicated edit.html still died at ANY route count (even ~0 routes, e.g.
+  // 23:35:20 at the post-mount paint tick). The May single-template builds ran 60+ routes with EDIT
+  // as a flip; this restores that. Merged active.xml ~29.8KB — under the watch-proven 41.6KB monolith.
+  var t = s === 4 || s === 6 ? "manage" : "active";
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -284,10 +287,11 @@ var goState = function(s, output) {
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
   // write at onExerciseEnd covers it (psA/psB-equivalent persisted only at session end).
-  // EDIT (state 5) entry: schedule a couple of ext20 op-1 paints in evaluate() — they must fire
-  // AFTER edit.html mounts (this goState unloads the active cluster, so a synchronous setText here
-  // hits no DOM). In-edit updates run through runManage directly, so this is mount-catch only.
-  if (s === 5) edRefresh = 2;
+  // EDIT (state 5) entry: schedule a few ext20 op-1 paints in evaluate() — they must land AFTER
+  // the vState→applyVis flip makes sc5 visible (setText on a HIDDEN section is a silent no-op).
+  // 3 ticks (was 2) gives the flip a margin; the state-5 vState heartbeat in evaluate self-heals a
+  // dropped publish. In-edit updates run through runManage directly, so this is entry-catch only.
+  if (s === 5) edRefresh = 3;
 };
 
 var writeG = function(o, idx) {
@@ -561,15 +565,20 @@ function evaluate(input, output) {
   // mid-session flash-GC stalls. See feedback_no_midsession_ls_writes.
   // Skip setOutputs in edit (5) — eval-script churn in the edit bindings is OOM-risky at high routes.
   // state=4 (setup) needs it to publish vState so manage.html applyVis fires correctly on initial entry.
-  // In edit (5), only a bounded post-mount ext20 op-1 paint (cheap setText) — goState's call ran
-  // pre-mount (the template switch unloaded the old DOM), so this catches the mount without per-tick
-  // churn. The old vState=5 re-publish is gone with the split: edit.html is a single always-visible
-  // screen with no vState binding (no default-section race to correct), so the write had no reader.
+  // In edit (5): per-tick vState HEARTBEAT (single output write, fires only the applyVis binding,
+  // which early-returns when unchanged) — sc5 is a hidden section of active.html now, and a dropped
+  // goState(5) publish would otherwise strand the UI on the READY section with EDIT button semantics
+  // (the codebase's documented dropped-put precedent, 6bf6731). The full setOutputs stays skipped:
+  // eval-script churn in the edit bindings is OOM-risky at high routes. Plus the bounded post-entry
+  // ext20 op-1 paints (cheap setText) — they catch the flip; runManage handles in-edit updates.
   if (state !== 5) setOutputs(output);
-  else if (edRefresh) {
-    edRefresh--;
-    f20 = f20 || loadExt(20);  // first-need parse — >=1 tick after the edit.html mount by construction
-    f20(1, [editIdx, editDelMark], routesA);
+  else {
+    output.vState = 5;
+    if (edRefresh) {
+      edRefresh--;
+      f20 = f20 || loadExt(20);  // first-need parse — >=1 tick after EDIT entry by construction
+      f20(1, [editIdx, editDelMark], routesA);
+    }
   }
   dwell = 0;
   // Deferred BREAK-window lap — drained AFTER the dwell clear: the climb it starts keeps its dwell

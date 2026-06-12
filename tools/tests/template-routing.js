@@ -1,12 +1,15 @@
-// Template-routing harness: EDIT must live in its OWN template (edit.html) so entering it
-// mid-session mounts ~7KB instead of manage.xml's ~15KB (the 22:20:28 eviction was the
-// active->manage swap transient at EDIT entry on a 47-min heap — see 2026-06-11 vertical2.log).
+// Template-routing harness: EDIT must be a SECTION OF active.html (zero-swap EDIT) — forensics on
+// the 11-12.06 logs falsified the swap-direction theory and showed deaths cluster on the EDIT
+// template machinery itself (entry mounts, paint ticks, system overlays landing while the small
+// template is resident). The May single-template builds ran 60+ routes with EDIT as a visibility
+// flip; this restores that for EDIT while keeping manage.html for boot-SETUP/proj-setup.
 // Asserts, by driving the real main.js (vm + stubs):
 //   T1  returning-user boot resolves template 'active'
-//   T2  EDIT entry (state 5) resolves 'edit' and unloads the old cluster exactly once
-//   T3  EDIT exit resolves 'active' (remount)
-//   T4  proj-setup (state 6) resolves 'manage'; SETUP boot (state 4) resolves 'manage'
-//   T5  ext20 still parses on the post-mount edRefresh tick in EDIT (file-per-screen unchanged)
+//   T2  EDIT entry KEEPS template 'active' and unloads NOTHING (visibility flip, no swap)
+//   T3  EDIT exit also swaps nothing; ext20 still parses on the post-entry edRefresh tick
+//   T4  state-5 evaluate publishes the vState heartbeat every tick (flip self-heal — a dropped
+//       publish must not strand the UI on the READY section with EDIT button semantics)
+//   T5  proj-setup (state 6) still resolves 'manage' (swap), first-run boot resolves 'manage'
 'use strict';
 const vm = require('vm');
 const fs = require('fs');
@@ -52,26 +55,42 @@ sb.onLoad({}, {});
 assert(tpl(sb) === 'active', 'T1: returning-user boot resolves active');
 sb.evaluate({}, {}); sb.evaluate({}, {});
 sb.onEvent({}, {}, 5);                                  // READY --eid5--> EDIT (climbMode 0)
-assert(tpl(sb) === 'edit', 'T2: EDIT entry resolves edit (own template)');
-assert(unloads.length === 1, 'T2: EDIT entry unloaded the active cluster exactly once');
-sb.evaluate({}, {});                                    // edRefresh tick
-assert(count(parses, 'ext20.js') === 1, 'T5: ext20 parses on the EDIT post-mount tick');
-sb.onEvent({}, {}, 5);                                  // exit EDIT (fast-path)
-assert(tpl(sb) === 'active', 'T3: EDIT exit resolves active');
-assert(unloads.length === 2, 'T3: EDIT exit unloaded the edit template');
+assert(tpl(sb) === 'active', 'T2: EDIT entry keeps template active (visibility flip)');
+assert(unloads.length === 0, 'T2: EDIT entry unloads nothing — zero-swap');
+const out5 = {};
+sb.evaluate({}, out5);                                  // edRefresh tick
+assert(count(parses, 'ext20.js') === 1, 'T3: ext20 parses on the EDIT post-entry tick');
+assert(out5.vState === 5, 'T4: state-5 evaluate publishes vState heartbeat (flip self-heal)');
+const out5b = {};
+sb.evaluate({}, out5b); sb.evaluate({}, out5b);         // past edRefresh exhaustion
+assert(out5b.vState === 5, 'T4: heartbeat continues every state-5 tick (not only edRefresh ticks)');
+sb.onEvent({}, {}, 4);                                  // in-EDIT op uses cached f20
+assert(count(parses, 'ext20.js') === 1, 'T3: in-EDIT events reuse cached f20');
+sb.onEvent({}, {}, 5);                                  // exit EDIT (fast-path) -> READY
+assert(tpl(sb) === 'active', 'T3: EDIT exit stays on active');
+assert(unloads.length === 0, 'T3: EDIT exit swaps nothing');
 
-// ---- project mode: proj-setup keeps manage ----
+// ---- project mode: proj-setup still a manage swap ----
 sb.onEvent({}, {}, 4);                                  // toggleMode -> project
 sb.onEvent({}, {}, 5);                                  // READY --eid5--> proj-setup (state 6)
-assert(tpl(sb) === 'manage', 'T4: proj-setup resolves manage');
+assert(tpl(sb) === 'manage', 'T5: proj-setup resolves manage');
+assert(unloads.length === 1, 'T5: proj-setup entry swaps (1 unload)');
 sb.onEvent({}, {}, 1);
-assert(count(parses, 'ext22.js') === 1, 'T4: proj-setup parses ext22 (unchanged routing)');
+assert(count(parses, 'ext22.js') === 1, 'T5: proj-setup parses ext22 (routing unchanged)');
 sb.onEvent({}, {}, 5);                                  // exit
-assert(tpl(sb) === 'active', 'T4: proj-setup exit resolves active');
+assert(tpl(sb) === 'active', 'T5: proj-setup exit resolves active');
+assert(unloads.length === 2, 'T5: proj-setup exit swaps back (2 unloads)');
+
+// ---- EDIT re-entry after release: re-parse works, still no swap ----
+sb.onEvent({}, {}, 4);                                  // back to free mode
+sb.onEvent({}, {}, 5);                                  // EDIT again
+sb.evaluate({}, {});
+assert(count(parses, 'ext20.js') === 2, 'T3: EDIT re-entry re-parses ext20 (released on prior exit)');
+assert(unloads.length === 2, 'T2: EDIT re-entry still swaps nothing');
 
 // ---- first-run boot: SETUP stays manage ----
 ({ sb, parses, unloads } = boot({ stats: { sessions: 0, showSetupOnStart: 1, btV: 1, mig: 1, mig2: 1 } }));
-assert(tpl(sb) === 'manage', 'T4: first-run boot resolves manage (SETUP)');
+assert(tpl(sb) === 'manage', 'T5: first-run boot resolves manage (SETUP)');
 
 console.log(fails === 0 ? 'GREEN — template routing all good' : 'RED — ' + fails + ' assertion(s) failed');
 process.exit(fails === 0 ? 0 : 1);
