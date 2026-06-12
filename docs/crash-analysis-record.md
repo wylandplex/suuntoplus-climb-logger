@@ -71,9 +71,24 @@ packed composites, **17 distinct WB paths** total.
   In-app 1'/3' peaks (routePks composite) unaffected; logbook loses the two per-lap HR graphs.
   This is the parallel attack on the system-overlay death class, which no template architecture fixes.
 
+## Addendum 12.06 14:xx — the zero-swap build's own death, and the kill-switch
+
+First on-watch test of 5b77f1f froze the watch ~8 s at EDIT entry (1 route) then evicted. The log
+shows the first JS-side death since code residency: `evalFile ext20` → `relMemCb (exec:zapp)` →
+`RelMem->None avail` → `JSalloc:2092` ×3 → grind → eviction. Root cause: the merged template's
++5.7 KB permanent residency consumed the global-pool slack that the 2.7 KB EDIT-entry parse used
+to ride on — the residual risk the consolidation analysis named. The same session parsed ext21
+(3.5 KB) cleanly at the 2nd READY tick 8 seconds earlier.
+
+**Fix (7ff2feb): kill-switch engaged.** ext21/ext20/ext22 parse staggered on READY ticks 2/3/4
+(one parse per tick — bursts evict) and f20/f22 stay **pinned** for the whole session; the
+mid-session release is gone (a re-parse is exactly the allocation that died). EDIT/manage entries
+now parse nothing — entry cost is the visibility flip plus five setText calls. Fallback first-need
+parses remain for entries before tick 3/4.
+
 ## What remains open
 
-- **On-watch validation** of 5b77f1f: hammer EDIT (enter/edit/exit/re-enter) at low and high route
+- **On-watch validation** of 7ff2feb (zero-swap + pinned handlers): hammer EDIT (enter/edit/exit/re-enter) at low and high route
   counts, long sessions, including with charger contact. Expectation: EDIT itself can no longer
   trigger an eviction; system-overlay evictions may still occur on a degraded heap (less often with
   the FIT-logging removal).
