@@ -6,7 +6,7 @@
 // Asserts, by driving the real main.js (vm + stubs):
 //   T1  returning-user boot resolves template 'active'
 //   T2  EDIT entry KEEPS template 'active' and unloads NOTHING (visibility flip, no swap)
-//   T3  EDIT exit also swaps nothing; ext20 still parses on the post-entry edRefresh tick
+//   T3  EDIT exit also swaps nothing; entries parse NOTHING (handlers pinned on READY ticks 3/4)
 //   T4  state-5 evaluate publishes the vState heartbeat every tick (flip self-heal — a dropped
 //       publish must not strand the UI on the READY section with EDIT button semantics)
 //   T5  proj-setup (state 6) still resolves 'manage' (swap), first-run boot resolves 'manage'
@@ -53,19 +53,21 @@ const seed = {
 let { sb, parses, unloads } = boot(seed);
 sb.onLoad({}, {});
 assert(tpl(sb) === 'active', 'T1: returning-user boot resolves active');
-sb.evaluate({}, {}); sb.evaluate({}, {});
+sb.evaluate({}, {}); sb.evaluate({}, {}); sb.evaluate({}, {}); sb.evaluate({}, {});
+assert(count(parses, 'ext21.js') === 1 && count(parses, 'ext20.js') === 1 && count(parses, 'ext22.js') === 1,
+  'T0: handlers pre-parse PINNED, staggered over READY ticks 2/3/4 (one parse per tick — JSalloc:2092 killed the EDIT-entry parse on 12.06)');
 sb.onEvent({}, {}, 5);                                  // READY --eid5--> EDIT (climbMode 0)
 assert(tpl(sb) === 'active', 'T2: EDIT entry keeps template active (visibility flip)');
 assert(unloads.length === 0, 'T2: EDIT entry unloads nothing — zero-swap');
 const out5 = {};
 sb.evaluate({}, out5);                                  // edRefresh tick
-assert(count(parses, 'ext20.js') === 1, 'T3: ext20 parses on the EDIT post-entry tick');
+assert(count(parses, 'ext20.js') === 1, 'T3: EDIT entry parses NOTHING (f20 pinned since the READY tick)');
 assert(out5.vState === 5, 'T4: state-5 evaluate publishes vState heartbeat (flip self-heal)');
 const out5b = {};
 sb.evaluate({}, out5b); sb.evaluate({}, out5b);         // past edRefresh exhaustion
 assert(out5b.vState === 5, 'T4: heartbeat continues every state-5 tick (not only edRefresh ticks)');
 sb.onEvent({}, {}, 4);                                  // in-EDIT op uses cached f20
-assert(count(parses, 'ext20.js') === 1, 'T3: in-EDIT events reuse cached f20');
+assert(count(parses, 'ext20.js') === 1, 'T3: in-EDIT events reuse pinned f20');
 sb.onEvent({}, {}, 5);                                  // exit EDIT (fast-path) -> READY
 assert(tpl(sb) === 'active', 'T3: EDIT exit stays on active');
 assert(unloads.length === 0, 'T3: EDIT exit swaps nothing');
@@ -76,7 +78,7 @@ sb.onEvent({}, {}, 5);                                  // READY --eid5--> proj-
 assert(tpl(sb) === 'manage', 'T5: proj-setup resolves manage');
 assert(unloads.length === 1, 'T5: proj-setup entry swaps (1 unload)');
 sb.onEvent({}, {}, 1);
-assert(count(parses, 'ext22.js') === 1, 'T5: proj-setup parses ext22 (routing unchanged)');
+assert(count(parses, 'ext22.js') === 1, 'T5: proj-setup parses NOTHING (f22 pinned since the READY tick)');
 sb.onEvent({}, {}, 5);                                  // exit
 assert(tpl(sb) === 'active', 'T5: proj-setup exit resolves active');
 assert(unloads.length === 2, 'T5: proj-setup exit swaps back (2 unloads)');
@@ -85,7 +87,7 @@ assert(unloads.length === 2, 'T5: proj-setup exit swaps back (2 unloads)');
 sb.onEvent({}, {}, 4);                                  // back to free mode
 sb.onEvent({}, {}, 5);                                  // EDIT again
 sb.evaluate({}, {});
-assert(count(parses, 'ext20.js') === 2, 'T3: EDIT re-entry re-parses ext20 (released on prior exit)');
+assert(count(parses, 'ext20.js') === 1, 'T3: EDIT re-entry does NOT re-parse (pinned, never released mid-session)');
 assert(unloads.length === 2, 'T2: EDIT re-entry still swaps nothing');
 
 // ---- first-run boot: SETUP stays manage ----

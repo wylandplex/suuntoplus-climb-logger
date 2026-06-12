@@ -47,16 +47,18 @@ const seed = {
 let { sb, parses } = boot(seed);
 sb.onLoad({}, {});
 assert(count(parses, 'ext12.js') === 1, 'onLoad parses ext12 once');
-sb.evaluate({}, {}); sb.evaluate({}, {});           // 2nd READY tick parses ext21
+sb.evaluate({}, {}); sb.evaluate({}, {});           // READY ticks 1-2: ext21
 assert(count(parses, 'ext21.js') === 1, 'ext21 parses on 2nd READY tick');
+assert(count(parses, 'ext20.js') === 0, 'tick 2 parses ONLY ext21 (one parse per tick — bursts evict)');
+sb.evaluate({}, {}); sb.evaluate({}, {});           // READY ticks 3-4: pin ext20 then ext22
+assert(count(parses, 'ext20.js') === 1 && count(parses, 'ext22.js') === 1,
+  'ext20+ext22 pre-parse PINNED on READY ticks 3/4 (EDIT-entry parse died JSalloc:2092 on 12.06)');
 sb.onEvent({}, {}, 5);                              // READY --eid5--> EDIT (climbMode 0)
-assert(count(parses, 'ext20.js') === 0, 'EDIT entry itself parses nothing (first-need is next tick)');
-sb.evaluate({}, {});                                // edRefresh tick -> first-need parse
-assert(count(parses, 'ext20.js') === 1, 'EDIT post-mount tick parses ext20 once');
+sb.evaluate({}, {});                                // edRefresh tick -> paint only
+assert(count(parses, 'ext20.js') === 1, 'EDIT entry + paint tick parse NOTHING new');
 sb.onEvent({}, {}, 4);                              // toggle send/fail on route -- no routes, but handler runs
 sb.onEvent({}, {}, 1);                              // grade edit attempt
-assert(count(parses, 'ext20.js') === 1, 'in-EDIT events reuse cached f20');
-assert(count(parses, 'ext22.js') === 0, 'EDIT never parses ext22');
+assert(count(parses, 'ext20.js') === 1, 'in-EDIT events reuse pinned f20');
 sb.onEvent({}, {}, 5);                              // exit EDIT (fast-path) -> READY, release
 sb.evaluate({}, {});
 
@@ -64,18 +66,18 @@ sb.evaluate({}, {});
 sb.onEvent({}, {}, 4);                              // toggleMode -> climbMode 1 (slot 0 grade 3)
 sb.onEvent({}, {}, 5);                              // READY --eid5--> proj-setup (state 6)
 const before20 = count(parses, 'ext20.js');
-sb.onEvent({}, {}, 1);                              // dy=+1 wheel -> handler needed
-assert(count(parses, 'ext22.js') === 1, 'proj-setup dy parses ext22 once');
+sb.onEvent({}, {}, 1);                              // dy=+1 wheel -> pinned handler
+assert(count(parses, 'ext22.js') === 1, 'proj-setup dy parses NOTHING new (f22 pinned)');
 assert(count(parses, 'ext20.js') === before20, 'proj-setup never parses ext20');
-sb.onEvent({}, {}, 6);                              // cycle step -> cached f22
-assert(count(parses, 'ext22.js') === 1, 'in-proj-setup events reuse cached f22');
+sb.onEvent({}, {}, 6);                              // cycle step -> pinned f22
+assert(count(parses, 'ext22.js') === 1, 'in-proj-setup events reuse pinned f22');
 sb.onEvent({}, {}, 5);                              // exit (fast-path) -> READY, release both
 sb.onEvent({}, {}, 4);                              // back to free mode
 
-// ---- A3: re-entry re-parses (release verified) ----
+// ---- A3: re-entry does NOT re-parse (pinned for the whole session) ----
 sb.onEvent({}, {}, 5);                              // EDIT again
 sb.evaluate({}, {});
-assert(count(parses, 'ext20.js') === 2, 'EDIT re-entry re-parses ext20 (released on exit)');
+assert(count(parses, 'ext20.js') === 1, 'EDIT re-entry does NOT re-parse (pinned, no mid-session release)');
 
 // ---- A4: boot SETUP (first run / showSetupOnStart) ----
 ({ sb, parses } = boot({ stats: { sessions: 0, showSetupOnStart: 1, btV: 1, mig: 1, mig2: 1 } }));

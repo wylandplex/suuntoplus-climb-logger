@@ -271,7 +271,9 @@ var writeActStats = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  if (s < 4) { f20 = null; f22 = null; }  // RELEASE the manage handlers — their bytecode leaves the heap while climbing (re-parsed on next manage entry)
+  // NO mid-session release of f20/f22 anymore (kill-switch ENGAGED 12.06): a re-parse on the next
+  // manage/EDIT entry is exactly the allocation that died JSalloc:2092 on the post-merge heap.
+  // Their ~2KB bytecode stays pinned; the only release is onExerciseEnd (end window frees all).
   // Two templates: active (0/1/2/3 AND 5 — EDIT is a hidden SECTION of active, flipped via
   // vState/applyVis, zero template swap in either direction) and manage (4/6, boot-SETUP+proj-setup).
   // Log forensics (11-12.06): every eviction was relMemCb(exec:ui) at EDIT template machinery or a
@@ -340,12 +342,13 @@ var saveAsProject = function(output) {
 
 
 // === ext20/ext22 glue (code-residency Movement 2) ===
-// Manage-cluster handlers are split PER SCREEN so only the entered screen pays its parse transient:
-// ext20 = EDIT (st5 + op1 paint), ext22 = SETUP/proj-setup (st4/st6). Parsed on FIRST NEED (>=1 tick
-// after the edit/manage mount, never stacked on it), RELEASED on return to climbing — their bytecode does
-// not exist in the heap during a single second of climbing. Both return the same 19-slot tuple, so
-// one apply path below. Kill-switch if EDIT-entry parses ever evict: move the `f20 = f20 ||
-// loadExt(20)` below into onLoad.
+// Manage-cluster handlers are split PER SCREEN: ext20 = EDIT (st5 + op1 paint), ext22 = SETUP/
+// proj-setup (st4/st6). KILL-SWITCH ENGAGED (12.06): both are PINNED — parsed once on READY ticks
+// 3/4 (staggered, see evaluate) and never released mid-session. The first-need-parse-and-release
+// design died on the post-merge heap: EDIT entry's 2.7KB parse hit JSalloc:2092 / RelMem->None
+// avail (10:26:47) while the READY-tick window parsed 3.5KB clean. The `|| loadExt` calls below
+// remain as FALLBACK for entries before READY tick 3/4 (first-run SETUP, instant EDIT).
+// Both return the same 19-slot tuple, so one apply path below.
 var f20, f22;
 var runManage = function(output, eid, dy) {
   // FAST-PATHS — never parse a handler file (ext20/ext22) for events that need no handler logic.
@@ -533,7 +536,18 @@ function evaluate(input, output) {
   // ext21 (end-pack: f11/f19/f9/f14) parses ONCE, on the 2nd READY tick — guaranteed AFTER the
   // active-template mount settled (READY ticks only exist with active mounted). One 3.5KB parse at
   // the calmest possible post-mount moment; the end window then only calls pre-parsed closures.
-  if (!f9 && state === 0 && ++f21d >= 2) { var F21 = loadExt(21)(); f11 = F21[0]; f19 = F21[1]; f9 = F21[2]; f14 = F21[3]; }
+  // Staggered PINNED parses on READY ticks 2/3/4 — exactly ONE parse per tick (bursts evict, 11.06):
+  // t2 ext21 (end-pack), t3 ext20 (EDIT handlers), t4 ext22 (SETUP/proj handlers). f20/f22 stay
+  // pinned all session: the 12.06 10:26:47 EDIT-entry parse died (JSalloc:2092, RelMem->None avail)
+  // — the merged template's +5.7KB residency ate the mid-session slack — while THIS window parsed
+  // 3.5KB clean 8s earlier in the same session. EDIT entered before t3 degrades to the first-need
+  // fallback parse in runManage/edRefresh (same as the old behavior, ~1-2s exposure).
+  if (state === 0 && f21d < 4) {
+    f21d++;
+    if (f21d === 2 && !f9) { var F21 = loadExt(21)(); f11 = F21[0]; f19 = F21[1]; f9 = F21[2]; f14 = F21[3]; }
+    else if (f21d === 3) f20 = f20 || loadExt(20);
+    else if (f21d === 4) f22 = f22 || loadExt(22);
+  }
   if (state === 1) {
     rSec++;
     var h = input.H;
@@ -576,7 +590,7 @@ function evaluate(input, output) {
     output.vState = 5;
     if (edRefresh) {
       edRefresh--;
-      f20 = f20 || loadExt(20);  // first-need parse — >=1 tick after EDIT entry by construction
+      f20 = f20 || loadExt(20);  // FALLBACK only (EDIT entered before READY tick 3) — normally pinned
       f20(1, [editIdx, editDelMark], routesA);
     }
   }
