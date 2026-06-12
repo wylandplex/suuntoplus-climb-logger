@@ -30,6 +30,11 @@ packed composites, **17 distinct WB paths** total.
 - The deploy-grade validator forbids nested function declarations in main.js (legal in raw exts).
 - Manifest `out[]` entries with `log: true` become FIT channels: sampled **every second of the whole
   session** into system buffers and summarized into **every lap** (break laps included).
+- **Dispatcher compile-buffer cliff (~4KB)**: the build merges ALL lifecycle functions into one
+  dispatcher function whose bytecode must fit a single ~4KB allocation at Load script. Over the
+  line → `JSalloc:4192 oversize` → `Compiling js failed` → zapp disabled ("max app" warning), the
+  app never runs. 1874B minified dispatcher source compiled; 1927B did not. Budget guard:
+  `tools/tests/dispatcher-budget.js` (<1800B). Fix pattern: top-level function expressions.
 
 ## The eviction investigation (chronology of theories)
 
@@ -85,6 +90,15 @@ to ride on — the residual risk the consolidation analysis named. The same sess
 mid-session release is gone (a re-parse is exactly the allocation that died). EDIT/manage entries
 now parse nothing — entry cost is the visibility flip plus five setText calls. Fallback first-need
 parses remain for entries before tick 3/4.
+
+## Addendum 12.06 16:xx — the pinned build didn't even load (compile cliff)
+
+7ff2feb never ran on-watch: `Load script` → `JSalloc:4192 oversize` ×11 → `Compiling js failed` →
+disabled ("max app" warning). The staggered-parse chain grew the merged lifecycle dispatcher from
+1874B → 1927B minified source, crossing the ~4KB bytecode-buffer line it had silently been ~1%
+under for days. Fix (f2fcd4a): `pinTick()` and `hrTick()` extracted to top-level function
+expressions — dispatcher 1927 → 1642B (12% margin) — plus the permanent `dispatcher-budget.js`
+guard in the test suite. Behavior identical, all harnesses green.
 
 ## What remains open
 
