@@ -257,10 +257,11 @@ var recalcBse = function() {
 };
 
 var commitDirty = function(input) {
+  input = input || {};  // guard lives HERE, not at the call site: the build minifier leaves a bare `input` wrapped in `|| {}` un-renamed (it only renames `input` as a direct call arg or `input.X` member), so onExerciseEnd's commitDirty(input||{}) silently ReferenceError'd and the end-of-session route was never committed. Both call sites now pass bare `input`.
   if (frDirty) {
     frDirty = 0;
-    lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : (input.A || 0);
-    lastDuration = rSec > 0 ? rSec : (input.D || 0);
+    lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
+    lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
     var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
@@ -491,7 +492,7 @@ function evaluate(input, output) {
   if (state === 1) {
     rSec++;
     var h = input.H;
-    if (h > 0) {
+    if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg/peaks
       hrSum += h; hrCnt++;
       if (h > hrMax) hrMax = h;
       hr1Sum += h; hr3Sum += h;
@@ -521,7 +522,7 @@ function onExerciseEnd(input, _output) {
     frDirty = 1; frSend = 0;
     routeNumber++;
   }
-  try { commitDirty(input || {}); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
+  try { commitDirty(input); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
   if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
