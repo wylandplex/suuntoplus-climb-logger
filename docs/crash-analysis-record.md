@@ -113,16 +113,38 @@ tools/tests/fixture-ext*.js and the equivalence harness enforces FOLD-DRIFT (fol
 stay identical to the 1163-case-proven fixtures). The JS parse-transient failure class is now
 structurally impossible, not rescheduled.
 
+## Addendum 13.06 — the fold also froze; reverted to ext base + BUDGET CUTS
+
+The fold (d377e7b) still froze on-watch at EDIT. User's verdict: every placement scheme just moved
+the deficit between pockets (swap → parse → residency → blob); the budget itself is over. Reverted
+to the proven ext/edit.html base (e42cbac = 31c14fd app state) and CUT FEATURES to free real
+budget (4b463fb):
+
+- **A1** — deleted the app-computed 1'/3' HR-peak ring (it only fed routePk*/routePks outputs).
+  BREAK keeps firmware-direct lap AVG+MAX (zero app cost). Per-route avg HR kept.
+- **A2** — removed the bottom time-bar + rhombus from active.html.
+- **A3** — removed the LIMIT screen (sc3 + state-3 handler); startClimb refuses silently at the cap.
+- **C** — removed dead outputs routePk1/routePk3/routePks/climbMode + all writes.
+
+Result: **active.xml 24.1 → 20.9 KB** (the every-climbing-screen mount), **distinct WB paths 17 → 14**,
+main.js −0.7 KB source + the whole per-second HR-ring compute gone, bundle −4 KB. This is subtraction,
+not rescheduling. Verified by two adversarial reviews (12 + 56 agents) + `tools/tests/cut-features.js`.
+
+**Accepted known trade-off (user decision 13.06):** at the 50-route cap, pressing START writes one
+phantom firmware lap to the FIT — the template's `evL(6)` fires `$.put('/Activity/Trigger',23)`
+*before* `startClimb` refuses, and the deleted LIMIT screen used to suppress it via `lapState=3`.
+It's a pre-existing class (project-no-grade refusal does the same) and only at the rarely-hit cap;
+left as-is to preserve the byte savings. Cheap fixes documented in the commit if ever wanted.
+
 ## What remains open
 
-- **On-watch validation** of d377e7b (zero-swap + everything folded): hammer EDIT (enter/edit/exit/re-enter) at low and high route
-  counts, long sessions, including with charger contact. Expectation: EDIT itself can no longer
-  trigger an eviction; system-overlay evictions may still occur on a degraded heap (less often with
-  the FIT-logging removal).
-- If system evictions persist at high route counts: **lap economy** (finish-only self-laps,
-  ~1 lap/route instead of 2) is the next lever — changes FIT segmentation, needs user decision.
-- **Dead-chain cleanup** (cosmetic): `Output/climbMode` and now `routePk1/routePk3` are written but
-  unread — removing them must touch main.js writes + manifest `out[]` + ext20/22 `dCM` slot together.
+- **On-watch validation** of 4b463fb (ext base + budget cuts): does the freed ~3.2 KB mount + −3 paths
+  buy enough slack that EDIT entry survives on the aged 3-app heap? This is the real test of the
+  budget hypothesis.
+- If still freezing: **lap economy** (finish-only self-laps, ~1 lap/route) is the next per-route lever
+  (changes FIT segmentation), or **drop to 2 zapps** during climbing (the single largest lever — an
+  entire app's templates + paths + heap).
+- **Dead-chain cleanup** is now DONE for climbMode/routePk* (removed in C1).
 
 ## Verification ritual (every change)
 
