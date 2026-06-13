@@ -100,9 +100,22 @@ under for days. Fix (f2fcd4a): `pinTick()` and `hrTick()` extracted to top-level
 expressions — dispatcher 1927 → 1642B (12% margin) — plus the permanent `dispatcher-budget.js`
 guard in the test suite. Behavior identical, all harnesses green.
 
+## Addendum 13.06 03:xx — staggered parses died too; everything folded
+
+The pinned/staggered design (7ff2feb+f2fcd4a) loaded and ran, but READY tick 3 died: tick 2's
+ext21 (3.5 KB) parsed clean, tick 3's ext20 hit `RelMem->None avail` / `JSalloc:2092` ×11 →
+`evalFile failed` → the throw killed evaluate → app disabled. **The pool fits one parse plus its
+result, never two — no schedule fixes that.** Final fix (d377e7b): ext20/ext21/ext22 bodies folded
+into main.js as top-level function expressions (blob 6.8 → 12.4 KB minified; May precedent 16.6 KB),
+compiled once at Load script. Zero runtime parses remain except ext12 (one-shot, onLoad) and ext17
+(rare). Dispatcher shrank to 1591 B; bundle net smaller (66.7 KB). The fixtures live in
+tools/tests/fixture-ext*.js and the equivalence harness enforces FOLD-DRIFT (folded bodies must
+stay identical to the 1163-case-proven fixtures). The JS parse-transient failure class is now
+structurally impossible, not rescheduled.
+
 ## What remains open
 
-- **On-watch validation** of 7ff2feb (zero-swap + pinned handlers): hammer EDIT (enter/edit/exit/re-enter) at low and high route
+- **On-watch validation** of d377e7b (zero-swap + everything folded): hammer EDIT (enter/edit/exit/re-enter) at low and high route
   counts, long sessions, including with charger contact. Expectation: EDIT itself can no longer
   trigger an eviction; system-overlay evictions may still occur on a degraded heap (less often with
   the FIT-logging removal).
