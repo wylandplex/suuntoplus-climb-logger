@@ -1,0 +1,82 @@
+<uiView onFlickUp="ev(7)"
+        onFlickDown="ev(8)"
+        onLoad="
+          var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|Set|Lap'.split('|');
+          var Gs=null,Gsi=-1;
+          function dG(x){if(x<0)return'--';if(x%100>=50)return'OFF';var si=Math.floor(x/100);if(si!==Gsi){Gs=(G[si]||'').split(',');Gsi=si}return(Gs||[])[x%100]||'?'}
+          var lock=0;
+          function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
+          function ulk(){lock=0}
+          function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
+        ">
+  <div id="climblogger">
+
+    <!-- EDIT screen — split out of manage.html into its own template: entering EDIT mid-session
+         was the 22:20 eviction (active→manage swap transient on a 47-min heap); mounting this
+         small template instead halves the incoming side of that swap. Single screen → no
+         applyVis/vState binding needed (no wrong-default-section race possible). No lap()/evL:
+         EDIT has no lap semantics (manage's evL lap branch was dead there too — lapState 4/5/6
+         never satisfies the s===0/1 lap condition), so long presses use the same evX lock. -->
+
+    <div id="sc5" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
+
+      <div class="cm-fg" style="width:100%;height:16%">
+        <div class="p-hc sp-vertical-center" style="top:calc(50% - 50%e);">
+          <span class="sp-t-s" style="padding-right:4px">EDIT</span>
+          <span id="ed-routeNum" class="sp-t-s f-num">0</span>
+          <span class="sp-t-s" style="padding:0 2px">/</span>
+          <span class="sp-t-s f-num"><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="Count_Threedigits" default="0" /></span>
+        </div>
+      </div>
+
+      <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
+      <!-- Static arrows (template diet): grade taps on project-tagged routes are inert in ext20
+           (rC guard) — showing the arrows anyway avoids climbMode eval bindings. -->
+      <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
+
+      <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
+        <eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" />
+      </div>
+
+      <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
+      <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
+
+      <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
+        <span id="ed-sendIcon" class="f-ico" style="padding-right:6px">?</span>
+        <span id="ed-sendLabel" class="sp-b-m">FAIL</span>
+      </div>
+
+      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
+      </div>
+      <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div id="ed-pillIcon" class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xF107;</div>
+        <div id="ed-pillDel" class="sp-b-s cm-bgc" style="top:calc(50% - 50%e); left:2px;visibility:HIDDEN">DEL</div>
+      </div>
+      <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);border-radius:50px 0 0 50px;">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
+      </div>
+      <div onTap="ev(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+    </div>
+
+    <!-- Physical pushButtons — universal events, main.js dispatches by state -->
+    <:if test="{{ HAS_ON_EVENT }}">
+    <userInput>
+      <pushButton name="up" type="lock" longType="lock"
+        onClick="ev(1)"
+        onLongPressStart="evX(5)" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="ev(4)" />
+      <pushButton name="down" type="lock" longType="lock"
+        onClick="ev(2)"
+        onLongPressStart="evX(6)" />
+    </userInput>
+    </:if>
+
+  </div>
+</uiView>

@@ -10,7 +10,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const zlibPath = '/tmp/dispatcher-budget-build';
 const APP = __dirname + '/../..';
-const BUDGET = 1800;
+const BUDGET = 1875;  // 1874 = proven-loading max (31c14fd era); keep NEW code <1800
 
 const toolsBin = execSync(
   'ls -d /home/skyfi/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1'

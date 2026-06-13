@@ -79,50 +79,20 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-// === FOLDED EXT BODIES (former ext10/11/19/9/14, and since 13.06 also ext20/21/22) ===
-// EVERYTHING is folded now — raw-parsed handlers failed at EVERY runtime placement on-watch:
-// end window → bootloop/freeze (13:16, 14:04); first climb start → eviction x3 (12:20);
-// bulk-onLoad x6 parses → eviction AT LOAD (11.06); EDIT-entry parse → JSalloc:2092 freeze
-// (12.06 10:26 — the merged template's residency ate the slack); STAGGERED READY-tick parses →
-// tick 2 (ext21) parsed, tick 3 (ext20) died JSalloc:2092 (13.06 03:18): the pool fits ONE parse
-// plus its result, never two. Folded into main.js they're MINIFIED (~40-50% smaller as bytecode),
-// compiled once in the firmware's Load-script window (which demonstrably compiles far bigger blobs
-// — May ran 16.6KB), zero runtime parses, zero flash reads, zero transients. Ext files remain ONLY
-// for the one-shot loader (ext12, onLoad) and the rare setup snapshot (ext17, SETUP tap).
-// NOTE the dispatcher compile-buffer cliff: these MUST stay top-level function expressions —
-// never inline bodies into the lifecycle functions (see tools/tests/dispatcher-budget.js).
+// === FOLDED EXT BODIES (former ext10/11/19/9/14) ===
+// These five were permanently pinned — raw-parsed pinning failed at EVERY placement on-watch:
+// end window → bootloop/freeze (13:16, 14:04); first climb start → eviction x3 ("all screens
+// overlayed", 12:20); bulk-onLoad x6 parses → eviction AT LOAD (overlay at app entry, 11.06).
+// Folded into main.js they're MINIFIED (~40-50% smaller as bytecode), compiled once in the
+// firmware's Load-script window (where the 30KB blob already compiles reliably), zero runtime
+// parses, zero flash reads. Ext files remain ONLY for one-shot (ext12), rare (ext17), and — per
+// the code-residency spec — the releasable manage handlers (ext20=EDIT, ext22=SETUP/proj-setup).
 var f17;  // stay-lazy: parsed at the SETUP tap, only sessions that change grade systems
-
-// --- former ext21: G9/dG9 + f11/f19/f9/f14 (verbatim; fixtures in tools/tests/) ---
-var G9 = '3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|Set|Lap'.split('|');
-var dG9 = function(x){var si=Math.floor(x/100);return x>=0&&si>=0&&si<=9?(x%100>=50?'OFF':(G9[si]||'').split(',')[x%100]||'?'):'--'};
-var f11 = function(ats,pgi,ps,cm,gs){var sv=localStorage.getObject("stats")||{};for(var k in ats)sv[k]=ats[k];sv.system=gs;for(var i=0;i<5;i++){var v=pgi[i]!==undefined?pgi[i]:-1;var key=gs+"_"+(i+1);sv["p"+key]=v;var p=ps[key];if(p&&(v===-1||(p.g!==undefined&&p.g!==v))){delete ps[key]}}var ap=cm>0?(ps[gs+"_"+cm]||{}):{};sv.activeGrade=cm>0&&pgi[cm-1]>=0?gs*100+pgi[cm-1]:-1;sv.activeTries=ap.attempts||0;sv.activeSends=ap.sends||0;sv.activeBest=ap.bestTime||0;localStorage.setObject("stats",sv);var snap={};snap.totalRoutes=sv.totalRoutes|0;snap.totalSends=sv.totalSends|0;snap.sendPct=sv.sendPct|0;snap.sessions=sv.sessions|0;snap.totalHeight=sv.totalHeight|0;snap.peakGrade=sv.peakGrade!==undefined?sv.peakGrade:-1;snap.lastSessionGrade=sv.lastSessionGrade!==undefined?sv.lastSessionGrade:-1;snap.bestOfLast5=sv.bestOfLast5!==undefined?sv.bestOfLast5:-1;snap.sessionsAtPeak=sv.sessionsAtPeak|0;snap.bestSessionHm=sv.bestSessionHm|0;snap.longestProjectSes=sv.longestProjectSes|0;snap.longestProjectGrade=sv.longestProjectGrade!==undefined?sv.longestProjectGrade:-1;snap.mostTriesProject=sv.mostTriesProject|0;snap.mostTriesGrade=sv.mostTriesGrade!==undefined?sv.mostTriesGrade:-1;localStorage.setObject("s"+gs,snap)};
-var f19 = function(ra,rb,gs){
-var n=ra?ra.length:-1;
-if(!ra||n===0)return[{id:'sr',name:'Sends / Routes',format:'Count_Fourdigits',value:0,postfix:'/ 0'}];
-var s=0,ht=0,sp=-1,spC=0,dur=0,hrSum=0,hrCnt=0;
-for(var i=0;i<n;i++){var a=ra[i],b=rb[i],enc=gs*100+(Math.floor(a/1000000)%1000),h=a%10000,d=Math.floor(b/1000),bpm=b%1000;
-if(Math.floor(a/100000)%10){s++;if(enc>sp){sp=enc;spC=1}else if(enc===sp)spC++}
-if(h>0)ht+=h;
-if(d>0)dur+=d;
-if(bpm>0){hrSum+=bpm/60;hrCnt++}}
-var htR=Math.round(ht);
-var out=[{id:'sr',name:'Sends / Routes',format:'Count_Fourdigits',value:s,postfix:'/ '+n}];
-if(sp>=0)out.push({id:'b',name:'Highest Send',format:'Count_Fourdigits',value:spC,postfix:'* ',g:sp});
-if(dur>0)out.push({id:'d',name:'Climb Time',format:'Duration_FourdigitsFixed',value:dur});
-if(hrCnt>0)out.push({id:'a',name:'Avg HR',format:'HeartRate_Fourdigits',value:hrSum/hrCnt});
-if(ht>0)out.push({id:'h',name:'Height',format:'Count_Fourdigits',value:htR,postfix:'m'});
-return out};
-var f9 = function(){var a=localStorage.getObject('lastSummary')||[{id:'x',name:'NoLS ext9',format:'Count_Fourdigits',value:0}];for(var i=0;i<a.length;i++){if(a[i].g!==undefined){a[i].postfix=(a[i].postfix||'')+dG9(a[i].g);delete a[i].g}}return a};
-var f14 = function(cm,gs,lgi,lres,ld,pgi,ps,ses){
-if(cm>0)return null;
-for(var i=0;i<5;i++){
-if(pgi[i]===-1){
-var slot=i+1;
-pgi[i]=lgi;
-ps[gs+"_"+slot]={attempts:1,sends:lres?1:0,bestTime:lres?ld:0,g:lgi,firstSes:ses};
-return[lgi,slot]}}
-return null};
+// f11/f19/f9/f14 live in ext21 — parsed ONCE on the SECOND READY tick: by construction AFTER the
+// active-template mount has settled (the 25.7KB active.xml mount is the single most expensive moment;
+// carrying these ~2.2KB minified in the blob at that instant is what kept killing SETUP→READY).
+// Sessions that never reach READY end degraded (no stats write/summary — nothing happened anyway).
+var f11, f19, f9, f14, f21d = 0;
 
 // f10 — route commit: returns [bestSendIdx, 0, recordTuple, slotKey, slotStats]
 var f10 = function(lgi,gs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,ps,ats,h){
@@ -167,10 +137,10 @@ var initReady = function() {
 };
 
 function getUserInterface() {
-  // Two templates: active.html (states 0-3 + 5/EDIT as a hidden section) and manage.html (4/6).
+  // Three templates: active.html (states 0-3), edit.html (state 5), manage.html (states 4/6).
   // Resolve the FIRST template via initReady() so it's correct whether the framework queries this
-  // before or after onLoad (a returning user must open on active, not blank-out on manage).
-  // After first resolve, goState() owns currentTemplate.
+  // before or after onLoad (a returning user must open on active, not blank-out on manage; boot is
+  // never EDIT, so "edit" can't be the first resolve). After first resolve, goState() owns currentTemplate.
   if (!currentTemplate) currentTemplate = initReady() ? "active" : "manage";
   return { template: currentTemplate };
 }
@@ -301,14 +271,11 @@ var writeActStats = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  // (f20/f22 are folded blob functions since 13.06 — nothing to release or re-parse here.)
-  // Two templates: active (0/1/2/3 AND 5 — EDIT is a hidden SECTION of active, flipped via
-  // vState/applyVis, zero template swap in either direction) and manage (4/6, boot-SETUP+proj-setup).
-  // Log forensics (11-12.06): every eviction was relMemCb(exec:ui) at EDIT template machinery or a
-  // system overlay — the dedicated edit.html still died at ANY route count (even ~0 routes, e.g.
-  // 23:35:20 at the post-mount paint tick). The May single-template builds ran 60+ routes with EDIT
-  // as a flip; this restores that. Merged active.xml ~29.8KB — under the watch-proven 41.6KB monolith.
-  var t = s === 4 || s === 6 ? "manage" : "active";
+  if (s < 4) { f20 = null; f22 = null; }  // RELEASE the manage handlers — their bytecode leaves the heap while climbing (re-parsed on next manage entry)
+  // Three templates: active (0/1/2/3), edit (5, own ~7KB template — the active↔manage swap at EDIT
+  // entry on a 47-min heap was the 22:20:28 relMemCb(exec:ui) eviction; a dedicated small template
+  // halves the mount side of that transient), manage (4/6, SETUP+proj-setup).
+  var t = s < 4 ? "active" : s === 5 ? "edit" : "manage";
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -317,11 +284,10 @@ var goState = function(s, output) {
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
   // write at onExerciseEnd covers it (psA/psB-equivalent persisted only at session end).
-  // EDIT (state 5) entry: schedule a few ext20 op-1 paints in evaluate() — they must land AFTER
-  // the vState→applyVis flip makes sc5 visible (setText on a HIDDEN section is a silent no-op).
-  // 3 ticks (was 2) gives the flip a margin; the state-5 vState heartbeat in evaluate self-heals a
-  // dropped publish. In-edit updates run through runManage directly, so this is entry-catch only.
-  if (s === 5) edRefresh = 3;
+  // EDIT (state 5) entry: schedule a couple of ext20 op-1 paints in evaluate() — they must fire
+  // AFTER edit.html mounts (this goState unloads the active cluster, so a synchronous setText here
+  // hits no DOM). In-edit updates run through runManage directly, so this is mount-catch only.
+  if (s === 5) edRefresh = 2;
 };
 
 var writeG = function(o, idx) {
@@ -369,111 +335,28 @@ var saveAsProject = function(output) {
 };
 
 
-// === f20/f22 — the manage-cluster handlers, FOLDED (former ext20/ext22; fixtures in tools/tests/) ===
-// Split per screen: f20 = EDIT (st5 + op1 paint), f22 = SETUP/proj-setup (st4/st6). Both return the
-// same 19-slot tuple, so one apply path in runManage. Folded into the blob 13.06 — every runtime
-// parse placement died (see the FOLDED EXT BODIES header above).
-var f20 = function(op,P,ra,rb,ps,ats,pgi,A,GL,DI){
-var rG=function(i){return Math.floor(ra[i]/1000000)%1000};
-var rS=function(i){return Math.floor(ra[i]/100000)%10};
-var rC=function(i){return Math.floor(ra[i]/10000)%10};
-var rH=function(i){return ra[i]%10000};
-var rD=function(i){return Math.floor(rb[i]/1000)};
-var PE=function(ei,dm){
-var n1=ra.length,ev=dm?2:(ei>=0&&ei<n1?rS(ei):0);
-setText("#ed-routeNum",""+(n1>0?ei+1:0));
-setText("#ed-sendIcon",ev===2?"":ev===1?String.fromCharCode(0xF200):String.fromCharCode(0xF110));
-setText("#ed-sendLabel",ev===2?"DEL":ev===1?"SEND":"FAIL");
-var pd=ev===0;
-setStyle("#ed-pillIcon","visibility",pd?"HIDDEN":"VISIBLE");
-setStyle("#ed-pillDel","visibility",pd?"VISIBLE":"HIDDEN");
-if(!pd)setText("#ed-pillIcon",ev===2?String.fromCharCode(0xF200):String.fromCharCode(0xF110))};
-if(op===1){PE(P[0],P[1]);return null}
-var st=P[0],eid=P[1],dy=P[2],ei=P[3],dm=P[4],pS=P[5],sc=P[6],rn=P[7],sh=P[8],gs=P[9],cg=P[10],lgi=P[11];
-var ws0=0,nF17=0,rec=0,psD=0,wsD=0,pF17=0,dGr=-9999,dLG=-9999,dMS=-9999,dCM=-9999;
-var rescan=function(cm,g){var bt=0;for(var i=0;i<ra.length;i++){if(rC(i)===cm&&rS(i)&&rG(i)===g){var d=rD(i);if(d>0&&(bt===0||d<bt))bt=d}}return bt};
-if(st===5){
-var n=ra.length;
-if(eid===5||eid===6){
-if(dm){
-if(ei>=0&&ei<n){
-var dS=rS(ei),dC=rC(ei),dH=rH(ei),dDu=rD(ei);
-ats.totalRoutes--;
-if(dS){ats.totalSends--;if(sc>0)sc--}
-ats.sendPct=Math.round(ats.totalSends*100/Math.max(1,ats.totalRoutes));
-if(dC>0){
-var dk=gs+"_"+dC,dp=ps[dk];
-if(dp){if(dp.attempts>0)dp.attempts--;if(dS&&dp.sends>0)dp.sends--;if(dp.attempts<=0)delete ps[dk];else ps[dk]=dp;psD=1}}
-if(dH>0)sh=Math.max(0,sh-dH);
-ra.splice(ei,1);rb.splice(ei,1);rec=1;
-if(dC>0&&dS&&dDu>0){
-var dp2=ps[gs+"_"+dC];
-if(dp2&&dp2.bestTime===dDu&&dp2.firstSes===ats.sessions){dp2.bestTime=rescan(dC,dp2.g);psD=1}}
-if(rn>1)rn--;
-n=ra.length;
-if(ei>=n&&n>0)ei=n-1}
-dm=0}
-if(eid===6&&n>0){
-ei=(ei-1+n)%n;
-dLG=gs*100+rG(ei);dMS=n;dCM=rC(ei);
-PE(ei,dm)
-}else{ws0=1}
-}else if(n>0&&ei>=0&&ei<n){
-if(eid===4){
-var cm4=rC(ei),dur4=rD(ei);
-if(dm){
-dm=0;
-ra[ei]+=(1-rS(ei))*100000;
-sc++;ats.totalSends++;
-if(cm4>0){var k=gs+"_"+cm4,p=ps[k];if(p){p.sends++;if(dur4>0&&(p.bestTime===0||dur4<p.bestTime))p.bestTime=dur4;psD=1}}
-}else if(rS(ei)){
-ra[ei]+=(0-rS(ei))*100000;
-if(sc>0)sc--;ats.totalSends--;
-if(cm4>0){var k2=gs+"_"+cm4,p2=ps[k2];if(p2&&p2.sends>0){p2.sends--;if(dur4>0&&dur4===p2.bestTime&&p2.firstSes===ats.sessions)p2.bestTime=rescan(cm4,p2.g);psD=1}}
-}else{dm=1}
-ats.sendPct=Math.round(ats.totalSends*100/Math.max(1,ats.totalRoutes));
-rec=1;
-PE(ei,dm)
-}else if(eid===1||eid===2){
-if(!rC(ei)){
-var dy5=eid===1?1:-1,L5=GL[gs];
-var g5=((rG(ei)+dy5)%L5+L5)%L5;
-ra[ei]+=(g5-rG(ei))*1000000;
-dLG=gs*100+g5;
-if(rS(ei))rec=1}
-}}}
-return[ei,dm,pS,sc,rn,sh,gs,cg,lgi,ws0,nF17,rec,psD,wsD,pF17,dGr,dLG,dMS,dCM]};
-var f22 = function(op,P,ra,rb,ps,ats,pgi,A,GL,DI){
-var st=P[0],eid=P[1],dy=P[2],ei=P[3],dm=P[4],pS=P[5],sc=P[6],rn=P[7],sh=P[8],gs=P[9],cg=P[10],lgi=P[11];
-var ws0=0,nF17=0,rec=0,psD=0,wsD=0,pF17=0,dGr=-9999,dLG=-9999,dMS=-9999,dCM=-9999;
-if(st===4){
-if(dy){
-A[gs]=pgi.slice();
-gs=(gs+dy+10)%10;
-cg=DI[gs];
-var sp4=A[gs];for(var i4=0;i4<5;i4++)pgi[i4]=(sp4&&sp4[i4]!==undefined)?sp4[i4]:-1;
-dGr=gs*100+DI[gs];dMS=gs;
-wsD=1;pF17=1;
-}else if(eid===6){ws0=1}
-}else if(st===6){
-if(dy){
-var w6=pgi[pS]+dy,L6=GL[gs];
-pgi[pS]=w6>=L6?-1:(w6<-1?L6-1:w6);
-dGr=pgi[pS]>=0?gs*100+pgi[pS]:gs*100+50;dMS=pS+1;wsD=1;
-}else if(eid===5){ws0=1}
-else if(eid===6){pS=(pS+1)%5;dGr=pgi[pS]>=0?gs*100+pgi[pS]:gs*100+50;dMS=pS+1}
-}
-return[ei,dm,pS,sc,rn,sh,gs,cg,lgi,ws0,nF17,rec,psD,wsD,pF17,dGr,dLG,dMS,dCM]};
+// === ext20/ext22 glue (code-residency Movement 2) ===
+// Manage-cluster handlers are split PER SCREEN so only the entered screen pays its parse transient:
+// ext20 = EDIT (st5 + op1 paint), ext22 = SETUP/proj-setup (st4/st6). Parsed on FIRST NEED (>=1 tick
+// after the edit/manage mount, never stacked on it), RELEASED on return to climbing — their bytecode does
+// not exist in the heap during a single second of climbing. Both return the same 19-slot tuple, so
+// one apply path below. Kill-switch if EDIT-entry parses ever evict: move the `f20 = f20 ||
+// loadExt(20)` below into onLoad.
+var f20, f22;
 var runManage = function(output, eid, dy) {
-  // FAST-PATHS — exits and no-ops need no handler logic. Critically: the pure-EXIT taps (SETUP
-  // confirm, proj-setup back, EDIT back) trigger goState(0) → for manage states an active-template
-  // REMOUNT in the same tick; keep them out of the handlers:
+  // FAST-PATHS — never parse a handler file (ext20/ext22) for events that need no handler logic.
+  // Critically: the pure-EXIT
+  // taps (SETUP confirm, proj-setup back, EDIT back) trigger goState(0) → active-template REMOUNT in
+  // the same tick; parsing 3.2KB there stacked the two heap spikes and froze SETUP→READY even
+  // single-app (11.06 ~15:4x). Exits and no-ops resolve right here:
   if (!dy) {
     if ((state === 4 && eid === 6) || (state === 6 && eid === 5) ||
         (state === 5 && !editDelMark && (eid === 5 || (eid === 6 && rN() === 0)))) { goState(0, output); return; }
     if ((state === 4 && (eid === 4 || eid === 5)) || (state === 6 && eid === 4)) return;  // no-ops in the originals
   }
-  var f = state === 5 ? f20 : f22;
+  var f;
+  if (state === 5) { f20 = f20 || loadExt(20); f = f20; }
+  else { f22 = f22 || loadExt(22); f = f22; }
   var R = f(0, [state, eid, dy, editIdx, editDelMark, pStep, sendsCount, routeNumber, sessionH, gradeSystem, currentGrade, lastGradeIdx],
     routesA, routesB, projStats, allTimeStats, projGradeIdx, allProjects, GRADE_LENS, DEFAULT_IDX);
   editIdx = R[0]; editDelMark = R[1]; pStep = R[2]; sendsCount = R[3]; routeNumber = R[4]; sessionH = R[5];
@@ -640,40 +523,31 @@ function onLoad(_input, output) {
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
-// DISPATCHER SIZE BUDGET (hard, discovered 12.06 15:49): the build merges ALL lifecycle functions
-// into ONE dispatcher function whose bytecode must fit a single ~4KB compile-time allocation —
-// at 1927B minified-source it died at Load script (`JSalloc:4192 oversize` ×11 → `Compiling js
-// failed` → zapp disabled, watch shows the "max app" warning); at 1874B it compiled. Keep the
-// dispatcher's minified source comfortably under ~1800B: put logic in TOP-LEVEL function
-// expressions (own compile units) and call them from the lifecycle bodies — as below.
-
-// (pinTick is gone — the staggered READY-tick parses died too: 13.06 03:18, tick 3, JSalloc:2092.
-// All handlers are folded into the blob now; there is nothing left to parse at runtime.)
-
-// Per-CLIMB-second HR sampling into the packed ring (sums stay Hz-equivalent via /1200, /3600).
-// input.H is Hz (0.5-4 Hz = 30-240 bpm; real HR ~1.0-3.3 Hz) — the old bpm-scale ">= 30" rejected
-// EVERY on-watch sample, zeroing avg+peaks. Upper band keeps the bpm byte (<=240) safe from bursts.
-var hrTick = function(h) {
-  if (h >= 0.5 && h <= 4) {
-    hrSum += h; hrCnt++;
-    if (h > hrMax) hrMax = h;
-    hrDec++;
-    if (hrDec >= 3) {  // every 3rd valid sample into the ring
-      hrDec = 0;
-      var nb = Math.round(h * 60);  // bpm byte 0..255
-      hr1Sum += nb; hr3Sum += nb;
-      if (hrIdx >= 20) { hr1Sum -= rdPk((hrIdx - 20) % 60); if (hr1Sum / 1200 > bestPk1) bestPk1 = hr1Sum / 1200; }
-      if (hrIdx >= 60) { hr3Sum -= rdPk(hrIdx % 60); if (hr3Sum / 3600 > bestPk3) bestPk3 = hr3Sum / 3600; }
-      wrPk(hrIdx % 60, nb);
-      hrIdx++;
-    }
-  }
-};
-
 function evaluate(input, output) {
   if (isPaused) return;
   if (input.Asc !== undefined) curAsc = input.Asc;
-  if (state === 1) { rSec++; hrTick(input.H); }
+  // ext21 (end-pack: f11/f19/f9/f14) parses ONCE, on the 2nd READY tick — guaranteed AFTER the
+  // active-template mount settled (READY ticks only exist with active mounted). One 3.5KB parse at
+  // the calmest possible post-mount moment; the end window then only calls pre-parsed closures.
+  if (!f9 && state === 0 && ++f21d >= 2) { var F21 = loadExt(21)(); f11 = F21[0]; f19 = F21[1]; f9 = F21[2]; f14 = F21[3]; }
+  if (state === 1) {
+    rSec++;
+    var h = input.H;
+    if (h >= 0.5 && h <= 4) {  // valid HR only — input.H is Hz (0.5-4 Hz = 30-240 bpm; real HR ~1.0-3.3 Hz). The old bpm-scale ">= 30" rejected EVERY on-watch sample, zeroing avg+peaks. The earlier "showed 1" was real HR (~1 Hz = 60 bpm) collapsed by integer rounding in the routePks pack, not a no-lock artifact. Upper band keeps the bpm byte (<=240) and the routePks 3-digit fields safe from glitch bursts.
+      hrSum += h; hrCnt++;
+      if (h > hrMax) hrMax = h;
+      hrDec++;
+      if (hrDec >= 3) {  // store every 3rd valid sample into the packed ring — sums stay Hz-equivalent via /1200, /3600
+        hrDec = 0;
+        var nb = Math.round(h * 60);  // bpm byte 0..255
+        hr1Sum += nb; hr3Sum += nb;
+        if (hrIdx >= 20) { hr1Sum -= rdPk((hrIdx - 20) % 60); if (hr1Sum / 1200 > bestPk1) bestPk1 = hr1Sum / 1200; }
+        if (hrIdx >= 60) { hr3Sum -= rdPk(hrIdx % 60); if (hr3Sum / 3600 > bestPk3) bestPk3 = hr3Sum / 3600; }
+        wrPk(hrIdx % 60, nb);
+        hrIdx++;
+      }
+    }
+  }
 
   commitDirty();
   if (selfLapTtl) { selfLapTtl--; if (!selfLapTtl) selfLapExpected = 0; }  // expire ALL outstanding echo expectations ~3s after the last app self-lap — a lost echo must not eat the next genuine lap
@@ -687,19 +561,15 @@ function evaluate(input, output) {
   // mid-session flash-GC stalls. See feedback_no_midsession_ls_writes.
   // Skip setOutputs in edit (5) — eval-script churn in the edit bindings is OOM-risky at high routes.
   // state=4 (setup) needs it to publish vState so manage.html applyVis fires correctly on initial entry.
-  // In edit (5): per-tick vState HEARTBEAT (single output write, fires only the applyVis binding,
-  // which early-returns when unchanged) — sc5 is a hidden section of active.html now, and a dropped
-  // goState(5) publish would otherwise strand the UI on the READY section with EDIT button semantics
-  // (the codebase's documented dropped-put precedent, 6bf6731). The full setOutputs stays skipped:
-  // eval-script churn in the edit bindings is OOM-risky at high routes. Plus the bounded post-entry
-  // ext20 op-1 paints (cheap setText) — they catch the flip; runManage handles in-edit updates.
+  // In edit (5), only a bounded post-mount ext20 op-1 paint (cheap setText) — goState's call ran
+  // pre-mount (the template switch unloaded the old DOM), so this catches the mount without per-tick
+  // churn. The old vState=5 re-publish is gone with the split: edit.html is a single always-visible
+  // screen with no vState binding (no default-section race to correct), so the write had no reader.
   if (state !== 5) setOutputs(output);
-  else {
-    output.vState = 5;
-    if (edRefresh) {
-      edRefresh--;
-      f20(1, [editIdx, editDelMark], routesA);
-    }
+  else if (edRefresh) {
+    edRefresh--;
+    f20 = f20 || loadExt(20);  // first-need parse — >=1 tick after the edit.html mount by construction
+    f20(1, [editIdx, editDelMark], routesA);
   }
   dwell = 0;
   // Deferred BREAK-window lap — drained AFTER the dwell clear: the climb it starts keeps its dwell
@@ -709,7 +579,7 @@ function evaluate(input, output) {
 }
 
 function onExerciseEnd(input, _output) {
-  // (no handler release — f20/f22 are blob functions now, their bytecode isn't separately reclaimable)
+  f20 = null; f22 = null;  // release the manage handlers before the end-window work — every free byte counts here
   if (state === 1) {
     lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));

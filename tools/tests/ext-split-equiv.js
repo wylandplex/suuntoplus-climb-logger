@@ -9,8 +9,8 @@ const mk = src => eval('(' + src + ')');
 const oracle = mk(fs.readFileSync(__dirname + '/oracle-ext20.js', 'utf8'));
 let ext20n, ext22;
 try {
-  ext20n = mk(fs.readFileSync(__dirname + '/fixture-ext20.js', 'utf8'));
-  ext22 = mk(fs.readFileSync(__dirname + '/fixture-ext22.js', 'utf8'));
+  ext20n = mk(fs.readFileSync(APP + '/ext20.js', 'utf8'));
+  ext22 = mk(fs.readFileSync(APP + '/ext22.js', 'utf8'));
 } catch (e) {
   console.error('RED — candidate not loadable: ' + e.message);
   process.exit(1);
@@ -114,20 +114,5 @@ for (const [eid, dy] of [[5, 0], [6, 0], [4, 0]])
 for (const [eid, dy] of [[1, 1], [2, -1]])
   check({ op: 0, P: [4, eid, dy, 0, 0, 0, 2, 3, 10, 8, DI[8], 5], ra: [], rb: [], ps: {}, ats: ATS(), pgi: PGIS[0], A: cp(AS[2]) }, 'st4-gs8');
 
-// FOLD GUARD: main.js must contain the fixture bodies VERBATIM (the folded f20/f22/f21 closures
-// are equivalence-proven only as long as they are byte-identical to these fixtures).
-const norm = src => src.replace(/\/\/[^\n]*/g, '').replace(/\s+/g, ' ').trim();  // comment+ws-insensitive
-const mainN = norm(fs.readFileSync(APP + '/main.js', 'utf8'));
-const bodyOf = src => src.slice(src.indexOf('{'));  // drop the `function(args)` header
-for (const [name, fix] of [['f20', 'fixture-ext20.js'], ['f22', 'fixture-ext22.js']]) {
-  const body = norm(bodyOf(fs.readFileSync(__dirname + '/' + fix, 'utf8'))).replace(/;?$/, '');
-  if (!mainN.includes(body)) { fails++; console.error('FOLD-DRIFT: main.js ' + name + ' body differs from ' + fix); }
-}
-{ // ext21's closures: each var definition must appear (normalized) in main.js
-  const f21 = fs.readFileSync(__dirname + '/fixture-ext21.js', 'utf8');
-  for (const m of f21.matchAll(/var (G9|dG9|f11|f19|f9|f14) = [\s\S]*?(?=\nvar |\nreturn\[)/g)) {
-    if (!mainN.includes(norm(m[0]))) { fails++; console.error('FOLD-DRIFT: main.js ' + m[1] + ' differs from fixture-ext21.js'); }
-  }
-}
-console.log(fails === 0 ? 'GREEN — ' + n + ' cases, all identical + fold verbatim' : 'RED — ' + fails + ' failure(s)');
+console.log(fails === 0 ? 'GREEN — ' + n + ' cases, all identical' : 'RED — ' + fails + '/' + n + ' diverged');
 process.exit(fails === 0 ? 0 : 1);

@@ -1,8 +1,7 @@
 function(op,P,ra,rb,ps,ats,pgi,A,GL,DI){
 // === ext20: EDIT handlers (st5 + op1 paint) — SETUP/proj-setup split to ext22 so only the entered
 // screen pays the parse transient. Code-residency spec Movement 2.
-// Parsed on FIRST NEED >=1 tick after EDIT entry (sc5 flip in active.html — no mount involved);
-// RELEASED (f20=null) on return to climbing.
+// Parsed on FIRST NEED >=1 tick after the edit.html mount; RELEASED (f20=null) on return to climbing.
 // Exts cannot write `output` (minified main maps output names to array indices) — display values
 // return in the tuple; main applies them. Mutable objects (ra/rb/ps/ats) mutate by reference.
 // pgi/A/DI unused here (EDIT never touches projects) — kept so the glue has a single call site.
