@@ -289,6 +289,11 @@ var startClimb = function(output) {
   // #103: in project mode, block the climb start until the active project slot has a grade.
   // toggleMode/projSetup stay reachable so the project CAN be configured.
   if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;
+  // Sync currentGrade to the active project slot before climbing: proj-setup sets projGradeIdx[slot]
+  // WITHOUT touching currentGrade, so a freshly-configured slot would otherwise record the stale default
+  // grade. ext11 then purges projStats[slot] at session end on the g!=pgi mismatch — the "project stats
+  // lost on the first session after reinstall" bug (later sessions are fine because toggleMode/load resync).
+  if (climbMode > 0) currentGrade = projGradeIdx[climbMode - 1];
   hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
   startAsc = curAsc;
   goState(1, output);
