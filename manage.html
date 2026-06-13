@@ -85,9 +85,9 @@
 
     </div>
 
-    <!-- Time-bar + rhombus removed from manage screens (template diet): saves the rhombus div +
-         6 elements + 2 eval bindings off the manage mount; active.html keeps its copy, so the
-         LocalTime/Duration paths stay subscribed (no LID change). -->
+    <!-- Time-bar + rhombus removed from manage screens (template diet). NOTE: feature A2 later
+         removed them from active.html too, so the LocalTime/Move-Duration WB paths are now
+         dropped entirely (no template subscribes them anymore) — -2 distinct LIDs. -->
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">

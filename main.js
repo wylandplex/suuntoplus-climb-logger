@@ -23,26 +23,14 @@ var wCm = function(i, v) { routesA[i] += (v - rCm(i)) * 10000; };
 var sendsCount = 0;
 var lastResult = 0;
 
-// HR peak ring, PACKED: every 3rd valid sample stored as a bpm byte, 6 bytes per float64 (256^5 < 2^53).
-// 60 stored samples cover 3 min; 1-min window = 20 stored. 10 numbers ≈ 0.1KB vs 180-slot array ≈ 1.5-2.9KB
-// (#130 heap cut, feature kept: decimation error < 1 bpm, byte rounding ±0.5 bpm). Pre-sized: no reallocs.
-var hrPk = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-var hrDec = 0;
-var PB = [1, 256, 65536, 16777216, 4294967296, 1099511627776];
-var rdPk = function(i) { return Math.floor(hrPk[(i / 6) | 0] / PB[i % 6]) % 256; };
-var wrPk = function(i, v) { var s = (i / 6) | 0, p = PB[i % 6]; hrPk[s] += (v - Math.floor(hrPk[s] / p) % 256) * p; };
-var hrIdx = 0;
-var hr1Sum = 0;
-var hr3Sum = 0;
-var bestPk1 = 0;
-var bestPk3 = 0;
+// App-computed 1'/3' HR peaks CUT (feature A1, 13.06): the whole packed peak ring (hrPk/PB/rdPk/
+// wrPk/hr1Sum/hr3Sum/bestPk1/bestPk3/lastPk1/lastPk3/hrMax) existed only to feed routePk*/routePks —
+// removed with those outputs. The BREAK screen keeps firmware lap AVG/MAX (zero app cost). Per-route
+// AVG HR is still computed here (hrSum/hrCnt → route record bpm field → end-summary "Avg HR").
 var rSec = 0;
 var hrSum = 0;
 var hrCnt = 0;
-var hrMax = 0;
 var sessionH = 0;
-var lastPk1 = 0;
-var lastPk3 = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastClimbMode = 0;   // project slot snapshot taken at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (which cycleSlot may change in BREAK to prep the next burn). See finishRoute / onEvent commit-window note.
@@ -74,7 +62,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 50;  // in-session route cap — block new climbs + show LIMIT (state 3); save+restart resets RAM. NOTE: ~40 fast routes single-app triggered a relMem memory-unload (WBMAIN "pool full 120/120" → "RelMem->unload", buttons dead) — kept at 50 for on-watch testing per user; the memory ceiling is ~40, so this WILL crash near there until per-route RAM is cut (#130). Distinct from the multi-app WB path ceiling (#121, addressed by Output packing).
+var ROUTE_LIMIT = 50;  // in-session route cap — startClimb REFUSES new climbs at this count (the LIMIT screen was cut, feature A3); save+restart resets RAM. NOTE: ~40 fast routes single-app triggered a relMem memory-unload (WBMAIN "pool full 120/120" → "RelMem->unload", buttons dead) — kept at 50 per user; the memory ceiling is ~40. Distinct from the multi-app WB path ceiling (#121, addressed by Output packing).
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -95,7 +83,8 @@ var f17;  // stay-lazy: parsed at the SETUP tap, only sessions that change grade
 var f11, f19, f9, f14, f21d = 0;
 
 // f10 — route commit: returns [bestSendIdx, 0, recordTuple, slotKey, slotStats]
-var f10 = function(lgi,gs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,ps,ats,h){
+// (peak/hrMax args dropped with feature A1 — the body never used them; tuple unchanged)
+var f10 = function(lgi,gs,ld,lha,isSend,cm,bse,ps,ats,h){
 var sk=cm>0?gs+"_"+cm:null;
 if(isSend){if(lgi>bse)bse=lgi;}
 var fs=0,np=null;
@@ -194,7 +183,6 @@ var cycleSlot = function(dy) {
 
 var pushMode = function(o) {
   writeG(o);
-  o.climbMode = climbMode;
   o.modeSub = climbMode > 0 ? -climbMode : routeNumber;
 };
 
@@ -206,19 +194,11 @@ var pushMode = function(o) {
 var setOutputs = function(output) {
   output.vState = state;
   output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;
-  output.routePk1 = lastPk1;
-  output.routePk3 = lastPk3;
-  // Display composite, NUMERIC pack (outputs are float64 — strings are discarded). bpm(pk1)*1000+bpm(pk3);
-  // template script formats decode RAW (no unit conversion), so pack bpm (Hz*60; max ~250 fits %1000).
-  // routePk1/routePk3 above stay Hz — their HeartRate_Fourdigits log/render pipeline applies x60 itself.
-  output.routePks = Math.round(lastPk1 * 60) * 1000 + Math.round(lastPk3 * 60);
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
-  output.climbMode = climbMode;
   if (state === 5) {
     var hasR = editIdx >= 0 && editIdx < rN();
     output.lastGrade = hasR ? encGrade(rGrade(editIdx)) : -1;
     output.modeSub = rN();
-    output.climbMode = hasR ? rCm(editIdx) : 0;
     return;
   } else if (state === 6) {
     output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
@@ -368,7 +348,8 @@ var runManage = function(output, eid, dy) {
   if (R[15] > -9999) output.grade = R[15];
   if (R[16] > -9999) output.lastGrade = R[16];
   if (R[17] > -9999) output.modeSub = R[17];
-  if (R[18] > -9999) output.climbMode = R[18];
+  // R[18] (dCM) no longer applied — the climbMode output was cut (feature C1); edit.html reads
+  // only modeSub/lastGrade. ext20 still returns the slot; main just ignores it.
   if (R[9]) goState(0, output);
 };
 
@@ -392,9 +373,7 @@ var commitDirty = function() {
     // 0 HR → peaks render '--'; 0 duration → 0:00 (honest for a sub-second route).
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
     lastDuration = rSec;
-    lastPk1 = bestPk1 || lastHrAvg;
-    lastPk3 = bestPk3 || lastHrAvg;
-    var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax, lastPk1, lastPk3,
+    var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg,
       frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lastClimbMode (slot at finish), NOT live climbMode — see finishRoute snapshot
     bestSendIdx = r[0];
     if (r[2]) {
@@ -408,23 +387,23 @@ var commitDirty = function() {
       if (r[3] && r[4]) { projStats[r[3]] = r[4]; projStatsDirty = 1; }
       sessionH += lastHeight || 0;
     }
-    hrIdx = hrDec = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
+    hrSum = hrCnt = rSec = 0;
     // brkLine/actLine updated by setOutputs (called at end of evaluate).
   }
 };
 
 var startClimb = function(output) {
-  // Route-limit safety valve: at ROUTE_LIMIT logged routes, refuse new climbs and show the LIMIT
-  // screen (state 3). Forces a save+restart, which resets per-session heap/subscriptions — the thing
-  // that let multi-app sessions survive across restarts (the shared 3-app path-param ceiling).
-  if (rN() >= ROUTE_LIMIT) { goState(3, output); return; }
+  // Route-limit safety valve: at ROUTE_LIMIT logged routes, REFUSE new climbs (stay on READY).
+  // The dedicated LIMIT screen (state 3) was cut (feature A3) — the refusal still forces the
+  // save+restart that resets per-session heap/subscriptions; it just no longer paints an explainer.
+  if (rN() >= ROUTE_LIMIT) return;
   // #103: in project mode, block the climb start until the active project slot has a grade.
   // toggleMode/projSetup stay reachable so the project CAN be configured.
   if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;
   // NO parses here — the f19/f9 double-parse that lived on this line evicted the app at first climb
   // entry 3/3 times on a degraded heap (12:20 sessions: evalFile ext19+ext9 → relMemCb → unload in the
   // SAME second; the user saw "all screens overlayed" = template alive, zapp dead). ALL parses at onLoad.
-  hrIdx = hrDec = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
+  hrSum = hrCnt = rSec = 0;
   startAsc = curAsc;
   goState(1, output);
 };
@@ -533,20 +512,9 @@ function evaluate(input, output) {
   if (state === 1) {
     rSec++;
     var h = input.H;
-    if (h >= 0.5 && h <= 4) {  // valid HR only — input.H is Hz (0.5-4 Hz = 30-240 bpm; real HR ~1.0-3.3 Hz). The old bpm-scale ">= 30" rejected EVERY on-watch sample, zeroing avg+peaks. The earlier "showed 1" was real HR (~1 Hz = 60 bpm) collapsed by integer rounding in the routePks pack, not a no-lock artifact. Upper band keeps the bpm byte (<=240) and the routePks 3-digit fields safe from glitch bursts.
-      hrSum += h; hrCnt++;
-      if (h > hrMax) hrMax = h;
-      hrDec++;
-      if (hrDec >= 3) {  // store every 3rd valid sample into the packed ring — sums stay Hz-equivalent via /1200, /3600
-        hrDec = 0;
-        var nb = Math.round(h * 60);  // bpm byte 0..255
-        hr1Sum += nb; hr3Sum += nb;
-        if (hrIdx >= 20) { hr1Sum -= rdPk((hrIdx - 20) % 60); if (hr1Sum / 1200 > bestPk1) bestPk1 = hr1Sum / 1200; }
-        if (hrIdx >= 60) { hr3Sum -= rdPk(hrIdx % 60); if (hr3Sum / 3600 > bestPk3) bestPk3 = hr3Sum / 3600; }
-        wrPk(hrIdx % 60, nb);
-        hrIdx++;
-      }
-    }
+    // input.H is Hz (0.5-4 Hz = 30-240 bpm; real HR ~1.0-3.3 Hz). Accumulate the per-route average
+    // only (→ route record bpm field → end-summary "Avg HR"). The 1'/3' peak ring was cut (A1).
+    if (h >= 0.5 && h <= 4) { hrSum += h; hrCnt++; }
   }
 
   commitDirty();
@@ -631,7 +599,7 @@ function onEvent(_input, output, eventId) {
   else if (state === 1) evClimb(output, eventId);
   else if (state === 2) evBreak(output, eventId, dy);
   else if (state === 5 || state === 4 || state === 6) runManage(output, eventId, dy);
-  else if (state === 3) goState(0, output);  // LIMIT screen: any button → back to READY (to reach STATS/EDIT; START re-blocks until save+restart)
+  // state 3 (LIMIT screen) removed (feature A3): startClimb now refuses silently at the cap.
 }
 
 function onExercisePause(_input, _output) {
