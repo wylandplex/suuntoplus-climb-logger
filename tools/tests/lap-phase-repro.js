@@ -71,7 +71,7 @@ function makeApp() {
     'onExerciseEnd:onExerciseEnd,onExercisePause:onExercisePause,onExerciseContinue:onExerciseContinue,' +
     'getState:function(){return state},getRoutes:function(){return routes},' +
     'getFrDirty:function(){return frDirty},' +
-    'getSelfLapExpected:function(){return selfLapExpected},' +
+    'getLimit:function(){return ROUTE_LIMIT},' +
     'getExtLapPending:function(){return typeof extLapPending==="undefined"?undefined:extLapPending}};';
   vm.runInContext(src, sandbox, { filename: 'main.js' });
   return sandbox.__api;
@@ -234,6 +234,24 @@ console.log('\n[7] onExerciseEnd honors a just-armed ext-lap finish as SEND');
     'routes=' + api.getRoutes().length);
   var rr = api.getRoutes()[api.getRoutes().length - 1];
   check('committed as SEND (ext-lap finish)', rr && rr[1] === 1, 'rr=' + JSON.stringify(rr));
+})();
+
+console.log('\n[8] START at the route cap shows the LIMIT screen (state 3), not a flash back to READY');
+(function () {
+  var api = freshReady();
+  var lim = api.getLimit();
+  for (var i = 0; i < lim; i++) {           // fill to ROUTE_LIMIT via full app climbs
+    appStart(api); tick(api, 100); appFinish(api, true); tick(api, 100);
+    api.onEvent({}, {}, 6);                  // BREAK -> READY
+  }
+  check('at the route cap, back in READY', api.getRoutes().length === lim && api.getState() === 0,
+    'routes=' + api.getRoutes().length + ' state=' + api.getState());
+  appStart(api);                             // START press at the cap (onLap shows LIMIT, onEvent(6) must NOT dismiss)
+  check('LIMIT screen stays (state 3), not flashed back to READY', api.getState() === 3,
+    'state=' + api.getState());
+  tick(api, 100);                            // dwell cleared
+  api.onEvent({}, {}, 6);                    // a deliberate press now dismisses
+  check('a deliberate press dismisses LIMIT -> READY', api.getState() === 0, 'state=' + api.getState());
 })();
 
 console.log('\n=== summary ===');

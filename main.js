@@ -205,7 +205,7 @@ var goState = function(s, output) {
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
-  if (s === 1) dwell = 1;
+  if (s === 1 || s === 3) dwell = 1;  // s===3 (LIMIT) too: a START at the route cap goes onLap->startClimb->goState(3); the trailing onEvent(6) from the SAME press must be absorbed (dwell) or it immediately goState(0)s and the LIMIT screen only flashes
   if (output) setOutputs(output);  // publishes actT/actS/actB (s=0) and brkSends/brkRoutes (s=2)
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
@@ -584,7 +584,7 @@ function onEvent(_input, output, eventId) {
   // finish-time snapshots lastGradeIdx + lastClimbMode, so cycling in BREAK can't re-tag it). frDirty is 0 in
   // every non-BREAK state, so this guard only ever fires in the BREAK commit window.
   if (frDirty && (eventId === 4 || eventId === 6)) return;
-  if (dwell && state === 1 && eventId === 6) return;  // climb-entry guard: suppress only the redundant start-button(6) after an app START. A fast FAIL(5) still reaches onEvent and wins; a fast SEND(6) is absorbed here but onLap armed extLapPending -> evaluate finishes it as SEND next tick (same result).
+  if (dwell && eventId === 6 && (state === 1 || state === 3)) return;  // climb-entry guard: absorb the redundant start-button(6) after an app START that onLap already handled — whether it became a CLIMB (state 1) or hit the route cap and showed the LIMIT screen (state 3, else the screen only flashes). A fast FAIL(5) still reaches onEvent and wins.
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
