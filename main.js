@@ -26,6 +26,7 @@ var lastHrAvg = 0;
 var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
+var lastClimbMode = 0;   // project-slot snapshot taken at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (cycleSlot can change it in the BREAK commit window). See finishRoute + the commit-window lock in onEvent.
 var selfLapExpected = 0;
 var editIdx = 0;
 var editDelMark = 0;
@@ -164,7 +165,7 @@ var writeActStats = function(output) {
     var ap = projStats[gradeSystem + "_" + climbMode] || {};
     output.actT = ap.attempts || 0;
     output.actS = ap.sends || 0;
-    output.actB = ap.bestTime || 0;
+    output.actB = Math.min(ap.bestTime || 0, 86400);  // permanent display clamp vs legacy >24h (ms-unit) garbage bests
   } else { output.actT = -1; output.actS = -1; output.actB = -1; }
 };
 
@@ -212,7 +213,7 @@ var writeG = function(o, idx) {
 };
 
 var finishRoute = function(send, output) {
-  lastResult = send; lastGradeIdx = currentGrade;
+  lastResult = send; lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // snapshot the slot NOW: cycleSlot in the BREAK commit window changes climbMode for the next climb and must not re-attribute this route
   lastHeight = Math.max(0, Math.round(curAsc - startAsc));
   if (send) sendsCount++;
   frDirty = 1; frSend = send;
@@ -256,6 +257,23 @@ var recalcBse = function() {
   }
 };
 
+// Recompute a project slot's bestTime from this session's routes — call after deleting/un-sending a route
+// that may have held the slot's best, else a stale orphaned best survives forever. Gated on
+// firstSes===sessions: only sound when ALL the slot's routes are in this session's in-memory routes[]
+// (true here — ROUTE_LIMIT 35 < the 50-route splice cap, so same-session routes are never evicted).
+var rescanBest = function(cm) {
+  if (cm <= 0) return;
+  var p = projStats[gradeSystem + "_" + cm];
+  if (!p || p.firstSes !== allTimeStats.sessions) return;
+  var best = 0;
+  for (var i = 0; i < routes.length; i++) {
+    var rr = routes[i];
+    if (rr[1] && rr[2] === cm && rr[4] > 0 && (best === 0 || rr[4] < best)) best = rr[4];
+  }
+  p.bestTime = best;
+  projStatsDirty = 1;
+};
+
 var commitDirty = function(input) {
   input = input || {};  // guard lives HERE, not at the call site: the build minifier leaves a bare `input` wrapped in `|| {}` un-renamed (it only renames `input` as a direct call arg or `input.X` member), so onExerciseEnd's commitDirty(input||{}) silently ReferenceError'd and the end-of-session route was never committed. Both call sites now pass bare `input`.
   if (frDirty) {
@@ -265,7 +283,7 @@ var commitDirty = function(input) {
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
     var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
-      frSend, climbMode, bestSendIdx, projStats, allTimeStats, lastHeight);
+      frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route
     bestSendIdx = r[0];
     if (r[2]) {
       routes.push(r[2]);
@@ -415,6 +433,7 @@ var evEdit = function(output, eid) {
         if (dr[3] > 0) sessionH = Math.max(0, sessionH - dr[3]);
         routes.splice(editIdx, 1);
         recalcBse();
+        if (dr[2] > 0) rescanBest(dr[2]);  // deleted route may have held the slot's best — recompute from what's left
         if (routeNumber > 1) routeNumber--;
         n = routes.length;
         if (editIdx >= n && n > 0) editIdx = n - 1;
@@ -455,6 +474,7 @@ var evEdit = function(output, eid) {
         if (r[2] > 0) {
           var k2 = gradeSystem + "_" + r[2], p2 = projStats[k2];
           if (p2 && p2.sends > 0) { p2.sends--; projStatsDirty = 1; }
+          rescanBest(r[2]);  // un-sent route may have held the slot's best — recompute (r[1] is now 0, so it's excluded)
         }
       } else {
         editDelMark = 1;
@@ -522,7 +542,7 @@ function evaluate(input, output) {
 
 function onExerciseEnd(input, _output) {
   if (state === 1) {
-    lastGradeIdx = currentGrade;
+    lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
     frDirty = 1; frSend = 0;
     routeNumber++;
@@ -540,6 +560,12 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  // Commit-window action-lock: while a just-finished route awaits commitDirty (~1 tick, in BREAK), drop route
+  // ACTIONS — a too-fast eid4 would save-as-project WITHOUT the pending route, and eid6 would bounce BREAK→READY
+  // pre-commit. Grade/slot events (1/2/7/8) stay fluid (and are safe: the pending route is attributed to the
+  // finish-time snapshots lastGradeIdx + lastClimbMode, so cycling in BREAK can't re-tag it). frDirty is 0 in
+  // every non-BREAK state, so this guard only ever fires in the BREAK commit window.
+  if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && state === 1 && eventId === 6) return;  // climb-entry guard: only suppress start-button(6); fast FAIL(5) MUST reach onEvent (sets selfLapExpected) — else onLap finishes as SEND
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
