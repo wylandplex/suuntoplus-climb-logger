@@ -27,7 +27,7 @@ var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
 var lastClimbMode = 0;   // project-slot snapshot taken at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (cycleSlot can change it in the BREAK commit window). See finishRoute + the commit-window lock in onEvent.
-var selfLapExpected = 0;
+var extLapPending = 0;  // deferred CLIMB-finish armed by an EXTERNAL lap (auto-lap / non-app lap) in onLap; drained in evaluate one tick later so an app FAIL/SEND button (onEvent fires AFTER onLap on this platform) can cancel it via finishRoute. SEND by default.
 var editIdx = 0;
 var editDelMark = 0;
 var isPaused = 0;
@@ -63,9 +63,11 @@ var initReady = function() {
 };
 
 function getUserInterface() {
-  // Two-cluster split: active.html (states 0/1/2) vs manage.html (states 4/5/6).
+  // Three-cluster split: active.html (states 0/1/2/3), manage.html (setup sc4 / proj-setup sc6),
+  // edit.html (dedicated EDIT sc5 — mounted alone so entering EDIT no longer drags SETUP+proj-setup weight).
   // Resolve the FIRST template via initReady() so it's correct whether the framework queries this
-  // before or after onLoad (a returning user must open on active, not blank-out on manage).
+  // before or after onLoad (a returning user must open on active, not blank-out on manage). EDIT is never
+  // the first screen (reached only from READY), so first resolve is only ever active/manage.
   // After first resolve, goState() owns currentTemplate.
   if (!currentTemplate) currentTemplate = initReady() ? "active" : "manage";
   return { template: currentTemplate };
@@ -179,6 +181,12 @@ var pushEdit = function() {
   var n = routes.length, rr = routes[editIdx];
   var ev = editDelMark ? 2 : (rr ? rr[1] : 0);
   setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
+  // A-slimming: "/N" total + grade arrows moved off <eval> bindings (edit.html keeps only the lastGrade eval).
+  setText("#ed-total", "" + n);
+  // Grade up/down arrows: hidden on project routes (rr[2]>0) — mirrors the old climbMode <eval>s and the evEdit eid 1/2 !rr[2] guard.
+  var arr = (rr && rr[2] > 0) ? "HIDDEN" : "VISIBLE";
+  setStyle("#ed-arrUp", "visibility", arr);
+  setStyle("#ed-arrDn", "visibility", arr);
   setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
   setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
   // #101: mid-pill shows the NEXT MID action (cycle DEL→SEND→FAIL→DEL):
@@ -193,7 +201,7 @@ var pushEdit = function() {
 
 var goState = function(s, output) {
   state = s;
-  var t = s < 4 ? "active" : "manage";  // states 0/1/2 → active cluster, 4/5/6 → manage cluster
+  var t = s < 4 ? "active" : s === 5 ? "edit" : "manage";  // 0/1/2/3 → active, 5 → dedicated edit.html, 4/6 → manage
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -213,6 +221,7 @@ var writeG = function(o, idx) {
 };
 
 var finishRoute = function(send, output) {
+  extLapPending = 0;  // an explicit finish (app FAIL/SEND, or the evaluate-drain itself) consumes any armed external-lap deferral so the route commits exactly once with the right result
   lastResult = send; lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // snapshot the slot NOW: cycleSlot in the BREAK commit window changes climbMode for the next climb and must not re-attribute this route
   lastHeight = Math.max(0, Math.round(curAsc - startAsc));
   if (send) sendsCount++;
@@ -528,6 +537,13 @@ function evaluate(input, output) {
     }
   }
 
+  // Drain a deferred external-lap CLIMB-finish: an AUTO/non-app lap fired onLap last tick and armed
+  // extLapPending. Finish HERE (not in onLap) because onLap fires BEFORE onEvent — finishing in onLap would
+  // race an app FAIL/SEND button arriving the same input batch. By now an app finish (if any) already ran
+  // finishRoute -> state 2 + extLapPending cleared, so this no-ops for app finishes; only a true external
+  // lap survives, finished as SEND. !dwell: never finish inside the CLIMB-entry guard window.
+  if (extLapPending && !dwell) { if (state === 1) finishRoute(1, output); else extLapPending = 0; }
+
   commitDirty(input);
   // pendF17 / projStatsDirty drain removed from evaluate — all LS writes deferred to
   // onExerciseEnd (reference-app pattern). The previous per-tick f17() flush caused
@@ -544,7 +560,9 @@ function onExerciseEnd(input, _output) {
   if (state === 1) {
     lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
-    frDirty = 1; frSend = 0;
+    // An external lap that finished the climb just before session end (extLapPending still armed, not yet
+    // drained by evaluate) is a SEND — the lap-finish default. A plain dangling climb flushes as FAIL.
+    frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
     routeNumber++;
   }
   try { commitDirty(input); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
@@ -566,13 +584,15 @@ function onEvent(_input, output, eventId) {
   // finish-time snapshots lastGradeIdx + lastClimbMode, so cycling in BREAK can't re-tag it). frDirty is 0 in
   // every non-BREAK state, so this guard only ever fires in the BREAK commit window.
   if (frDirty && (eventId === 4 || eventId === 6)) return;
-  if (dwell && state === 1 && eventId === 6) return;  // climb-entry guard: only suppress start-button(6); fast FAIL(5) MUST reach onEvent (sets selfLapExpected) — else onLap finishes as SEND
+  if (dwell && state === 1 && eventId === 6) return;  // climb-entry guard: suppress only the redundant start-button(6) after an app START. A fast FAIL(5) still reaches onEvent and wins; a fast SEND(6) is absorbed here but onLap armed extLapPending -> evaluate finishes it as SEND next tick (same result).
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
     else if (eventId === 8) dy = -3;
   } else if (eventId === 7 || eventId === 8) return;
-  if ((state === 0 && eventId === 6) || (state === 1 && (eventId === 5 || eventId === 6))) selfLapExpected = 1;
+  // (selfLapExpected swallow removed — onLap fires BEFORE onEvent here, so the flag was set after the
+  //  firmware lap it targeted and stuck at 1, eating the next external lap; app double-finish is now
+  //  prevented by the extLapPending defer+cancel in onLap/finishRoute.)
   if (state === 0) evReady(output, eventId, dy);
   else if (state === 1) evClimb(output, eventId);
   else if (state === 2) evBreak(output, eventId, dy);
@@ -591,11 +611,14 @@ function getSummaryOutputs(input, output) {
 }
 
 function onLap(_input, output) {
-  if (selfLapExpected) { selfLapExpected = 0; return; }
-  if (state === 0) startClimb(output);
-  // state=1 (climbing) finish handled ONLY by onEvent (which carries the FAIL/SEND eid).
-  // onLap fires BEFORE onEvent on this platform — the old finishRoute(1) here was
-  // hardcoded send and overrode whatever button the user pressed (every-route-is-a-send bug).
-  // The lap() trigger from evL still creates the firmware Lap/-2 record for HR/duration stats.
-  else if (state === 2 && !frDirty) startClimb(output);
+  // A watch lap ADVANCES the phase READY->CLIMB->BREAK->CLIMB->... for BOTH external laps (auto-lap / a lap
+  // triggered outside the app) AND the app's own evL()->lap() firmware lap. onLap fires BEFORE onEvent here,
+  // so do NOT change phase synchronously for the CLIMB-finish: the app's FAIL/SEND button arrives via onEvent
+  // in the same input batch and must win. Instead ARM extLapPending and let evaluate() drain it next tick —
+  // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
+  // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
+  // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
+  if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
+  else if (state === 0) startClimb(output);      // READY -> start first climb
+  else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)
 }
