@@ -4,6 +4,7 @@ var state = 4;
 var currentGrade = 18;
 var routeNumber = 1;
 var routes = [];
+var routesEvicted = 0;   // set to 1 once commitDirty splices routes[] past 50 (only reachable when ROUTE_LIMIT > the splice cap, e.g. the 999 TEMP build) — routes[] is then incomplete, so rescanBest must not recompute a slot best from it
 var sendsCount = 0;
 var lastResult = 0;
 
@@ -132,7 +133,7 @@ var brkSendsV = 0, brkRoutesV = 0;
 var wGL = function(o) { o.packedGL = gradeV * 952 + (lastGradeV + 1); };
 var wBrk = function(o) {
   var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-  o.packedBreak = (bse + 1) * 4096 + (brkSendsV > 63 ? 63 : brkSendsV) * 64 + (brkRoutesV > 63 ? 63 : brkRoutesV);
+  o.packedBreak = (bse + 1) * 4096 + Math.max(0, Math.min(63, brkSendsV)) * 64 + Math.max(0, Math.min(63, brkRoutesV));  // symmetric clamp: a negative count would otherwise borrow into the bestSend field, not just its own
 };
 
 var pushMode = function(o) {
@@ -284,11 +285,13 @@ var recalcBse = function() {
 };
 
 // Recompute a project slot's bestTime from this session's routes — call after deleting/un-sending a route
-// that may have held the slot's best, else a stale orphaned best survives forever. Gated on
-// firstSes===sessions: only sound when ALL the slot's routes are in this session's in-memory routes[]
-// (true here — ROUTE_LIMIT 35 < the 50-route splice cap, so same-session routes are never evicted).
+// that may have held the slot's best, else a stale orphaned best survives forever. Sound ONLY when ALL the
+// slot's routes are still in the in-memory routes[]: gated on firstSes===sessions (a first-session slot) AND
+// !routesEvicted. At ROUTE_LIMIT 35 the 50-route splice can't fire, but the 999 TEMP build can log past 50,
+// evicting the earliest routes — a recompute would then miss the slot's true (faster, evicted) best and
+// overwrite the correctly-recorded bestTime with a too-high/0 value that persists to flash. Bail instead.
 var rescanBest = function(cm) {
-  if (cm <= 0) return;
+  if (cm <= 0 || routesEvicted) return;
   var p = projStats[gradeSystem + "_" + cm];
   if (!p || p.firstSes !== allTimeStats.sessions) return;
   var best = 0;
@@ -313,7 +316,7 @@ var commitDirty = function(input) {
     bestSendIdx = r[0];
     if (r[2]) {
       routes.push(r[2]);
-      if (routes.length > 50) routes.splice(0, routes.length - 50);
+      if (routes.length > 50) { routes.splice(0, routes.length - 50); routesEvicted = 1; }  // routes[] now incomplete → rescanBest must not trust it (see its guard)
       allTimeStats.totalRoutes++;
       if (frSend) allTimeStats.totalSends++;
       recPct();

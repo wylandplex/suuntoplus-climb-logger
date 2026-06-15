@@ -41,7 +41,7 @@ for (var a = 0; a < gradeFieldVals.length; a++) {
   }
 }
 console.log("  max packedGL = " + encGL(MAXGF, MAXG) + " (limit 2^24 = 16777216)");
-check(encGL(MAXGF, MAXG) < (1 << 24), "packedGL worst case exceeds 2^24");
+check(encGL(MAXGF, MAXG) <= (1 << 24), "packedGL worst case exceeds 2^24");  // 2^24 is the largest float32-exact integer, so the safe limit is <=, not <
 
 // ---------- packedBreak = (bse+1)*4096 + sat(brkSends)*64 + sat(brkRoutes) ----------
 //   bestSend decode:  Math.floor(x/4096) - 1   (bse -1 = none)
@@ -71,7 +71,7 @@ check(decBS(encBrk(MAXG, 200, 0)) === 63, "brkSends>63 must saturate to 63");
 check(decBR(encBrk(MAXG, 0, 999)) === 63, "brkRoutes>63 must saturate to 63");
 check(decBse(encBrk(MAXG, 999, 999)) === MAXG, "bestSend must survive saturated counts");
 console.log("  max packedBreak = " + encBrk(MAXG, 63, 63) + " (limit 2^24 = 16777216)");
-check(encBrk(MAXG, 63, 63) < (1 << 24), "packedBreak worst case exceeds 2^24");
+check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
 
 console.log(fails === 0 ? "\nALL PASS" : "\n" + fails + " FAILURE(S)");
 process.exit(fails === 0 ? 0 : 1);
