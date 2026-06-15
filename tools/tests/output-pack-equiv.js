@@ -13,26 +13,35 @@ var check = function(cond, msg) { if (!cond) { console.log("  FAIL  " + msg); fa
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 var gradeVals = [];                       // every legal encGrade value
 for (var s = 0; s < 10; s++) for (var i = 0; i < GRADE_LENS[s]; i++) gradeVals.push(s * 100 + i);
-var MAXG = Math.max.apply(null, gradeVals);   // 900
+var MAXG = Math.max.apply(null, gradeVals);   // 900 (highest real grade)
+// The GRADE field can ALSO carry the encGrade(50) "OFF" sentinel (projsetup empty slot → gradeSystem*100+50,
+// max 950 at system 9); the lastGrade field never does (always a real grade or -1). main.js writeG/state-6
+// publish encGrade(50) into gradeV, so the grade field must be exercised over BOTH domains, up to 950.
+var offVals = [];
+for (var s2 = 0; s2 < 10; s2++) offVals.push(s2 * 100 + 50);   // encGrade(50) per grade system
+var gradeFieldVals = gradeVals.concat(offVals);                // grade-field domain (real grades + OFF sentinel)
+var MAXGF = Math.max.apply(null, gradeFieldVals);              // 950
 
 // ---------- packedGL = gradeV*952 + (lastGradeV+1) ----------
 //   grade decode:     Math.floor(x/952)
 //   lastGrade decode: x%952 - 1   (lastGradeV -1 = "none")
+// Round-trips decode the FLOAT32 image (Math.fround) of the composite — exactly what the watch passes to
+// template scripts — so a future >2^24 pack that drops low digits FAILS the round-trip, not just the f32() line.
 console.log("[packedGL] grade + lastGrade");
 var encGL = function(g, lg) { return g * 952 + (lg + 1); };
 var decG  = function(x) { return Math.floor(x / 952); };
 var decLG = function(x) { return x % 952 - 1; };
 var lgVals = [-1].concat(gradeVals);          // lastGrade can be -1 (none)
-for (var a = 0; a < gradeVals.length; a++) {
+for (var a = 0; a < gradeFieldVals.length; a++) {
   for (var b = 0; b < lgVals.length; b++) {
-    var g = gradeVals[a], lg = lgVals[b], x = encGL(g, lg);
+    var g = gradeFieldVals[a], lg = lgVals[b], x = encGL(g, lg), xf = Math.fround(x);
     check(f32(x), "packedGL not float32-exact: g=" + g + " lg=" + lg + " -> " + x);
-    check(decG(x) === g, "grade round-trip g=" + g + " lg=" + lg + " -> " + decG(x));
-    check(decLG(x) === lg, "lastGrade round-trip g=" + g + " lg=" + lg + " -> " + decLG(x));
+    check(decG(xf) === g, "grade round-trip g=" + g + " lg=" + lg + " -> " + decG(xf));
+    check(decLG(xf) === lg, "lastGrade round-trip g=" + g + " lg=" + lg + " -> " + decLG(xf));
   }
 }
-console.log("  max packedGL = " + encGL(MAXG, MAXG) + " (limit 2^24 = 16777216)");
-check(encGL(MAXG, MAXG) < (1 << 24), "packedGL worst case exceeds 2^24");
+console.log("  max packedGL = " + encGL(MAXGF, MAXG) + " (limit 2^24 = 16777216)");
+check(encGL(MAXGF, MAXG) < (1 << 24), "packedGL worst case exceeds 2^24");
 
 // ---------- packedBreak = (bse+1)*4096 + sat(brkSends)*64 + sat(brkRoutes) ----------
 //   bestSend decode:  Math.floor(x/4096) - 1   (bse -1 = none)
@@ -49,11 +58,11 @@ var countVals = [0, 1, 2, 17, 34, 35, 50, 63];   // in-range counts (≤63); 50 
 for (var c = 0; c < bseVals.length; c++) {
   for (var d = 0; d < countVals.length; d++) {
     for (var e = 0; e < countVals.length; e++) {
-      var bse = bseVals[c], bs = countVals[d], br = countVals[e], y = encBrk(bse, bs, br);
+      var bse = bseVals[c], bs = countVals[d], br = countVals[e], y = encBrk(bse, bs, br), yf = Math.fround(y);
       check(f32(y), "packedBreak not float32-exact: bse=" + bse + " bs=" + bs + " br=" + br + " -> " + y);
-      check(decBse(y) === bse, "bestSend round-trip bse=" + bse + " -> " + decBse(y));
-      check(decBS(y) === bs, "brkSends round-trip bs=" + bs + " -> " + decBS(y));
-      check(decBR(y) === br, "brkRoutes round-trip br=" + br + " -> " + decBR(y));
+      check(decBse(yf) === bse, "bestSend round-trip bse=" + bse + " -> " + decBse(yf));
+      check(decBS(yf) === bs, "brkSends round-trip bs=" + bs + " -> " + decBS(yf));
+      check(decBR(yf) === br, "brkRoutes round-trip br=" + br + " -> " + decBR(yf));
     }
   }
 }

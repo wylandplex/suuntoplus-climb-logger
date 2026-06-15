@@ -117,10 +117,13 @@ var cycleSlot = function(dy) {
 
 // Output packing — shrink active.html's mount footprint (fewer distinct WB path subscriptions coexist
 // during the inter-app swipe = template-swap peak that evicts the app; see crash-template-swap-eviction).
-//   packedGL    = grade + lastGrade            → 1 path (was 2). max 940*952+941 = 895,821 < 2^24.
-//   packedBreak = bestSend + brkSends + brkRoutes → 1 path (was 3). base-64; counts saturate at 63
-//                 (ROUTE_LIMIT test build logs >35; prod cap 35 / splice 50). max 941*4096+63*64+63 = 3,858,431 < 2^24.
+//   packedGL    = grade*952 + (lastGrade+1)        → 1 path (was 2). grade-field max = encGrade(50) OFF
+//                 sentinel = 950 (gradeSystem 9): 950*952 = 904,400 < 2^24.
+//   packedBreak = (bestSend+1)*4096 + brkSends*64 + brkRoutes → 1 path (was 3). base-64; counts saturate at
+//                 63 (ROUTE_LIMIT test build logs >35; prod cap 35 / splice 50). max (900+1)*4096+63*64+63 = 3,694,591 < 2^24.
 // Outputs reach template scripts as FLOAT32, so each composite stays <= 2^24 (16.7M); see outputs-are-float32.
+// DECODE SITES (bare literals, NOT build-checked — change in lockstep): active.html (grade/lastGrade/brkSends/
+// brkRoutes/bestSend), manage.html (grade), edit.html (lastGrade), tools/tests/output-pack-equiv.js (the equiv proof).
 // Mirrors hold the latest component so any single-component write republishes the WHOLE composite (a
 // SuuntoPlus output publishes whole — a partial write would zero the other fields). vState stays its own
 // output: it drives applyVis in active+manage, and packing it would re-fire applyVis on every grade change.
@@ -140,7 +143,7 @@ var pushMode = function(o) {
 
 var setOutputs = function(output) {
   output.vState = state;
-  lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1; wGL(output);
+  lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
@@ -185,7 +188,7 @@ var writeActStats = function(output) {
 };
 
 // pushBrk / pushActStats removed — break counter + project stats migrated to output
-// bindings (brkSends/brkRoutes/actT/actS/actB). setText on a HIDDEN section is a
+// bindings (packedBreak's brkSends/brkRoutes fields + actT/actS/actB). setText on a HIDDEN section is a
 // silent no-op on this platform; sc0/sc2 are still hidden when goState(N) runs
 // from the event handler (applyVis(N) is async via the vState output binding).
 
@@ -219,7 +222,7 @@ var goState = function(s, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (s === 1 || s === 3) dwell = 1;  // s===3 (LIMIT) too: a START at the route cap goes onLap->startClimb->goState(3); the trailing onEvent(6) from the SAME press must be absorbed (dwell) or it immediately goState(0)s and the LIMIT screen only flashes
-  if (output) setOutputs(output);  // publishes actT/actS/actB (s=0) and brkSends/brkRoutes (s=2)
+  if (output) setOutputs(output);  // publishes actT/actS/actB (s=0) and packedBreak brkSends/brkRoutes fields (s=2)
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
   // write at onExerciseEnd covers it (psA/psB-equivalent persisted only at session end).
@@ -318,7 +321,7 @@ var commitDirty = function(input) {
       sessionH += lastHeight || 0;
     }
     hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
-    // brkSends/brkRoutes/actT/actS/actB updated by setOutputs (called at end of evaluate).
+    // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
   }
 };
 
