@@ -41,6 +41,9 @@
       "name": "packedBreak"
     },
     {
+      "name": "packedPk"
+    },
+    {
       "name": "routePk1",
       "log": true,
       "shownName": "Peak HR 1min",

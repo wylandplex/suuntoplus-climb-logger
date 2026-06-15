@@ -135,6 +135,15 @@ var wBrk = function(o) {
   var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
   o.packedBreak = (bse + 1) * 4096 + Math.max(0, Math.min(63, brkSendsV)) * 64 + Math.max(0, Math.min(63, brkRoutesV));  // symmetric clamp: a negative count would otherwise borrow into the bestSend field, not just its own
 };
+// packedPk = display-only 1'/3' peak-HR pack (BREAK screen), base-256. routePk1/routePk3 STAY as Hz outputs
+// with manifest log:true (FIT logging unchanged — driven by the flag, not a template binding); active.html
+// just binds packedPk instead of the two, dropping 2 mount paths to 1. lastPk1/lastPk3 are Hz (~0.5–4); ×60→bpm,
+// clamped to the 4Hz HR-gate ceiling (240). max 240*256+240 = 61,680 < 2^24. Decode: pk1 floor(x/256), pk3 x%256.
+var wPk = function(o) {
+  var a = lastPk1 > 0 ? Math.min(240, Math.round(lastPk1 * 60)) : 0;
+  var b = lastPk3 > 0 ? Math.min(240, Math.round(lastPk3 * 60)) : 0;
+  o.packedPk = a * 256 + b;
+};
 
 var pushMode = function(o) {
   writeG(o);
@@ -145,8 +154,9 @@ var pushMode = function(o) {
 var setOutputs = function(output) {
   output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
-  output.routePk1 = lastPk1;
+  output.routePk1 = lastPk1;  // stays in Hz for FIT logging (HeartRate_Fourdigits format ×60s itself)
   output.routePk3 = lastPk3;
+  wPk(output);                // BREAK-screen bpm display (packedPk); only changes at route finish, framework de-dupes the per-tick rewrite
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
   output.climbMode = climbMode;
   if (state === 5) {
