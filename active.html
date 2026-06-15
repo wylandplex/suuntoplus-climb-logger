@@ -42,7 +42,7 @@
       <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
 
       <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" />
+        <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" />
       </div>
 
       <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
@@ -104,7 +104,7 @@
 
       <div class="sp-vertical-center" style="top:calc(55% - 50%e); left:calc(70% - 50%e);">
         <span class="f-ico" style="padding-right:4px">&#xF144;</span>
-        <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/grade" outputFormat="script x => dG(x)" default="--" /></span>
+        <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" /></span>
       </div>
 
       <div class="sp-vertical-center" style="top:calc(72% - 50%e); left:calc(45% - 50%e);">
@@ -138,7 +138,7 @@
 
       <div class="sp-vertical-center" style="top:calc(27% - 50%e); left:calc(30% - 50%e);">
         <span class="f-ico" style="padding-right:4px">&#xF144;</span>
-        <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/lastGrade" outputFormat="script x => dG(x)" default="--" /></span>
+        <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(x%952-1)" default="--" /></span>
       </div>
 
       <div class="p-hc" style="top:22%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
@@ -173,9 +173,9 @@
       <div class="p-hc sp-vertical-center" style="top:calc(64% - 50%e);">
         <span class="f-ico" style="padding-right:14px">&#xF107;</span>
         <span class="f-ico" style="padding-right:6px">&#xF200;</span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/brkSends" outputFormat="script x => ''+x" default="0" /></span><span class="sp-b-s f-num">/</span><span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/brkRoutes" outputFormat="script x => ''+x" default="0" /></span>
+        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(Math.floor(x/64)%64)" default="0" /></span><span class="sp-b-s f-num">/</span><span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(x%64)" default="0" /></span>
         <span class="f-ico" style="padding-left:16px;padding-right:6px">&#xF118;</span>
-        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/bestSend" outputFormat="script x => dG(x)" default="--" /></span>
+        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => dG(Math.floor(x/4096)-1)" default="--" /></span>
         <span class="sp-b-s" style="padding-left:16px">H</span>
         <span class="sp-b-s f-num" style="padding-left:3px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'') + x + 'm'" default="--" /></span>
       </div>

@@ -35,13 +35,10 @@
   ],
   "out": [
     {
-      "name": "grade"
+      "name": "packedGL"
     },
     {
-      "name": "lastGrade"
-    },
-    {
-      "name": "bestSend"
+      "name": "packedBreak"
     },
     {
       "name": "routePk1",
@@ -66,12 +63,6 @@
     },
     {
       "name": "vState"
-    },
-    {
-      "name": "brkSends"
-    },
-    {
-      "name": "brkRoutes"
     },
     {
       "name": "actT"

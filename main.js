@@ -48,7 +48,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 35;  // in-session route cap — at this many logged routes, block new climbs and show the LIMIT screen (state 3). Save+restart resets per-session heap/subscriptions: the safety valve for the shared 3-app path/heap ceiling that crashes long multi-app sessions.
+var ROUTE_LIMIT = 999;  // TEMP TEST (was 35) — cap disabled so the swipe-crash ceiling can be probed past 35 with the new output-packing. REVERT to 35 before merge. packedBreak counts saturate at 63, so brk display is only exact <=63 routes (irrelevant to the crash measurement). Normal: in-session cap → LIMIT screen (state 3), save+restart resets per-session heap/subscriptions.
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -115,8 +115,21 @@ var cycleSlot = function(dy) {
   if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
 };
 
-var pushBest = function(o) {
-  o.bestSend = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
+// Output packing — shrink active.html's mount footprint (fewer distinct WB path subscriptions coexist
+// during the inter-app swipe = template-swap peak that evicts the app; see crash-template-swap-eviction).
+//   packedGL    = grade + lastGrade            → 1 path (was 2). max 940*952+941 = 895,821 < 2^24.
+//   packedBreak = bestSend + brkSends + brkRoutes → 1 path (was 3). base-64; counts saturate at 63
+//                 (ROUTE_LIMIT test build logs >35; prod cap 35 / splice 50). max 941*4096+63*64+63 = 3,858,431 < 2^24.
+// Outputs reach template scripts as FLOAT32, so each composite stays <= 2^24 (16.7M); see outputs-are-float32.
+// Mirrors hold the latest component so any single-component write republishes the WHOLE composite (a
+// SuuntoPlus output publishes whole — a partial write would zero the other fields). vState stays its own
+// output: it drives applyVis in active+manage, and packing it would re-fire applyVis on every grade change.
+var gradeV = 0, lastGradeV = -1;
+var brkSendsV = 0, brkRoutesV = 0;
+var wGL = function(o) { o.packedGL = gradeV * 952 + (lastGradeV + 1); };
+var wBrk = function(o) {
+  var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
+  o.packedBreak = (bse + 1) * 4096 + (brkSendsV > 63 ? 63 : brkSendsV) * 64 + (brkRoutesV > 63 ? 63 : brkRoutesV);
 };
 
 var pushMode = function(o) {
@@ -127,36 +140,36 @@ var pushMode = function(o) {
 
 var setOutputs = function(output) {
   output.vState = state;
-  output.lastGrade = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;
+  lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1; wGL(output);
   output.routePk1 = lastPk1;
   output.routePk3 = lastPk3;
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
   output.climbMode = climbMode;
   if (state === 5) {
     var rr = routes[editIdx];
-    output.lastGrade = rr ? encGrade(rr[0]) : -1;
+    lastGradeV = rr ? encGrade(rr[0]) : -1; wGL(output);
     output.modeSub = routes.length;
     output.climbMode = rr ? (rr[2] || 0) : 0;
     return;
   } else if (state === 6) {
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
+    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     output.modeSub = pStep + 1;
-    output.lastGrade = -1;
+    lastGradeV = -1; wGL(output);
   } else if (state === 4) {
-    output.grade = encGrade(DEFAULT_IDX[gradeSystem]);
+    gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
     output.modeSub = gradeSystem;
-    output.lastGrade = -1;
+    lastGradeV = -1; wGL(output);
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     output.modeSub = climbMode > 0 ? -climbMode : rn;
-    // Break counter — output bindings (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
-    if (state === 2) { output.brkSends = sendsCount; output.brkRoutes = rn; }
+    // Break counter — packed into packedBreak via wBrk (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
+    if (state === 2) { brkSendsV = sendsCount; brkRoutesV = rn; }
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
     if (state === 0) writeActStats(output);
     else { output.actT = -1; output.actS = -1; output.actB = -1; }
   }
-  pushBest(output);
+  wBrk(output);
 };
 
 // Project stats line — output bindings (setText on hidden sc0 is a no-op).
@@ -217,7 +230,8 @@ var goState = function(s, output) {
 };
 
 var writeG = function(o, idx) {
-  o.grade = encGrade(idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
+  gradeV = encGrade(idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
+  wGL(o);
 };
 
 var finishRoute = function(send, output) {
@@ -377,11 +391,11 @@ var evBreak = function(output, eid, dy) {
       // routes[len-1] is the PREVIOUS route — editing it here corrupts it. The pending route picks
       // up the corrected lastGradeIdx on push, so skip the array write until it's committed.
       if (routes.length > 0 && !frDirty) routes[routes.length - 1][0] = lastGradeIdx;
-      output.lastGrade = encGrade(lastGradeIdx);
-      writeG(output);
+      lastGradeV = encGrade(lastGradeIdx);
+      writeG(output);  // publishes packedGL with the new gradeV + lastGradeV
       if (lastResult) {
         recalcBse();
-        pushBest(output);
+        wBrk(output);
       }
     }
   } else if (eid === 4) {
@@ -396,7 +410,7 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
-    output.grade = encGrade(DEFAULT_IDX[gradeSystem]);
+    gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
     pendF17 = 1;   // ext17 grade-system snapshot swap also runs at session end
@@ -409,14 +423,14 @@ var evSetup = function(output, eid, dy) {
 var evProjSetup = function(output, eid, dy) {
   if (dy) {
     projGradeIdx[pStep] = wrap(projGradeIdx[pStep] + dy, GRADE_LENS[gradeSystem], 1);
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
+    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
     output.modeSub = pStep + 1;
     wsDirty = 1;   // watchSetup needs persisting at session end
   } else if (eid === 5) {
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
-    output.grade = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
+    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
     output.modeSub = pStep + 1;
   }
 };
@@ -453,7 +467,7 @@ var evEdit = function(output, eid) {
       editIdx = (editIdx - 1 + n) % n;
       var pr = routes[editIdx];
       if (pr) {
-        output.lastGrade = encGrade(pr[0]);
+        lastGradeV = encGrade(pr[0]); wGL(output);
         output.modeSub = n;
         output.climbMode = pr[2] || 0;
       }
@@ -490,7 +504,7 @@ var evEdit = function(output, eid) {
       }
       recPct();
       recalcBse();
-      pushBest(output);
+      wBrk(output);
       pushEdit();  // T6: editSend icons/label moved to setText
     }
   } else if (eid === 1 || eid === 2) {
@@ -498,10 +512,10 @@ var evEdit = function(output, eid) {
     if (rr && !rr[2]) {
       var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[gradeSystem];
       rr[0] = ((rr[0] + dy5) % L + L) % L;
-      output.lastGrade = encGrade(rr[0]);
+      lastGradeV = encGrade(rr[0]); wGL(output);
       if (rr[1]) {
         recalcBse();
-        pushBest(output);
+        wBrk(output);
       }
     }
   }
