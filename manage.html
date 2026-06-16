@@ -26,9 +26,6 @@
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
     <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (applyVis(x),'')" default="" /></div>
 
-    <!-- Grauer Rombus-Hintergrund für die Bottom-Time-Bar (auf jedem Screen sichtbar) -->
-    <div style="position:absolute;top:84%;left:15%;width:70%;height:14%;background:rgba(255,255,255,0.15);clip-path:polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);"></div>
-
     <div id="sc4" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
       <div class="f-ico p-hc" style="top:calc(22% - 50%e);">&#xF102;</div>
@@ -94,12 +91,6 @@
 
     </div>
 
-    <!-- Shared bottom time-bar — visible on every screen (deduped from the per-section copies) -->
-    <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
-      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
-      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
-    </div>
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">
