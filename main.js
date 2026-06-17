@@ -3,8 +3,25 @@ var state = 4;
 
 var currentGrade = 18;
 var routeNumber = 1;
-var routes = [];
-var routesEvicted = 0;   // set to 1 once commitDirty splices routes[] past 50 (only reachable when ROUTE_LIMIT > the splice cap, e.g. the 999 TEMP build) — routes[] is then incomplete, so rescanBest must not recompute a slot best from it
+// Packed route records (was routes[] of [grade,send,cm,height,dur,hrAvg]): 2 parallel float64 arrays,
+// ~16B/route vs ~120B for the boxed JS array — the exec:zapp HEAP lever (route-record growth is what
+// fills the JS heap at 30+ routes → JSalloc storm / freeze-on-end). App-internal only: these never cross
+// the float32 output transit, so float64's exact-integer range (2^53) holds the packs. hrAvg stays in Hz
+// (unrounded): ext19 renders it via HeartRate_Fourdigits (×60), so packing bpm would show HR 60× wrong.
+//   A = grade*1e6 + send*1e5 + cm*1e4 + height(0..9999)   B = dur(0..86399)*1000 + hrAvgHz(0..~4, fractional kept)
+var routesA = [], routesB = [];
+var routesEvicted = 0;   // set to 1 once commitDirty splices routesA/routesB past the 50 cap (only reachable when ROUTE_LIMIT > 50, e.g. the 999 TEMP build) — the arrays are then incomplete, so rescanBest must not recompute a slot best from them
+var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, Math.max(0, Math.round(h))); };
+var packB = function(d, hr) { return Math.min(86399, Math.max(0, Math.round(d))) * 1000 + (hr > 0 ? hr : 0); };
+var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
+var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
+var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
+var rHt    = function(i) { return routesA[i] % 1e4; };
+var rDur   = function(i) { return Math.floor(routesB[i] / 1000); };
+var rHr    = function(i) { return routesB[i] % 1000; };
+var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), rCm(i), rHt(i)); };
+var wSend  = function(i, v) { routesA[i] = packA(rGrade(i), v, rCm(i), rHt(i)); };
+var wCm    = function(i, v) { routesA[i] = packA(rGrade(i), rSend(i), v, rHt(i)); };
 var sendsCount = 0;
 var lastResult = 0;
 
@@ -160,10 +177,10 @@ var setOutputs = function(output) {
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
   output.climbMode = climbMode;
   if (state === 5) {
-    var rr = routes[editIdx];
-    lastGradeV = rr ? encGrade(rr[0]) : -1; wGL(output);
-    output.modeSub = routes.length;
-    output.climbMode = rr ? (rr[2] || 0) : 0;
+    var has = editIdx < routesA.length;
+    lastGradeV = has ? encGrade(rGrade(editIdx)) : -1; wGL(output);
+    output.modeSub = routesA.length;
+    output.climbMode = has ? (rCm(editIdx) || 0) : 0;
     return;
   } else if (state === 6) {
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
@@ -205,13 +222,13 @@ var writeActStats = function(output) {
 
 // T6: edit screen route counter + send-state icons/label pushed event-driven via setText.
 var pushEdit = function() {
-  var n = routes.length, rr = routes[editIdx];
-  var ev = editDelMark ? 2 : (rr ? rr[1] : 0);
+  var n = routesA.length, has = editIdx < n;
+  var ev = editDelMark ? 2 : (has ? rSend(editIdx) : 0);
   setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
   // A-slimming: "/N" total + grade arrows moved off <eval> bindings (edit.html keeps only the lastGrade eval).
   setText("#ed-total", "" + n);
-  // Grade up/down arrows: hidden on project routes (rr[2]>0) — mirrors the old climbMode <eval>s and the evEdit eid 1/2 !rr[2] guard.
-  var arr = (rr && rr[2] > 0) ? "HIDDEN" : "VISIBLE";
+  // Grade up/down arrows: hidden on project routes (cm>0) — mirrors the old climbMode <eval>s and the evEdit eid 1/2 !cm guard.
+  var arr = (has && rCm(editIdx) > 0) ? "HIDDEN" : "VISIBLE";
   setStyle("#ed-arrUp", "visibility", arr);
   setStyle("#ed-arrDn", "visibility", arr);
   setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
@@ -276,9 +293,10 @@ var toggleMode = function() {
 };
 
 var saveAsProject = function(output) {
-  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routes, allTimeStats.sessions);
+  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routesA, allTimeStats.sessions);
   if (r) {
     currentGrade = r[0]; climbMode = r[1];
+    if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot (ext14's internal routes[len-1][2]=slot moved out for packing)
     allProjects[gradeSystem] = projGradeIdx.slice();  // in-memory update only
     wsDirty = 1;  // ext14 mutated projGradeIdx — persist watchSetup at onExerciseEnd
     // projStats mutated by ext14 → already covered by unconditional climbProjStats write at onExerciseEnd
@@ -288,9 +306,8 @@ var saveAsProject = function(output) {
 
 var recalcBse = function() {
   bestSendIdx = -1;
-  for (var i = 0; i < routes.length; i++) {
-    var rr = routes[i];
-    if (rr[1] && rr[0] > bestSendIdx) bestSendIdx = rr[0];
+  for (var i = 0; i < routesA.length; i++) {
+    if (rSend(i) && rGrade(i) > bestSendIdx) bestSendIdx = rGrade(i);
   }
 };
 
@@ -305,9 +322,8 @@ var rescanBest = function(cm) {
   var p = projStats[gradeSystem + "_" + cm];
   if (!p || p.firstSes !== allTimeStats.sessions) return;
   var best = 0;
-  for (var i = 0; i < routes.length; i++) {
-    var rr = routes[i];
-    if (rr[1] && rr[2] === cm && rr[4] > 0 && (best === 0 || rr[4] < best)) best = rr[4];
+  for (var i = 0; i < routesA.length; i++) {
+    if (rSend(i) && rCm(i) === cm && rDur(i) > 0 && (best === 0 || rDur(i) < best)) best = rDur(i);
   }
   p.bestTime = best;
   projStatsDirty = 1;
@@ -325,8 +341,10 @@ var commitDirty = function(input) {
       frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route
     bestSendIdx = r[0];
     if (r[2]) {
-      routes.push(r[2]);
-      if (routes.length > 50) { routes.splice(0, routes.length - 50); routesEvicted = 1; }  // routes[] now incomplete → rescanBest must not trust it (see its guard)
+      var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
+      routesA.push(packA(rec[0], rec[1], rec[2], rec[3]));
+      routesB.push(packB(rec[4], rec[5]));
+      if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); routesEvicted = 1; }  // arrays now incomplete → rescanBest must not trust them (see its guard)
       allTimeStats.totalRoutes++;
       if (frSend) allTimeStats.totalSends++;
       recPct();
@@ -342,7 +360,7 @@ var startClimb = function(output) {
   // Route-limit safety valve: at ROUTE_LIMIT logged routes, refuse new climbs and show the LIMIT
   // screen (state 3). Forces a save+restart, which resets per-session heap/subscriptions — the thing
   // that let multi-app sessions survive across restarts (the shared 3-app path-param ceiling).
-  if (routes.length >= ROUTE_LIMIT) { goState(3, output); return; }
+  if (routesA.length >= ROUTE_LIMIT) { goState(3, output); return; }
   // #103: in project mode, block the climb start until the active project slot has a grade.
   // toggleMode/projSetup stay reachable so the project CAN be configured.
   if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;
@@ -370,7 +388,7 @@ var evReady = function(output, eid, dy) {
     if (modeChanged) writeActStats(output);  // refresh project stats line for the new slot
   } else if (eid === 5) {
     if (climbMode === 0) {
-      editIdx = routes.length > 0 ? routes.length - 1 : 0;
+      editIdx = routesA.length > 0 ? routesA.length - 1 : 0;
       goState(5, output);
     } else {
       pStep = 0;
@@ -406,7 +424,7 @@ var evBreak = function(output, eid, dy) {
       // !frDirty: while the just-finished route is still pending (not yet pushed by commitDirty),
       // routes[len-1] is the PREVIOUS route — editing it here corrupts it. The pending route picks
       // up the corrected lastGradeIdx on push, so skip the array write until it's committed.
-      if (routes.length > 0 && !frDirty) routes[routes.length - 1][0] = lastGradeIdx;
+      if (routesA.length > 0 && !frDirty) wGrade(routesA.length - 1, lastGradeIdx);
       lastGradeV = encGrade(lastGradeIdx);
       writeG(output);  // publishes packedGL with the new gradeV + lastGradeV
       if (lastResult) {
@@ -452,40 +470,39 @@ var evProjSetup = function(output, eid, dy) {
 };
 
 var evEdit = function(output, eid) {
-  var n = routes.length;
+  var n = routesA.length;
   if (eid === 5 || eid === 6) {
     if (editDelMark) {
-      var dr = routes[editIdx];
-      if (dr) {
+      if (editIdx < routesA.length) {
+        var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = rHt(editIdx);
         allTimeStats.totalRoutes--;
-        if (dr[1]) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
+        if (dSend) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
         recPct();
-        if (dr[2] > 0) {
-          var dk = gradeSystem + "_" + dr[2], dp = projStats[dk];
+        if (dCm > 0) {
+          var dk = gradeSystem + "_" + dCm, dp = projStats[dk];
           if (dp) {
             if (dp.attempts > 0) dp.attempts--;
-            if (dr[1] && dp.sends > 0) dp.sends--;
+            if (dSend && dp.sends > 0) dp.sends--;
             if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
             projStatsDirty = 1;
           }
         }
-        if (dr[3] > 0) sessionH = Math.max(0, sessionH - dr[3]);
-        routes.splice(editIdx, 1);
+        if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
+        routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
         recalcBse();
-        if (dr[2] > 0) rescanBest(dr[2]);  // deleted route may have held the slot's best — recompute from what's left
+        if (dCm > 0) rescanBest(dCm);  // deleted route may have held the slot's best — recompute from what's left
         if (routeNumber > 1) routeNumber--;
-        n = routes.length;
+        n = routesA.length;
         if (editIdx >= n && n > 0) editIdx = n - 1;
       }
       editDelMark = 0;
     }
     if (eid === 6 && n > 0) {
       editIdx = (editIdx - 1 + n) % n;
-      var pr = routes[editIdx];
-      if (pr) {
-        lastGradeV = encGrade(pr[0]); wGL(output);
+      if (editIdx < routesA.length) {
+        lastGradeV = encGrade(rGrade(editIdx)); wGL(output);
         output.modeSub = n;
-        output.climbMode = pr[2] || 0;
+        output.climbMode = rCm(editIdx) || 0;
       }
       pushEdit();  // T6: routeNum + editSend display moved to setText
     } else {
@@ -495,25 +512,26 @@ var evEdit = function(output, eid) {
   }
   if (n === 0) return;
   if (eid === 4) {
-    var r = routes[editIdx];
-    if (r) {
+    if (editIdx < routesA.length) {
       if (editDelMark) {
         editDelMark = 0;
-        r[1] = 1;
+        wSend(editIdx, 1);
         sendsCount++;
         allTimeStats.totalSends++;
-        if (r[2] > 0) {
-          var k = gradeSystem + "_" + r[2], p = projStats[k];
-          if (p) { p.sends++; if (r[4] > 0 && (p.bestTime === 0 || r[4] < p.bestTime)) p.bestTime = r[4]; projStatsDirty = 1; }
+        var cm4 = rCm(editIdx);
+        if (cm4 > 0) {
+          var k = gradeSystem + "_" + cm4, p = projStats[k];
+          if (p) { p.sends++; var d4 = rDur(editIdx); if (d4 > 0 && (p.bestTime === 0 || d4 < p.bestTime)) p.bestTime = d4; projStatsDirty = 1; }
         }
-      } else if (r[1]) {
-        r[1] = 0;
+      } else if (rSend(editIdx)) {
+        wSend(editIdx, 0);
         if (sendsCount > 0) sendsCount--;
         allTimeStats.totalSends--;
-        if (r[2] > 0) {
-          var k2 = gradeSystem + "_" + r[2], p2 = projStats[k2];
+        var cm5 = rCm(editIdx);
+        if (cm5 > 0) {
+          var k2 = gradeSystem + "_" + cm5, p2 = projStats[k2];
           if (p2 && p2.sends > 0) { p2.sends--; projStatsDirty = 1; }
-          rescanBest(r[2]);  // un-sent route may have held the slot's best — recompute (r[1] is now 0, so it's excluded)
+          rescanBest(cm5);  // un-sent route may have held the slot's best — recompute (send is now 0, so it's excluded)
         }
       } else {
         editDelMark = 1;
@@ -524,12 +542,12 @@ var evEdit = function(output, eid) {
       pushEdit();  // T6: editSend icons/label moved to setText
     }
   } else if (eid === 1 || eid === 2) {
-    var rr = routes[editIdx];
-    if (rr && !rr[2]) {
+    if (editIdx < routesA.length && !rCm(editIdx)) {
       var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[gradeSystem];
-      rr[0] = ((rr[0] + dy5) % L + L) % L;
-      lastGradeV = encGrade(rr[0]); wGL(output);
-      if (rr[1]) {
+      var ng = ((rGrade(editIdx) + dy5) % L + L) % L;
+      wGrade(editIdx, ng);
+      lastGradeV = encGrade(ng); wGL(output);
+      if (rSend(editIdx)) {
         recalcBse();
         wBrk(output);
       }
@@ -603,7 +621,7 @@ function onExerciseEnd(input, _output) {
   allTimeStats.totalHeight = (allTimeStats.totalHeight || 0) + sessionH;
   try { writeStats(); } catch (e) {}
   // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
-  try { if (routes.length > 0) LS.setObject("lastSummary", loadExt(19)(routes, gradeSystem)); } catch (e) {}
+  try { if (routesA.length > 0) LS.setObject("lastSummary", loadExt(19)(routesA, routesB, gradeSystem)); } catch (e) {}
 }
 
 function onEvent(_input, output, eventId) {

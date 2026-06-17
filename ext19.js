@@ -1,12 +1,12 @@
-function(routes,gs){
-var n=routes?routes.length:-1;
-if(!routes||n===0)return[{id:'sr',name:'Sends / Routes',format:'Count_Fourdigits',value:0,postfix:'/ 0'}];
+function(rA,rB,gs){
+var n=rA?rA.length:-1;
+if(!rA||n===0)return[{id:'sr',name:'Sends / Routes',format:'Count_Fourdigits',value:0,postfix:'/ 0'}];
 var s=0,ht=0,sp=-1,spC=0,dur=0,hrSum=0,hrCnt=0;
-for(var i=0;i<n;i++){var rr=routes[i],enc=gs*100+rr[0];
-if(rr[1]){s++;if(enc>sp){sp=enc;spC=1}else if(enc===sp)spC++}
-if(rr[3]>0)ht+=rr[3];
-if(rr[4]>0)dur+=rr[4];
-if(rr[5]>0){hrSum+=rr[5];hrCnt++}}
+for(var i=0;i<n;i++){var a=rA[i],b=rB[i],grade=Math.floor(a/1e6),send=Math.floor(a/1e5)%10,height=a%1e4,d=Math.floor(b/1000),hr=b%1000,enc=gs*100+grade;
+if(send){s++;if(enc>sp){sp=enc;spC=1}else if(enc===sp)spC++}
+if(height>0)ht+=height;
+if(d>0)dur+=d;
+if(hr>0){hrSum+=hr;hrCnt++}}
 var htR=Math.round(ht);
 var out=[{id:'sr',name:'Sends / Routes',format:'Count_Fourdigits',value:s,postfix:'/ '+n}];
 if(sp>=0)out.push({id:'b',name:'Highest Send',format:'Count_Fourdigits',value:spC,postfix:'* ',g:sp});
