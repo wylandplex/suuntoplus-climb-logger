@@ -654,8 +654,13 @@ function onExercisePause(_input, _output) { isPaused = 1; }
 function onExerciseContinue(_input, _output) { isPaused = 0; }
 
 function getSummaryOutputs(input, output) {
-  // SUMMARY ONLY — ext9 serves lastSummary cached by onExerciseEnd; no ext19 re-parse per view.
-  return loadExt(9)();
+  // Recap reads the fully-decorated lastSummary INLINE (built + grade-decorated by ext19 at
+  // onExerciseEnd). No ext9 evalFile here: that fresh parse of ext9's ~600-char grade table in the
+  // busy exercise-saving window STALLED the watch right before recap (vertical2.log 19:35:21 →
+  // ERR WBMAIN ... ui Wait). Grade names are now baked into the cache by ext19's dG, so the recap
+  // is a pure LS read — zero parse, zero added residency (caching at onLoad tipped the exec:ui
+  // mount ceiling — see no-midsession-flash-writes).
+  return LS.getObject("lastSummary") || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
 }
 
 function onLap(_input, output) {
