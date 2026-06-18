@@ -26,12 +26,6 @@
 
     <div id="sc0" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
-      <div class="cm-fg" style="width:100%;height:16%">
-        <div class="sp-t-s p-hc" style="top:calc(50% - 50%e);">
-          <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
-        </div>
-      </div>
-
       <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
       <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
 
@@ -71,12 +65,6 @@
 
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
 
-      <div class="cm-fg" style="width:100%;height:16%">
-        <div class="sp-t-s" style="top:calc(50% - 50%e); left:calc(50% - 50%e);">
-          <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
-        </div>
-      </div>
-
       <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
@@ -113,12 +101,6 @@
     </div>
 
     <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
-
-      <div class="cm-fg" style="width:100%;height:16%">
-        <div class="sp-t-s p-hc" style="top:calc(50% - 50%e);">
-          <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE" />
-        </div>
-      </div>
 
       <div class="sp-vertical-center" style="top:calc(27% - 50%e); left:calc(30% - 50%e);">
         <span class="f-ico" style="padding-right:4px">&#xF144;</span>
@@ -179,6 +161,15 @@
         <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
       </div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+    </div>
+
+    <!-- Shared ROUTE/PROJECT header — one always-visible band. Was triplicated across sc0/sc1/sc2 with
+         identical content; authored once here (rendered last so it sits above the section tops). Saves
+         2 cm-fg bands + 2 evals + 2 self-size measure-passes from the resident active mount. -->
+    <div class="cm-fg" style="width:100%;height:16%">
+      <div class="sp-t-s p-hc" style="top:calc(50% - 50%e);">
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
+      </div>
     </div>
 
     <!-- Bottom time-bar with a cheap flat-fill backing panel + top hairline (replaces the removed clip-path
