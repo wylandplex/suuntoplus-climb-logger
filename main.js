@@ -49,6 +49,7 @@ var extLapPending = 0;  // deferred CLIMB-finish armed by an EXTERNAL lap (auto-
 var editIdx = 0;
 var editDelMark = 0;
 var isPaused = 0;
+var finalized = 0;  // onExerciseEnd idempotency (fast pause→end guard); reset to 0 in onLoad each session
 var pStep = 0;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
 var pendF17 = 0;
@@ -71,7 +72,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-var f10, f11, f17;  // T7: cache parsed ext fns; per-route re-parse was heap-fragmenting
+var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason). ext11 (writeStats) + ext17 (grade-swap) each run ONCE at session end, so caching them held ~2.3KB resident the WHOLE session for nothing; now parsed on-demand at onExerciseEnd → frees that resident RAM all session (more swap-budget headroom).
 
 // Start-screen rule — single source of truth for getUserInterface() + onLoad(): returning user with a
 // saved setup and showSetupOnStart off → READY (active cluster); otherwise first-run SETUP (manage).
@@ -103,7 +104,7 @@ var loadProjects = function(sys) {
 };
 
 var writeStats = function() {
-  f11(allTimeStats, projGradeIdx, projStats, climbMode, gradeSystem);
+  loadExt(11)(allTimeStats, projGradeIdx, projStats, climbMode, gradeSystem);  // parse-on-use: ext11 NOT cached (single end-of-session call) → off the resident heap all session
 };
 
 var saveSetup = function() {
@@ -337,8 +338,8 @@ var commitDirty = function(input) {
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     lastPk1 = bestPk1 || lastHrAvg;
     lastPk3 = bestPk3 || lastHrAvg;
-    var r = f10(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
-      frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route
+    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
+      frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session (NOT per-route — the T7 reason); keeps it out of the onLoad/re-enable burst. lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route
     bestSendIdx = r[0];
     if (r[2]) {
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
@@ -447,8 +448,7 @@ var evSetup = function(output, eid, dy) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
-    pendF17 = 1;   // ext17 grade-system snapshot swap also runs at session end
-    f17 = f17 || loadExt(17);  // lazy-cache here (deferred from onLoad); pendF17 ⇒ f17 ready by onExerciseEnd
+    pendF17 = 1;   // ext17 grade-system snapshot swap runs once at session end (parsed on-demand THERE — not cached resident)
   } else if (eid === 6) {
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
@@ -556,7 +556,10 @@ var evEdit = function(output, eid) {
 };
 
 function onLoad(_input, output) {
-  f10 = loadExt(10); f11 = loadExt(11);  // T7: cache once (f17 lazy-loaded on first grade-system change — see evSetup; trims startup evalFile burst)
+  finalized = 0;  // new session → re-arm onExerciseEnd
+  // f10 (ext10) is NOT parsed here — lazy at the first commitDirty (it isn't needed until a route
+  // finishes). Keeps the onLoad/re-enable parse burst to ONE file (ext12 bootstrap), so a fast
+  // disable→enable is less likely to race the firmware's not-yet-reclaimed prior instance into None-avail.
   var r = loadExt(12)(allTimeStats);
   gradeSystem = r[0];
   projGradeIdx = r[1];
@@ -605,6 +608,7 @@ function evaluate(input, output) {
 }
 
 function onExerciseEnd(input, _output) {
+  if (finalized) return; finalized = 1;  // idempotent: a fast pause→end (or any double-fire) must not re-run the parse burst on an already-stressed heap
   if (state === 1) {
     lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
@@ -614,7 +618,30 @@ function onExerciseEnd(input, _output) {
     routeNumber++;
   }
   try { commitDirty(input); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
-  if (pendF17) { pendF17 = 0; try { f17(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap
+  // Fast disable→enable safeguard: if this session logged/changed NOTHING (no routes, no dirty
+  // project/setup/grade state), skip the whole save burst (ext11/ext19 parses + LS writes). On a FAST
+  // re-enable those parses race the firmware's not-yet-reclaimed prior instance → relMemCb(exec:zapp)/
+  // None-avail → cascade → watch ASSERT/reboot (log 2026-06-19 16:04:22, routesA empty). Nothing to
+  // persist, so bail — leaving the disabled instance light enough for the re-enable's onLoad to fit.
+  if (routesA.length === 0 && !projStatsDirty && !wsDirty && !pendF17) return;
+  // Free exec:zapp heap BEFORE the end-parse burst (loadExt 17/11/19). The save was evicting with
+  // relMemCb(exec:zapp)/None-avail because three back-to-back evalFile parses hit a full heap. hrBuf
+  // (180-slot HR ring) + f10 (ext10 closure) are dead after the climb is over — commitDirty above was
+  // their last consumer. routesA/routesB (ext19) and projStats/allTimeStats (ext11) stay live.
+  hrBuf = null; hrIdx = 0; f10 = null;
+  // Parse-free fallback summary FIRST, so an eviction during the ext11/ext19 parse can never leave
+  // "0/0": ext19 overwrites this with the rich recap if its parse survives. Sends counted via rSend
+  // exactly like ext19 (no drift), no evalFile, no allocation beyond the tiny array.
+  try {
+    if (routesA.length > 0) {
+      var sFb = 0, iFb;
+      for (iFb = 0; iFb < routesA.length; iFb++) { if (rSend(iFb)) sFb++; }
+      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: sFb, postfix: '/ ' + routesA.length }];
+      if (sessionH > 0) { fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(sessionH), postfix: 'm' }); }
+      LS.setObject("lastSummary", fb);
+    }
+  } catch (e) {}
+  if (pendF17) { pendF17 = 0; try { loadExt(17)(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap — parse-on-use (ext17 not cached resident)
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
   if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)

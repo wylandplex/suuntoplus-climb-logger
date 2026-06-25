@@ -18,14 +18,17 @@
     <!-- Physical pushButtons — universal events, main.js dispatches by state (state 3 → any event = READY) -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
+      <!-- onLongPressFull consumes the firmware up=Multisport / down=Control Panel default; middle free. -->
       <pushButton name="up" type="lock" longType="lock"
         onClick="ev(1)"
-        onLongPressStart="evL(5)" />
+        onLongPressStart="evL(5)"
+        onLongPressFull=";" />
       <pushButton name="next" longType="lock"
         onLongPressStart="ev(4)" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="ev(2)"
-        onLongPressStart="evL(6)" />
+        onLongPressStart="evL(6)"
+        onLongPressFull=";" />
     </userInput>
     </:if>
 

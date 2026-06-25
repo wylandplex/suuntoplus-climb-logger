@@ -97,14 +97,20 @@
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
+      <!-- onLongPressFull=";" consumes the firmware up=Multisport / down=Control-Panel long-press default.
+           The SETUP→active SCREEN-JUMP itself is fixed centrally in main.js (pendBack: the goState(0) swap is
+           deferred one evaluate tick, so the tap/button input drains before the unload remount — fixes tap
+           AND button AND the touch pills uniformly). 'next' stays free (middle = screen nav). -->
       <pushButton name="up" type="lock" longType="lock"
         onClick="ev(1)"
-        onLongPressStart="evL(5)" />
+        onLongPressStart="evL(5)"
+        onLongPressFull=";" />
       <pushButton name="next" longType="lock"
         onLongPressStart="ev(4)" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="ev(2)"
-        onLongPressStart="evL(6)" />
+        onLongPressStart="evL(6)"
+        onLongPressFull=";" />
     </userInput>
     </:if>
 
