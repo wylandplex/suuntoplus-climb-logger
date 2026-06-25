@@ -641,7 +641,7 @@ function onExerciseEnd(input, _output) {
       LS.setObject("lastSummary", fb);
     }
   } catch (e) {}
-  if (pendF17) { pendF17 = 0; try { loadExt(17)(gradeSystem); } catch (e) {} }  // drain pending snapshot-swap — parse-on-use (ext17 not cached resident)
+  if (pendF17) { try { loadExt(17)(gradeSystem); pendF17 = 0; } catch (e) {} }  // drain pending snapshot-swap — parse-on-use (ext17 not cached resident); clear pendF17 only AFTER a successful parse, so an evicted ext17 in a heap-full save window retries next end instead of silently dropping the grade-system snapshot
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
   if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
