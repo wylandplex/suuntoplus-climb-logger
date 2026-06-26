@@ -424,6 +424,17 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
+    // #148: reload allTimeStats for the NEW system — the in-memory mirror of ext17's LS snapshot swap.
+    // ext12 loads allTimeStats for the START system at onLoad and it's otherwise never refreshed, so without
+    // this, end-of-session writeStats() (ext11) would persist the OLD system's lifetime counters as the new
+    // system's (s{newSys}), corrupting per-system history. SETUP (state 4) is first-launch-only and
+    // unreachable after any climb, so the switch always precedes route logging — no session data is lost.
+    var sStat = LS.getObject("s" + gradeSystem) || {};
+    allTimeStats.totalRoutes = sStat.totalRoutes || 0;
+    allTimeStats.totalSends = sStat.totalSends || 0;
+    allTimeStats.sendPct = sStat.sendPct || 0;
+    allTimeStats.totalHeight = sStat.totalHeight || 0;
+    allTimeStats.sessions = (sStat.sessions || 0) + 1;  // this session counts toward whichever system it ends in
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
