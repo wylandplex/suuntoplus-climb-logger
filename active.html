@@ -121,16 +121,13 @@
 
       <div class="p-hc" style="top:36%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-      <div style="position:absolute;top:38%;left:10%;width:80%;height:18%;">
-        <div style="position:absolute;top:25%;left:0;">
-          <span class="f-ico">&#xF101;</span>
-        </div>
-        <div class="sp-b-s" style="position:absolute;top:0;left:30%;">AVG</div>
-        <div class="sp-b-s f-num" style="position:absolute;top:0;left:55%;">
-          <eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-        <div class="sp-b-s" style="position:absolute;top:50%;left:30%;">MAX</div>
-        <div class="sp-b-s f-num" style="position:absolute;top:50%;left:55%;">
-          <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></div>
+      <!-- Lap HR summary — one horizontally-centered row (heart · AVG value · MAX value). -->
+      <div class="p-hc sp-vertical-center" style="top:calc(46% - 24.5px);">
+        <span class="f-ico" style="padding-right:10px">&#xF101;</span>
+        <span class="sp-b-s" style="padding-right:5px">AVG</span>
+        <span class="sp-b-m f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        <span class="sp-b-s" style="padding-left:20px;padding-right:5px">MAX</span>
+        <span class="sp-b-m f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
 
       <div class="p-hc" style="top:57%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
