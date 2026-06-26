@@ -41,21 +41,6 @@
       "name": "packedBreak"
     },
     {
-      "name": "packedPk"
-    },
-    {
-      "name": "routePk1",
-      "log": true,
-      "shownName": "Peak HR 1min",
-      "format": "HeartRate_Fourdigits"
-    },
-    {
-      "name": "routePk3",
-      "log": true,
-      "shownName": "Peak HR 3min",
-      "format": "HeartRate_Fourdigits"
-    },
-    {
       "name": "climbMode"
     },
     {
@@ -148,8 +133,6 @@
     {"shownName": "Active Project Best Time [s]", "path": "stats.activeBest", "type": "int"},
     {"shownName": "Avg HR [bpm]", "path": "stats.avgHr", "type": "int"},
     {"shownName": "Avg Max HR [bpm]", "path": "stats.avgMaxHr", "type": "int"},
-    {"shownName": "Avg Peak 1min HR [bpm]", "path": "stats.avgPk1", "type": "int"},
-    {"shownName": "Avg Peak 3min HR [bpm]", "path": "stats.avgPk3", "type": "int"},
     {"shownName": "French Routes", "path": "s0.totalRoutes", "type": "int"},
     {"shownName": "French Sends", "path": "s0.totalSends", "type": "int"},
     {"shownName": "French Send Rate [%]", "path": "s0.sendPct", "type": "int"},

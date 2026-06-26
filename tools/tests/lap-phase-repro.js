@@ -27,7 +27,7 @@ var MAIN = path.join(__dirname, '..', '..', 'main.js');
 function extStub(n) {
   if (n === 12) return function (ats) { return [0, [-1, -1, -1, -1, -1], {}, {}]; };
   if (n === 11) return function () {};
-  if (n === 10) return function (lgi, gs, ld, lha, lmh, lp1, lp3, isSend, cm, bse, ps, ats, h) {
+  if (n === 10) return function (lgi, gs, ld, lha, lmh, isSend, cm, bse, ps, ats, h) {  // 11-param sig: lp1/lp3 (1'/3' peaks) removed
     if (isSend && lgi > bse) bse = lgi;
     // route tuple shape rr[0..5] = [grade, send, climbMode, height, dur, hrAvg]
     return [bse, 0, [lgi, isSend ? 1 : 0, cm, h || 0, ld, lha], null, null];

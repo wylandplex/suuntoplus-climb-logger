@@ -1,4 +1,4 @@
-function(lgi,gs,ld,lha,lmh,lp1,lp3,isSend,cm,bse,ps,ats,h){
+function(lgi,gs,ld,lha,lmh,isSend,cm,bse,ps,ats,h){
 var sk=cm>0?gs+"_"+cm:null;
 if(isSend){if(lgi>bse)bse=lgi;}
 var fs=0,np=null;

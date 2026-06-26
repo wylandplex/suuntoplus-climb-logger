@@ -25,19 +25,11 @@ var wCm    = function(i, v) { routesA[i] = packA(rGrade(i), rSend(i), v, rHt(i))
 var sendsCount = 0;
 var lastResult = 0;
 
-var hrBuf = [];
-var hrIdx = 0;
-var hr1Sum = 0;
-var hr3Sum = 0;
-var bestPk1 = 0;
-var bestPk3 = 0;
 var rSec = 0;
 var hrSum = 0;
 var hrCnt = 0;
 var hrMax = 0;
 var sessionH = 0;
-var lastPk1 = 0;
-var lastPk3 = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastHrAvg = 0;
@@ -153,15 +145,7 @@ var wBrk = function(o) {
   var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
   o.packedBreak = (bse + 1) * 4096 + Math.max(0, Math.min(63, brkSendsV)) * 64 + Math.max(0, Math.min(63, brkRoutesV));  // symmetric clamp: a negative count would otherwise borrow into the bestSend field, not just its own
 };
-// packedPk = display-only 1'/3' peak-HR pack (BREAK screen), base-256. routePk1/routePk3 STAY as Hz outputs
-// with manifest log:true (FIT logging unchanged — driven by the flag, not a template binding); active.html
-// just binds packedPk instead of the two, dropping 2 mount paths to 1. lastPk1/lastPk3 are Hz (~0.5–4); ×60→bpm,
-// clamped to the 4Hz HR-gate ceiling (240). max 240*256+240 = 61,680 < 2^24. Decode: pk1 floor(x/256), pk3 x%256.
-var wPk = function(o) {
-  var a = lastPk1 > 0 ? Math.min(240, Math.round(lastPk1 * 60)) : 0;
-  var b = lastPk3 > 0 ? Math.min(240, Math.round(lastPk3 * 60)) : 0;
-  o.packedPk = a * 256 + b;
-};
+// 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
   writeG(o);
@@ -172,9 +156,6 @@ var pushMode = function(o) {
 var setOutputs = function(output) {
   output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
-  output.routePk1 = lastPk1;  // stays in Hz for FIT logging (HeartRate_Fourdigits format ×60s itself)
-  output.routePk3 = lastPk3;
-  wPk(output);                // BREAK-screen bpm display (packedPk); only changes at route finish, framework de-dupes the per-tick rewrite
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
   output.climbMode = climbMode;
   if (state === 5) {
@@ -336,9 +317,7 @@ var commitDirty = function(input) {
     frDirty = 0;
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
-    lastPk1 = bestPk1 || lastHrAvg;
-    lastPk3 = bestPk3 || lastHrAvg;
-    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0), lastPk1, lastPk3,
+    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
       frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session (NOT per-route — the T7 reason); keeps it out of the onLoad/re-enable burst. lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route
     bestSendIdx = r[0];
     if (r[2]) {
@@ -352,7 +331,7 @@ var commitDirty = function(input) {
       if (r[3] && r[4]) { projStats[r[3]] = r[4]; projStatsDirty = 1; }
       sessionH += lastHeight || 0;
     }
-    hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
+    hrSum = hrCnt = hrMax = rSec = 0;
     // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
   }
 };
@@ -370,7 +349,7 @@ var startClimb = function(output) {
   // grade. ext11 then purges projStats[slot] at session end on the g!=pgi mismatch — the "project stats
   // lost on the first session after reinstall" bug (later sessions are fine because toggleMode/load resync).
   if (climbMode > 0) currentGrade = projGradeIdx[climbMode - 1];
-  hrIdx = hr1Sum = hr3Sum = bestPk1 = bestPk3 = hrSum = hrCnt = hrMax = rSec = 0;
+  hrSum = hrCnt = hrMax = rSec = 0;
   startAsc = curAsc;
   goState(1, output);
 };
@@ -580,11 +559,6 @@ function evaluate(input, output) {
     if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg/peaks
       hrSum += h; hrCnt++;
       if (h > hrMax) hrMax = h;
-      hr1Sum += h; hr3Sum += h;
-      if (hrIdx >= 60) { hr1Sum -= hrBuf[(hrIdx - 60) % 180]; if (hr1Sum / 60 > bestPk1) bestPk1 = hr1Sum / 60; }
-      if (hrIdx >= 180) { hr3Sum -= hrBuf[hrIdx % 180]; if (hr3Sum / 180 > bestPk3) bestPk3 = hr3Sum / 180; }
-      hrBuf[hrIdx % 180] = h;
-      hrIdx++;
     }
   }
 
@@ -625,10 +599,10 @@ function onExerciseEnd(input, _output) {
   // persist, so bail — leaving the disabled instance light enough for the re-enable's onLoad to fit.
   if (routesA.length === 0 && !projStatsDirty && !wsDirty && !pendF17) return;
   // Free exec:zapp heap BEFORE the end-parse burst (loadExt 17/11/19). The save was evicting with
-  // relMemCb(exec:zapp)/None-avail because three back-to-back evalFile parses hit a full heap. hrBuf
-  // (180-slot HR ring) + f10 (ext10 closure) are dead after the climb is over — commitDirty above was
-  // their last consumer. routesA/routesB (ext19) and projStats/allTimeStats (ext11) stay live.
-  hrBuf = null; hrIdx = 0; f10 = null;
+  // relMemCb(exec:zapp)/None-avail because three back-to-back evalFile parses hit a full heap. f10 (ext10
+  // closure) is dead after the climb is over — commitDirty above was its last consumer. routesA/routesB
+  // (ext19) and projStats/allTimeStats (ext11) stay live. (hrBuf HR-ring removed — 1'/3' peak feature cut.)
+  f10 = null;
   // Parse-free fallback summary FIRST, so an eviction during the ext11/ext19 parse can never leave
   // "0/0": ext19 overwrites this with the rich recap if its parse survives. Sends counted via rSend
   // exactly like ext19 (no drift), no evalFile, no allocation beyond the tiny array.

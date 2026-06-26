@@ -73,28 +73,7 @@ check(decBse(encBrk(MAXG, 999, 999)) === MAXG, "bestSend must survive saturated 
 console.log("  max packedBreak = " + encBrk(MAXG, 63, 63) + " (limit 2^24 = 16777216)");
 check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
 
-// ---------- packedPk = pk1bpm*256 + pk3bpm  (display-only 1'/3' peak HR, base-256) ----------
-//   pk1 decode: Math.floor(x/256)   pk3 decode: x%256   (each bpm clamped 0..240 = the 4Hz HR-gate ceiling)
-// main.js encodes from Hz: bpm = hz>0 ? min(240, round(hz*60)) : 0. Test the bpm domain directly (post-Hz→bpm).
-console.log("[packedPk] 1'/3' peak HR (bpm, base-256)");
-var encPk = function(a, b) { return a * 256 + b; };
-var decPk1 = function(x) { return Math.floor(x / 256); };
-var decPk3 = function(x) { return x % 256; };
-var bpmVals = [0, 1, 30, 72, 142, 200, 239, 240];   // 0 = no-peak sentinel; 240 = clamp ceiling
-for (var p = 0; p < bpmVals.length; p++) {
-  for (var q = 0; q < bpmVals.length; q++) {
-    var a = bpmVals[p], b = bpmVals[q], z = encPk(a, b), zf = Math.fround(z);
-    check(f32(z), "packedPk not float32-exact: pk1=" + a + " pk3=" + b + " -> " + z);
-    check(decPk1(zf) === a, "pk1 round-trip pk1=" + a + " pk3=" + b + " -> " + decPk1(zf));
-    check(decPk3(zf) === b, "pk3 round-trip pk1=" + a + " pk3=" + b + " -> " + decPk3(zf));
-  }
-}
-// Hz→bpm clamp: a peak above the 4Hz gate must saturate at 240, not bleed into pk1's field
-var hz2bpm = function(hz) { return hz > 0 ? Math.min(240, Math.round(hz * 60)) : 0; };
-check(hz2bpm(4) === 240 && hz2bpm(5) === 240, "bpm must clamp at 240");
-check(decPk1(encPk(hz2bpm(5), hz2bpm(3))) === 240, "pk3 must not corrupt a clamped pk1");
-console.log("  max packedPk = " + encPk(240, 240) + " (limit 2^24 = 16777216)");
-check(encPk(240, 240) <= (1 << 24), "packedPk worst case exceeds 2^24");
+// packedPk (1'/3' peak HR) removed — the 1'/3' rolling-peak feature was cut for the heap diet.
 
 console.log(fails === 0 ? "\nALL PASS" : "\n" + fails + " FAILURE(S)");
 process.exit(fails === 0 ? 0 : 1);

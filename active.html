@@ -125,18 +125,12 @@
         <div style="position:absolute;top:25%;left:0;">
           <span class="f-ico">&#xF101;</span>
         </div>
-        <div class="sp-b-s" style="position:absolute;top:0;left:16%;">AVG</div>
-        <div class="sp-b-s f-num" style="position:absolute;top:0;left:40%;">
+        <div class="sp-b-s" style="position:absolute;top:0;left:30%;">AVG</div>
+        <div class="sp-b-s f-num" style="position:absolute;top:0;left:55%;">
           <eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-        <div class="sp-b-s" style="position:absolute;top:0;left:62%;">1'</div>
-        <div class="sp-b-s f-num" style="position:absolute;top:0;left:72%;">
-          <eval input="/Zapp/{zapp_index}/Output/packedPk" outputFormat="script x => Math.floor(x/256) > 0 ? ''+Math.floor(x/256) : '--'" default="--" /></div>
-        <div class="sp-b-s" style="position:absolute;top:50%;left:16%;">MAX</div>
-        <div class="sp-b-s f-num" style="position:absolute;top:50%;left:40%;">
+        <div class="sp-b-s" style="position:absolute;top:50%;left:30%;">MAX</div>
+        <div class="sp-b-s f-num" style="position:absolute;top:50%;left:55%;">
           <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></div>
-        <div class="sp-b-s" style="position:absolute;top:50%;left:62%;">3'</div>
-        <div class="sp-b-s f-num" style="position:absolute;top:50%;left:72%;">
-          <eval input="/Zapp/{zapp_index}/Output/packedPk" outputFormat="script x => x%256 > 0 ? ''+(x%256) : '--'" default="--" /></div>
       </div>
 
       <div class="p-hc" style="top:57%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
