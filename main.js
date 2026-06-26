@@ -306,6 +306,7 @@ var saveAsProject = function(output) {
 };
 
 var recalcBse = function() {
+  if (routesEvicted) return;  // #152: arrays incomplete after the 50-route splice — keep the prior best rather than regressing it (mirrors rescanBest; only ever fires at ROUTE_LIMIT>50)
   bestSendIdx = -1;
   for (var i = 0; i < routesA.length; i++) {
     if (rSend(i) && rGrade(i) > bestSendIdx) bestSendIdx = rGrade(i);
@@ -445,6 +446,17 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
+    // #148: reload allTimeStats for the NEW system — the in-memory mirror of ext17's LS snapshot swap.
+    // ext12 loads allTimeStats for the START system at onLoad and it's otherwise never refreshed, so without
+    // this, end-of-session writeStats() (ext11) would persist the OLD system's lifetime counters as the new
+    // system's (s{newSys}), corrupting per-system history. SETUP (state 4) is first-launch-only and
+    // unreachable after any climb, so the switch always precedes route logging — no session data is lost.
+    var sStat = LS.getObject("s" + gradeSystem) || {};
+    allTimeStats.totalRoutes = sStat.totalRoutes || 0;
+    allTimeStats.totalSends = sStat.totalSends || 0;
+    allTimeStats.sendPct = sStat.sendPct || 0;
+    allTimeStats.totalHeight = sStat.totalHeight || 0;
+    allTimeStats.sessions = (sStat.sessions || 0) + 1;  // this session counts toward whichever system it ends in
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
@@ -581,8 +593,10 @@ function evaluate(input, output) {
       hrSum += h; hrCnt++;
       if (h > hrMax) hrMax = h;
       hr1Sum += h; hr3Sum += h;
-      if (hrIdx >= 60) { hr1Sum -= hrBuf[(hrIdx - 60) % 180]; if (hr1Sum / 60 > bestPk1) bestPk1 = hr1Sum / 60; }
-      if (hrIdx >= 180) { hr3Sum -= hrBuf[hrIdx % 180]; if (hr3Sum / 180 > bestPk3) bestPk3 = hr3Sum / 180; }
+      // #149: check from the FIRST full window (hrIdx 59 / 179), not 60 / 180 — the initial 60s/180s window
+      // was being skipped (at hrIdx 59 hr1Sum already holds samples 0..59). Subtract only PAST the boundary.
+      if (hrIdx >= 59) { if (hrIdx >= 60) hr1Sum -= hrBuf[(hrIdx - 60) % 180]; if (hr1Sum / 60 > bestPk1) bestPk1 = hr1Sum / 60; }
+      if (hrIdx >= 179) { if (hrIdx >= 180) hr3Sum -= hrBuf[hrIdx % 180]; if (hr3Sum / 180 > bestPk3) bestPk3 = hr3Sum / 180; }
       hrBuf[hrIdx % 180] = h;
       hrIdx++;
     }
@@ -687,7 +701,9 @@ function getSummaryOutputs(input, output) {
   // ERR WBMAIN ... ui Wait). Grade names are now baked into the cache by ext19's dG, so the recap
   // is a pure LS read — zero parse, zero added residency (caching at onLoad tipped the exec:ui
   // mount ceiling — see no-midsession-flash-writes).
-  return LS.getObject("lastSummary") || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
+  // #150: gate on routesA>0 so an empty (or all-deleted) session shows 0/0, not a PRIOR session's stale
+  // cached recap (an empty session never wrote lastSummary, so the cache is the last non-empty one).
+  return (routesA.length > 0 && LS.getObject("lastSummary")) || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
 }
 
 function onLap(_input, output) {

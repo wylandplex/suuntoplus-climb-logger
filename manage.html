@@ -10,8 +10,6 @@
           function applyVis(x){
             lapState=x;
             setStyle('#sc4','visibility',x===4?'VISIBLE':'HIDDEN');
-            setStyle('#sc5','visibility',x===5?'VISIBLE':'HIDDEN');
-            setStyle('#sc6','visibility',x===6?'VISIBLE':'HIDDEN');
           }
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
