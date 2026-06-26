@@ -51,39 +51,11 @@
 
     </div>
 
-    <!-- sc5 (EDIT) moved to dedicated edit.html (A+C restructure): entering EDIT now mounts ONLY the
-         edit screen, not SETUP sc4 + proj-setup sc6 + their weight — shrinks the EDIT mount transient. -->
-
-    <div id="sc6" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
-
-      <div class="sp-b-s p-hc" style="top:calc(22% - 50%e);">
-        <span>PROJECT </span>
-        <span class="f-num"><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="Count_Twodigits" default="1" /></span>
-      </div>
-
-      <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
-
-      <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="OFF" />
-      </div>
-
-      <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
-
-      <!-- Top pill (save & back to ready) — UP-long = save & back -->
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
-      </div>
-      <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <!-- Bottom pill (save & next slot) — DOWN-long = save & weiter -->
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
-      </div>
-      <div onTap="ev(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-    </div>
+    <!-- sc5 (EDIT) moved to edit.html; sc6 (PROJECT-SETUP) moved to projsetup.html. manage.html is now
+         SETUP-only (state 4 = first-launch onboarding, never re-entered in-session). Splitting proj-setup
+         out shrinks the resident template at PROJECT-SAVE (the manage→active remount that was shedding a
+         co-app at 00:59:16 on 2026-06-26) from sc4+sc6 down to sc4 alone — and adds NO new swap, because
+         sc4/sc6 are independent (no goState(4) exists; eid5 from READY enters proj-setup directly). -->
 
     <!-- Bottom time-bar with a cheap flat-fill backing panel + top hairline (the old clip-path diamond was removed — masks are expensive, plain rgba rects are not). -->
     <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>

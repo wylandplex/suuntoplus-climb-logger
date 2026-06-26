@@ -121,6 +121,17 @@
         "q",
         "s"
       ]
+    },
+    {
+      "name": "projsetup.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
     }
   ],
   "variables": [

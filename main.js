@@ -246,7 +246,7 @@ var pushEdit = function() {
 
 var goState = function(s, output) {
   state = s;
-  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : "manage";  // 0/1/2 → active, 3 → dedicated limit.html, 5 → edit.html, 4/6 → manage
+  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : s === 6 ? "projsetup" : "manage";  // 0/1/2 → active, 3 → limit.html, 5 → edit.html, 6 → projsetup.html (in-session project config), 4 → manage.html (SETUP, first-launch only). sc6 split out of manage shrinks the project-save remount peak (resident sc4+sc6 → sc4 alone); no new swap since 4/6 are independent (never toggled against each other).
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
