@@ -88,7 +88,7 @@ function getUserInterface() {
   // before or after onLoad (a returning user must open on active, not blank-out on manage). EDIT is never
   // the first screen (reached only from READY), so first resolve is only ever active/manage.
   // After first resolve, goState() owns currentTemplate.
-  if (!currentTemplate) currentTemplate = initReady() ? "active" : "manage";
+  if (!currentTemplate) currentTemplate = initReady() ? "ready" : "manage";  // returning user → READY (ready.html); first-run → SETUP (manage.html)
   return { template: currentTemplate };
 }
 
@@ -246,7 +246,7 @@ var pushEdit = function() {
 
 var goState = function(s, output) {
   state = s;
-  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : s === 6 ? "projsetup" : "manage";  // 0/1/2 → active, 3 → limit.html, 5 → edit.html, 6 → projsetup.html (in-session project config), 4 → manage.html (SETUP, first-launch only). sc6 split out of manage shrinks the project-save remount peak (resident sc4+sc6 → sc4 alone); no new swap since 4/6 are independent (never toggled against each other).
+  var t = s === 0 ? "ready" : s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : s === 6 ? "projsetup" : "manage";  // 0 → ready.html, 1/2 (CLIMB/BREAK) → active.html, 3 → limit.html, 5 → edit.html, 6 → projsetup.html, 4 → manage.html (SETUP). READY split out of active: EDIT/proj-setup are entered FROM READY, so a light resident ready.html makes that entry swap small; CLIMB↔BREAK stays an in-active applyVis toggle (no swap); READY↔CLIMB is the only new swap (infrequent — bout start/end).
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');

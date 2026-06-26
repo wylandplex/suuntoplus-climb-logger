@@ -8,7 +8,6 @@
           function applyVis(x){
             if(x===lapState)return;
             lapState=x;
-            setStyle('#sc0','visibility',x===0?'VISIBLE':'HIDDEN');
             setStyle('#sc1','visibility',x===1?'VISIBLE':'HIDDEN');
             setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
           }
@@ -21,54 +20,14 @@
   <div id="climblogger">
 
 
-    <!-- vState → applyVis: <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. -->
-    <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
+    <!-- vState → applyVis: <eval> binding toggles sc1 (CLIMB) / sc2 (BREAK). READY (sc0) was split out to
+         ready.html, so active.html now mounts only for CLIMB/BREAK (states 1/2). Eval binding is
+         framework-managed (no $.subscribe leak, #90). CSS parser rejects display:none → visibility:HIDDEN. -->
     <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (applyVis(x),'')" default="" /></div>
 
-    <div id="sc0" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-
-      <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-      <!-- icon centerings use a fixed 18.5px (= half f-ico's 37px line-height) instead of 50%e,
-           so the firmware skips a per-element self-measure (proportionOfElement) at mount.
-           Identical pixels; verified against the compiled active.xml. Text rows keep 50%e
-           (their height isn't a single fixed glyph). -->
-      <div class="f-ico p-hc" style="top:calc(36% - 18.5px);">&#xF266;</div>
-
-      <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" />
-      </div>
-
-      <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(66% - 18.5px);">&#xF267;</div>
-
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
-      </div>
-      <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF111;</div>
-      </div>
-      <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
-      </div>
-      <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <!-- Project stats — visible only in project mode (climbMode>0). actT/actS/actB
-           are -1 in non-project mode → script formats return '' to hide. Migrated from
-           setText to output bindings because sc0 is HIDDEN when goState(0) runs from
-           the event handler — setText on hidden elements is a silent no-op. -->
-      <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/actT" outputFormat="script x => x < 0 ? '' : x + 'T'" default="" /></span>
-        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actS" outputFormat="script x => x < 0 ? '' : x + 'S'" default="" /></span>
-        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actB" outputFormat="script x => x <= 0 ? '' : Math.floor(x/60) + ':' + ('0'+(x%60)).slice(-2)" default="" /></span>
-      </div>
-
-    </div>
-
-    <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
+    <!-- sc1 default-VISIBLE: active.html mounts fresh only on READY→CLIMB (goState(1)); CLIMB↔BREAK after
+         that is an in-template applyVis toggle. So CLIMB is the correct screen to show before vState fires. -->
+    <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
       <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />

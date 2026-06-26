@@ -132,6 +132,17 @@
         "q",
         "s"
       ]
+    },
+    {
+      "name": "ready.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
     }
   ],
   "variables": [

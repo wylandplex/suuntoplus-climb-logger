@@ -1,0 +1,95 @@
+<!-- READY screen (state 0), split out of active.html. READY is the screen you're ON when you enter EDIT
+     (free mode) or proj-setup (project mode) via the up-long button — so making it its own LIGHT template
+     turns that entry swap into ready(small)+edit/projsetup(small) instead of dragging the full
+     active.html (READY+CLIMB+BREAK) tree resident. CLIMB(sc1)+BREAK(sc2) stay together in active.html, so
+     the FREQUENT CLIMB<->BREAK transition remains a cheap visibility toggle (no swap). The new READY<->CLIMB
+     swap is infrequent (bout start/end, per the lap phase model CLIMB->BREAK->CLIMB skips READY). Single
+     screen: no applyVis/vState binding; lapState hardcoded 0 so evL(6) fires the start lap. -->
+<uiView onFlickUp="ev(7)"
+        onFlickDown="ev(8)"
+        onLoad="
+          var G='3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|Set|Lap'.split('|');
+          var Gs=null,Gsi=-1;
+          function dG(x){if(x<0)return'--';if(x%100>=50)return'OFF';var si=Math.floor(x/100);if(si!==Gsi){Gs=(G[si]||'').split(',');Gsi=si}return(Gs||[])[x%100]||'?'}
+          var lapState=0,lock=0;
+          function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
+          function lap(){$.put('/Activity/Trigger',23)}
+          function ulk(){lock=0}
+          function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
+          function evL(n){if(lock)return;var s=lapState;if((n===6&&s===0)||s===1)lap();ev(n);lock=1;setTimeout(ulk,300)}
+        ">
+  <div id="climblogger">
+
+    <div id="sc0" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
+
+      <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
+      <div class="f-ico p-hc" style="top:calc(36% - 18.5px);">&#xF266;</div>
+
+      <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
+        <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" />
+      </div>
+
+      <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
+      <div class="f-ico p-hc" style="top:calc(66% - 18.5px);">&#xF267;</div>
+
+      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
+      </div>
+      <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF111;</div>
+      </div>
+      <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
+      </div>
+      <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+      <!-- Project stats — visible only in project mode (climbMode>0). actT/actS/actB are -1 in non-project
+           mode -> script formats return '' to hide. Output bindings (this screen mounts already showing sc0). -->
+      <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
+        <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/actT" outputFormat="script x => x < 0 ? '' : x + 'T'" default="" /></span>
+        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actS" outputFormat="script x => x < 0 ? '' : x + 'S'" default="" /></span>
+        <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actB" outputFormat="script x => x <= 0 ? '' : Math.floor(x/60) + ':' + ('0'+(x%60)).slice(-2)" default="" /></span>
+      </div>
+
+    </div>
+
+    <!-- Shared ROUTE/PROJECT header band. -->
+    <div class="cm-fg" style="width:100%;height:16%">
+      <div class="sp-t-s p-hc" style="top:calc(50% - 19px);">
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? 'ROUTE ' + x : 'PROJECT ' + Math.abs(x)" default="ROUTE 1" />
+      </div>
+    </div>
+
+    <!-- Bottom time-bar (shared flat-fill backing panel + hairline). -->
+    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
+    <div class="p-hc" style="top:87%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
+    <div class="p-hc sp-vertical-center" style="top:calc(90% - 20.5px);">
+      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
+      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
+      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+    </div>
+
+    <!-- Physical pushButtons — universal events, main.js dispatches by state (here state 0 -> evReady).
+         up-long evL(5) = enter EDIT/proj-setup (no lap, lapState=0); down-long evL(6) = start climb (fires
+         the start lap since lapState=0); next-long ev(4) = toggle project/free mode. -->
+    <:if test="{{ HAS_ON_EVENT }}">
+    <userInput>
+      <pushButton name="up" type="lock" longType="lock"
+        onClick="ev(1)"
+        onLongPressStart="evL(5)"
+        onLongPressFull=";" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="ev(4)" />
+      <pushButton name="down" type="lock" longType="lock"
+        onClick="ev(2)"
+        onLongPressStart="evL(6)"
+        onLongPressFull=";" />
+    </userInput>
+    </:if>
+
+  </div>
+</uiView>
