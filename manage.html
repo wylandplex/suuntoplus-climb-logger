@@ -88,7 +88,7 @@
     <!-- Bottom time-bar with a cheap flat-fill backing panel + top hairline (the old clip-path diamond was removed — masks are expensive, plain rgba rects are not). -->
     <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
     <div class="p-hc" style="top:87%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
-    <div class="p-hc sp-vertical-center" style="top:calc(90% - 50%e);">
+    <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 50%e);">
       <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
