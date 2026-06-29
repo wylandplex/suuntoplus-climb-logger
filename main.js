@@ -18,7 +18,6 @@ var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
 var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
 var rHt    = function(i) { return routesA[i] % 1e4; };
 var rDur   = function(i) { return Math.floor(routesB[i] / 1000); };
-var rHr    = function(i) { return routesB[i] % 1000; };
 var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), rCm(i), rHt(i)); };
 var wSend  = function(i, v) { routesA[i] = packA(rGrade(i), v, rCm(i), rHt(i)); };
 var wCm    = function(i, v) { routesA[i] = packA(rGrade(i), rSend(i), v, rHt(i)); };
@@ -59,7 +58,7 @@ var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on 
 var allTimeStats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 };
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 999;  // TEMP TEST (was 35) — cap disabled so the swipe-crash ceiling can be probed past 35 with the new output-packing. REVERT to 35 before merge. packedBreak counts saturate at 63, so brk display is only exact <=63 routes (irrelevant to the crash measurement). Normal: in-session cap → LIMIT screen (state 3), save+restart resets per-session heap/subscriptions.
+var ROUTE_LIMIT = 35;  // in-session route cap → at the cap, START shows the LIMIT screen (state 3); save+restart resets per-session heap/subscriptions/WB-pool occupancy (a periodic reset valve). packedBreak counts saturate at 63 (exact ≤63 routes, fine ≤35).
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var LS = localStorage;
@@ -149,7 +148,6 @@ var wBrk = function(o) {
 
 var pushMode = function(o) {
   writeG(o);
-  o.climbMode = climbMode;
   o.modeSub = climbMode > 0 ? -climbMode : routeNumber;
 };
 
@@ -157,12 +155,10 @@ var setOutputs = function(output) {
   output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
-  output.climbMode = climbMode;
   if (state === 5) {
     var has = editIdx < routesA.length;
     lastGradeV = has ? encGrade(rGrade(editIdx)) : -1; wGL(output);
     output.modeSub = routesA.length;
-    output.climbMode = has ? (rCm(editIdx) || 0) : 0;
     return;
   } else if (state === 6) {
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
@@ -492,7 +488,6 @@ var evEdit = function(output, eid) {
       if (editIdx < routesA.length) {
         lastGradeV = encGrade(rGrade(editIdx)); wGL(output);
         output.modeSub = n;
-        output.climbMode = rCm(editIdx) || 0;
       }
       pushEdit();  // T6: routeNum + editSend display moved to setText
     } else {

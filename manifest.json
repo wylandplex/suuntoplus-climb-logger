@@ -13,18 +13,8 @@
       "type": "subscribe"
     },
     {
-      "name": "A",
-      "source": "Activity/Lap/-2/HeartRate/Avg",
-      "type": "subscribe"
-    },
-    {
       "name": "M",
       "source": "Activity/Lap/-2/HeartRate/Max",
-      "type": "subscribe"
-    },
-    {
-      "name": "D",
-      "source": "Activity/Lap/-2/Duration/Current",
       "type": "subscribe"
     },
     {
@@ -39,9 +29,6 @@
     },
     {
       "name": "packedBreak"
-    },
-    {
-      "name": "climbMode"
     },
     {
       "name": "modeSub"
