@@ -139,46 +139,60 @@ var cycleSlot = function(dy) {
 // output: it drives applyVis in active+manage, and packing it would re-fire applyVis on every grade change.
 var gradeV = 0, lastGradeV = -1;
 var brkSendsV = 0, brkRoutesV = 0;
-var wGL = function(o) { o.packedGL = gradeV * 952 + (lastGradeV + 1); };
+// Publish-on-change: write an Output only when its value changed since the last publish, instead of
+// rewriting all of them every evaluate tick (cuts the per-tick WB write/message load — the pool-id:0 axis).
+// chg() change-detects against a CACHE only and returns 1/0; the LITERAL output write stays at each call
+// site — a COMPUTED write with a variable key fails the deploy build ("Unknown output property"; the VS
+// Code Build App rejects it even though build-app.js + validate.js pass). pubF forces a full republish on every goState mount + onLoad so a
+// freshly-mounted template never reads a stale Output store; setOutputs clears pubF when done.
+var pubC = {}, pubF = 1;
+var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
+var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg("packedGL", v)) o.packedGL = v; };
 var wBrk = function(o) {
   var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-  o.packedBreak = (bse + 1) * 4096 + Math.max(0, Math.min(63, brkSendsV)) * 64 + Math.max(0, Math.min(63, brkRoutesV));  // symmetric clamp: a negative count would otherwise borrow into the bestSend field, not just its own
+  var v = (bse + 1) * 4096 + Math.max(0, Math.min(63, brkSendsV)) * 64 + Math.max(0, Math.min(63, brkRoutesV));  // symmetric clamp: a negative count would otherwise borrow into the bestSend field, not just its own
+  if (chg("packedBreak", v)) o.packedBreak = v;
 };
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
   writeG(o);
-  o.modeSub = climbMode > 0 ? -climbMode : routeNumber;
+  var m = climbMode > 0 ? -climbMode : routeNumber;
+  if (chg("modeSub", m)) o.modeSub = m;
 };
 
 var setOutputs = function(output) {
-  output.vState = state;
+  if (chg("vState", state)) output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
-  output.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
+  var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : sessionH;  // CLIMB shows the CURRENT route's live height only; other screens show the session total
+  if (chg("routeHeight", rh)) output.routeHeight = rh;
   if (state === 5) {
     var has = editIdx < routesA.length;
     lastGradeV = has ? encGrade(rGrade(editIdx)) : -1; wGL(output);
-    output.modeSub = routesA.length;
+    if (chg("modeSub", routesA.length)) output.modeSub = routesA.length;
+    pubF = 0;
     return;
   } else if (state === 6) {
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
-    output.modeSub = pStep + 1;
+    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
-    output.modeSub = gradeSystem;
+    if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
     lastGradeV = -1; wGL(output);
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
-    output.modeSub = climbMode > 0 ? -climbMode : rn;
+    var ms = climbMode > 0 ? -climbMode : rn;
+    if (chg("modeSub", ms)) output.modeSub = ms;
     // Break counter — packed into packedBreak via wBrk (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
     if (state === 2) { brkSendsV = sendsCount; brkRoutesV = rn; }
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
     if (state === 0) writeActStats(output);
-    else { output.actT = -1; output.actS = -1; output.actB = -1; }
+    else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
   }
   wBrk(output);
+  pubF = 0;
 };
 
 // Project stats line — output bindings (setText on hidden sc0 is a no-op).
@@ -187,10 +201,11 @@ var setOutputs = function(output) {
 var writeActStats = function(output) {
   if (climbMode > 0) {
     var ap = projStats[gradeSystem + "_" + climbMode] || {};
-    output.actT = ap.attempts || 0;
-    output.actS = ap.sends || 0;
-    output.actB = Math.min(ap.bestTime || 0, 86400);  // permanent display clamp vs legacy >24h (ms-unit) garbage bests
-  } else { output.actT = -1; output.actS = -1; output.actB = -1; }
+    var t = ap.attempts || 0, s = ap.sends || 0, b = Math.min(ap.bestTime || 0, 86400);  // bestTime: permanent display clamp vs legacy >24h (ms-unit) garbage bests
+    if (chg("actT", t)) output.actT = t;
+    if (chg("actS", s)) output.actS = s;
+    if (chg("actB", b)) output.actB = b;
+  } else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
 };
 
 // pushBrk / pushActStats removed — break counter + project stats migrated to output
@@ -228,6 +243,7 @@ var goState = function(s, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   if (s === 1 || s === 3) dwell = 1;  // s===3 (LIMIT) too: a START at the route cap goes onLap->startClimb->goState(3); the trailing onEvent(6) from the SAME press must be absorbed (dwell) or it immediately goState(0)s and the LIMIT screen only flashes
+  pubF = 1;  // force a FULL republish on this template mount — the freshly-mounted template must read every Output, not just the ones changed since the last publish (setOutputs clears pubF when done)
   if (output) setOutputs(output);  // publishes actT/actS/actB (s=0) and packedBreak brkSends/brkRoutes fields (s=2)
   // climbProjStats write removed from goState(0) — was a mid-session LS write that
   // triggered ~0.5s flash-GC freezes on break→ready in project mode. Unconditional
@@ -432,7 +448,7 @@ var evSetup = function(output, eid, dy) {
     allTimeStats.totalHeight = sStat.totalHeight || 0;
     allTimeStats.sessions = (sStat.sessions || 0) + 1;  // this session counts toward whichever system it ends in
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
-    output.modeSub = gradeSystem;
+    if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
     pendF17 = 1;   // ext17 grade-system snapshot swap runs once at session end (parsed on-demand THERE — not cached resident)
   } else if (eid === 6) {
@@ -444,14 +460,14 @@ var evProjSetup = function(output, eid, dy) {
   if (dy) {
     projGradeIdx[pStep] = wrap(projGradeIdx[pStep] + dy, GRADE_LENS[gradeSystem], 1);
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    output.modeSub = pStep + 1;
+    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
     wsDirty = 1;   // watchSetup needs persisting at session end
   } else if (eid === 5) {
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    output.modeSub = pStep + 1;
+    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
   }
 };
 
@@ -487,7 +503,7 @@ var evEdit = function(output, eid) {
       editIdx = (editIdx - 1 + n) % n;
       if (editIdx < routesA.length) {
         lastGradeV = encGrade(rGrade(editIdx)); wGL(output);
-        output.modeSub = n;
+        if (chg("modeSub", n)) output.modeSub = n;
       }
       pushEdit();  // T6: routeNum + editSend display moved to setText
     } else {
@@ -542,6 +558,7 @@ var evEdit = function(output, eid) {
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
+  pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   // f10 (ext10) is NOT parsed here — lazy at the first commitDirty (it isn't needed until a route
   // finishes). Keeps the onLoad/re-enable parse burst to ONE file (ext12 bootstrap), so a fast
   // disable→enable is less likely to race the firmware's not-yet-reclaimed prior instance into None-avail.
