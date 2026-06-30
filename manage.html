@@ -21,6 +21,13 @@
         ">
   <div id="climblogger">
 
+    <!-- Fixed-px vertical centerings (top:calc(Y% - Npx)) below replace the costly 50%e self-measure pass.
+         N = half the element's line-height — valid because each is a FIXED-height element on the Vertical 2
+         ('q') display: f-ico 37px->18.5, sp-t-l grade 73px->36.5, time-bar (sp-b-s/f-ico row) 41px->20.5.
+         Source of truth = active.html (same constants, on-watch-proven). CAVEATS: these are 'q'-display-
+         specific (other manifest displays would need their own) and the 20.5 is CONTENT-specific (a larger
+         time-bar child must revert to 50%e). Variable-width / wrapping rows keep left:..50%e. -->
+
 
     <!-- vState → applyVis: <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. -->
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
