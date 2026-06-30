@@ -147,6 +147,8 @@ var brkSendsV = 0, brkRoutesV = 0;
 // freshly-mounted template never reads a stale Output store; setOutputs clears pubF when done.
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
+var wMS = function(o, v) { if (chg("modeSub", v)) o.modeSub = v; };  // shared modeSub publisher (dedupes 9 inline sites; literal write, same shape as wGL/wBrk/pushMode)
+var wAct = function(o, t, s, b) { if (chg("actT", t)) o.actT = t; if (chg("actS", s)) o.actS = s; if (chg("actB", b)) o.actB = b; };  // shared actT/actS/actB publisher (dedupes 3 sites)
 var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg("packedGL", v)) o.packedGL = v; };
 var wBrk = function(o) {
   var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
@@ -158,7 +160,7 @@ var wBrk = function(o) {
 var pushMode = function(o) {
   writeG(o);
   var m = climbMode > 0 ? -climbMode : routeNumber;
-  if (chg("modeSub", m)) o.modeSub = m;
+  wMS(o, m);
 };
 
 var setOutputs = function(output) {
@@ -169,27 +171,27 @@ var setOutputs = function(output) {
   if (state === 5) {
     var has = editIdx < routesA.length;
     lastGradeV = has ? encGrade(rGrade(editIdx)) : -1; wGL(output);
-    if (chg("modeSub", routesA.length)) output.modeSub = routesA.length;
+    wMS(output, routesA.length);
     pubF = 0;
     return;
   } else if (state === 6) {
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
-    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
+    wMS(output, pStep + 1);
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
-    if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
+    wMS(output, gradeSystem);
     lastGradeV = -1; wGL(output);
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     var ms = climbMode > 0 ? -climbMode : rn;
-    if (chg("modeSub", ms)) output.modeSub = ms;
+    wMS(output, ms);
     // Break counter — packed into packedBreak via wBrk (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
     if (state === 2) { brkSendsV = sendsCount; brkRoutesV = rn; }
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
     if (state === 0) writeActStats(output);
-    else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
+    else { wAct(output, -1, -1, -1); }
   }
   wBrk(output);
   pubF = 0;
@@ -202,10 +204,8 @@ var writeActStats = function(output) {
   if (climbMode > 0) {
     var ap = projStats[gradeSystem + "_" + climbMode] || {};
     var t = ap.attempts || 0, s = ap.sends || 0, b = Math.min(ap.bestTime || 0, 86400);  // bestTime: permanent display clamp vs legacy >24h (ms-unit) garbage bests
-    if (chg("actT", t)) output.actT = t;
-    if (chg("actS", s)) output.actS = s;
-    if (chg("actB", b)) output.actB = b;
-  } else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
+    wAct(output, t, s, b);
+  } else { wAct(output, -1, -1, -1); }
 };
 
 // pushBrk / pushActStats removed — break counter + project stats migrated to output
@@ -448,7 +448,7 @@ var evSetup = function(output, eid, dy) {
     allTimeStats.totalHeight = sStat.totalHeight || 0;
     allTimeStats.sessions = (sStat.sessions || 0) + 1;  // this session counts toward whichever system it ends in
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
-    if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
+    wMS(output, gradeSystem);
     wsDirty = 1;   // watchSetup needs persisting at session end
     pendF17 = 1;   // ext17 grade-system snapshot swap runs once at session end (parsed on-demand THERE — not cached resident)
   } else if (eid === 6) {
@@ -460,14 +460,14 @@ var evProjSetup = function(output, eid, dy) {
   if (dy) {
     projGradeIdx[pStep] = wrap(projGradeIdx[pStep] + dy, GRADE_LENS[gradeSystem], 1);
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
+    wMS(output, pStep + 1);
     wsDirty = 1;   // watchSetup needs persisting at session end
   } else if (eid === 5) {
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
+    wMS(output, pStep + 1);
   }
 };
 
@@ -503,7 +503,7 @@ var evEdit = function(output, eid) {
       editIdx = (editIdx - 1 + n) % n;
       if (editIdx < routesA.length) {
         lastGradeV = encGrade(rGrade(editIdx)); wGL(output);
-        if (chg("modeSub", n)) output.modeSub = n;
+        wMS(output, n);
       }
       pushEdit();  // T6: routeNum + editSend display moved to setText
     } else {
