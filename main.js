@@ -238,7 +238,7 @@ var pushEdit = function() {
 
 var goState = function(s, output) {
   state = s;
-  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : "manage";  // 0/1/2 → active, 3 → dedicated limit.html, 5 → edit.html, 4/6 → manage
+  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : s === 6 ? "projsetup" : "manage";  // 0/1/2 → active, 3 → dedicated limit.html, 5 → edit.html, 4/6 → manage
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
