@@ -25,14 +25,14 @@
       </div>
 
       <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-      <div id="ed-arrUp" class="f-ico p-hc" style="top:calc(36% - 50%e);">&#xF266;</div>
+      <div id="ed-arrUp" class="f-ico p-hc" style="top:calc(36% - 18.5px);">&#xF266;</div>
 
-      <div class="sp-t-l" style="top:calc(48% - 50%e); left:calc(50% - 50%e);">
+      <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
         <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(x%952-1)" default="--" />
       </div>
 
       <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-      <div id="ed-arrDn" class="f-ico p-hc" style="top:calc(66% - 50%e);">&#xF267;</div>
+      <div id="ed-arrDn" class="f-ico p-hc" style="top:calc(66% - 18.5px);">&#xF267;</div>
 
       <div class="p-hc sp-vertical-center" style="top:calc(78% - 50%e);">
         <span id="ed-sendIcon" class="f-ico" style="padding-right:6px">?</span>
@@ -40,18 +40,18 @@
       </div>
 
       <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE365;</div>
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE365;</div>
       </div>
       <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
       <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div id="ed-pillIcon" class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xF107;</div>
+        <div id="ed-pillIcon" class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF107;</div>
         <div id="ed-pillDel" class="sp-b-s cm-bgc" style="top:calc(50% - 50%e); left:2px;visibility:HIDDEN">DEL</div>
       </div>
       <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
       <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 50%e); left:6px;">&#xE373;</div>
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
       </div>
       <div onTap="ev(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
@@ -60,7 +60,7 @@
     <!-- Bottom time-bar with a cheap flat-fill backing panel + top hairline (the old clip-path diamond was removed — masks are expensive, plain rgba rects are not). -->
     <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
     <div class="p-hc" style="top:87%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
-    <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 50%e);">
+    <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
       <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
