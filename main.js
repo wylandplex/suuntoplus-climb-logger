@@ -238,7 +238,7 @@ var pushEdit = function() {
 
 var goState = function(s, output) {
   state = s;
-  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : "manage";  // 0/1/2 → active, 3 → dedicated limit.html, 5 → edit.html, 4/6 → manage
+  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : s === 7 ? "saving" : "manage";  // 0/1/2 → active, 3 → dedicated limit.html, 5 → edit.html, 4/6 → manage
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -621,6 +621,11 @@ function onExerciseEnd(input, _output) {
   // None-avail → cascade → watch ASSERT/reboot (log 2026-06-19 16:04:22, routesA empty). Nothing to
   // persist, so bail — leaving the disabled instance light enough for the re-enable's onLoad to fit.
   if (routesA.length === 0 && !projStatsDirty && !wsDirty && !pendF17) return;
+  // END-SAVE DE-LOAD: swap off the heavy active.html before the ext parse burst. goState(7) unloads
+  // active.html -> frees its ~1.3-2KB onLoad G-table + 3-screen DOM + evals, so the ext17/11/19
+  // parses land on a heap with room (the end-save freeze). saving.html is near-empty (no onLoad/G/
+  // evals) so its mount allocates ~nothing -> the swap is a net FREE, no new peak.
+  try { goState(7); } catch (e) {}
   // Free exec:zapp heap BEFORE the end-parse burst (loadExt 17/11/19). The save was evicting with
   // relMemCb(exec:zapp)/None-avail because three back-to-back evalFile parses hit a full heap. f10 (ext10
   // closure) is dead after the climb is over — commitDirty above was its last consumer. routesA/routesB

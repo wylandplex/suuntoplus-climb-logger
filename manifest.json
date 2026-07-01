@@ -73,6 +73,17 @@
       ]
     },
     {
+      "name": "saving.html",
+      "displays": [
+        "l",
+        "m",
+        "n",
+        "o",
+        "q",
+        "s"
+      ]
+    },
+    {
       "name": "manage.html",
       "displays": [
         "l",
