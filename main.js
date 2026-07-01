@@ -32,6 +32,7 @@ var sessionH = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastHrAvg = 0;
+var lastHrMax = 0;   // finished-climb HR max, frozen for the BREAK dashboard (hrMax is reset to 0 after finish)
 var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
@@ -184,6 +185,15 @@ var setOutputs = function(output) {
     if (state === 0) writeActStats(output);
     else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
   }
+  if (state === 1 || state === 2) {  // unified CLIMB/BREAK dashboard (scD): live in CLIMB, frozen (finished-climb result) in BREAK
+    var dDur = state === 1 ? rSec : lastDuration;
+    if (chg("dispDur", dDur)) output.dispDur = dDur;
+    var dGr = state === 1 ? gradeV : lastGradeV;  // gradeV = current grade (incl. project mode); lastGradeV = the sent grade
+    if (chg("dispGrade", dGr)) output.dispGrade = dGr;
+    var av = Math.min(255, Math.round((state === 1 ? (hrCnt > 0 ? hrSum / hrCnt : 0) : lastHrAvg) * 60));  // HR inputs are Hz -> x60 bpm; pack avg<<8 | max (both <=255) so avg+max ride ONE output
+    var mx = Math.min(255, Math.round((state === 1 ? hrMax : lastHrMax) * 60));
+    if (chg("dispHR", av * 256 + mx)) output.dispHR = av * 256 + mx;
+  }
   pubF = 0;
 };
 
@@ -330,6 +340,7 @@ var commitDirty = function(input) {
   if (frDirty) {
     frDirty = 0;
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
+    lastHrMax = hrMax;
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
       frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session (NOT per-route — the T7 reason); keeps it out of the onLoad/re-enable burst. lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route

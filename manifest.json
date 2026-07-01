@@ -44,6 +44,15 @@
     },
     {
       "name": "actB"
+    },
+    {
+      "name": "dispDur"
+    },
+    {
+      "name": "dispGrade"
+    },
+    {
+      "name": "dispHR"
     }
   ],
   "template": [
