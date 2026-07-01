@@ -68,31 +68,37 @@
 
     </div>
 
+    <!-- CLIMB — dashboard LIVE from the current lap (-1). Identical layout to BREAK (finished lap -2): switching CLIMB<->BREAK just swaps live<->frozen firmware-lap data. Grade = current; height = live; HR from Lap/-1. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
 
-      <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
+      <div class="sp-d-l p-hc" style="top:calc(26% - 50%e);">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <div class="p-hc" style="top:44%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
+      <div class="p-hc" style="top:40%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-      <div class="sp-vertical-center" style="top:calc(55% - 24.5px); left:calc(30% - 50%e);">
-        <span class="sp-b-s">H</span>
-        <span class="sp-b-m f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
-      </div>
-
-      <div class="p-hc" style="top:49%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
-
-      <div class="sp-vertical-center" style="top:calc(55% - 24.5px); left:calc(70% - 50%e);">
+      <div class="sp-vertical-center" style="top:calc(51% - 24.5px); left:calc(30% - 50%e);">
         <span class="f-ico" style="padding-right:4px">&#xF144;</span>
         <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" /></span>
       </div>
 
-      <div class="sp-vertical-center" style="top:calc(72% - 50%e); left:calc(45% - 50%e);">
-        <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
-        <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <div class="p-hc" style="top:45%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
+
+      <div class="sp-vertical-center" style="top:calc(51% - 24.5px); left:calc(70% - 50%e);">
+        <span class="sp-b-s">H</span>
+        <span class="sp-b-m f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
       </div>
 
+      <div class="p-hc" style="top:63%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
+
+      <div class="p-hc sp-vertical-center" style="top:calc(72% - 20.5px);">
+        <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
+        <span class="sp-b-m f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        <span class="sp-b-s" style="padding-left:14px;padding-right:4px">AVG</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        <span class="sp-b-s" style="padding-left:12px;padding-right:4px">MAX</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      </div>
 
       <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
         <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF110;</div>
@@ -105,38 +111,37 @@
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
     </div>
 
+    <!-- BREAK — same layout, showing the FINISHED climb (lap -2) frozen by the firmware. Grade = sent; height = frozen (routeHeight->lastHeight); HR from Lap/-2. -->
     <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
 
-      <div class="sp-vertical-center" style="top:calc(27% - 24.5px); left:calc(30% - 50%e);">
+      <div class="sp-d-l p-hc" style="top:calc(26% - 50%e);">
+        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
+      </div>
+
+      <div class="p-hc" style="top:40%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
+
+      <div class="sp-vertical-center" style="top:calc(51% - 24.5px); left:calc(30% - 50%e);">
         <span class="f-ico" style="padding-right:4px">&#xF144;</span>
         <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(x%952-1)" default="--" /></span>
       </div>
 
-      <div class="p-hc" style="top:22%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
+      <div class="p-hc" style="top:45%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
 
-      <div class="sp-vertical-center" style="top:calc(27% - 24.5px); left:calc(70% - 50%e);">
-        <span class="f-ico" style="padding-right:4px">&#xF100;</span>
-        <span class="sp-b-m"><eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+      <div class="sp-vertical-center" style="top:calc(51% - 24.5px); left:calc(70% - 50%e);">
+        <span class="sp-b-s">H</span>
+        <span class="sp-b-m f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
       </div>
 
-      <div class="p-hc" style="top:36%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
+      <div class="p-hc" style="top:63%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-      <!-- Lap HR summary — one horizontally-centered row (heart · AVG value · MAX value). -->
-      <div class="p-hc sp-vertical-center" style="top:calc(46% - 24.5px);">
-        <span class="f-ico" style="padding-right:10px">&#xF101;</span>
-        <span class="sp-b-s" style="padding-right:5px">AVG</span>
-        <span class="sp-b-m f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-        <span class="sp-b-s" style="padding-left:20px;padding-right:5px">MAX</span>
-        <span class="sp-b-m f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <div class="p-hc sp-vertical-center" style="top:calc(72% - 20.5px);">
+        <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
+        <span class="sp-b-m f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        <span class="sp-b-s" style="padding-left:14px;padding-right:4px">AVG</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        <span class="sp-b-s" style="padding-left:12px;padding-right:4px">MAX</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
-
-      <!-- BREAK sends/routes + best-send + total-height row removed -> all in the end summary (ext19: Sends/Routes, Highest Send, Height). Drops the packedBreak WB subscription off the mount/swap. -->
-
-      <div class="p-hc sp-vertical-center" style="top:calc(77% - 20.5px);">
-        <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
-        <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-      </div>
-
 
       <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
         <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
