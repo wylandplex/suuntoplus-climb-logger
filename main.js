@@ -138,7 +138,6 @@ var cycleSlot = function(dy) {
 // SuuntoPlus output publishes whole — a partial write would zero the other fields). vState stays its own
 // output: it drives applyVis in active+manage, and packing it would re-fire applyVis on every grade change.
 var gradeV = 0, lastGradeV = -1;
-var brkSendsV = 0, brkRoutesV = 0;
 // Publish-on-change: write an Output only when its value changed since the last publish, instead of
 // rewriting all of them every evaluate tick (cuts the per-tick WB write/message load — the pool-id:0 axis).
 // chg() change-detects against a CACHE only and returns 1/0; the LITERAL output write stays at each call
@@ -148,11 +147,7 @@ var brkSendsV = 0, brkRoutesV = 0;
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
 var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg("packedGL", v)) o.packedGL = v; };
-var wBrk = function(o) {
-  var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1;
-  var v = (bse + 1) * 4096 + Math.max(0, Math.min(63, brkSendsV)) * 64 + Math.max(0, Math.min(63, brkRoutesV));  // symmetric clamp: a negative count would otherwise borrow into the bestSend field, not just its own
-  if (chg("packedBreak", v)) o.packedBreak = v;
-};
+// packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (ext19: Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
@@ -185,13 +180,10 @@ var setOutputs = function(output) {
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     var ms = climbMode > 0 ? -climbMode : rn;
     if (chg("modeSub", ms)) output.modeSub = ms;
-    // Break counter — packed into packedBreak via wBrk (setText was a no-op while sc2 still HIDDEN when goState(2) ran)
-    if (state === 2) { brkSendsV = sendsCount; brkRoutesV = rn; }
     // Project stats line on ready screen — output bindings (same hidden-sc0 reason)
     if (state === 0) writeActStats(output);
     else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
   }
-  wBrk(output);
   pubF = 0;
 };
 
@@ -431,7 +423,6 @@ var evBreak = function(output, eid, dy) {
       writeG(output);  // publishes packedGL with the new gradeV + lastGradeV
       if (lastResult) {
         recalcBse();
-        wBrk(output);
       }
     }
   } else if (eid === 4) {
@@ -549,7 +540,6 @@ var evEdit = function(output, eid) {
       }
       recPct();
       recalcBse();
-      wBrk(output);
       pushEdit();  // T6: editSend icons/label moved to setText
     }
   } else if (eid === 1 || eid === 2) {
@@ -560,7 +550,6 @@ var evEdit = function(output, eid) {
       lastGradeV = encGrade(ng); wGL(output);
       if (rSend(editIdx)) {
         recalcBse();
-        wBrk(output);
       }
     }
   }
