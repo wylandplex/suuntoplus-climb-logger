@@ -254,6 +254,16 @@ var goState = function(s, output) {
   if (s === 5) edRefresh = 2;
 };
 
+// De-load: tear down the heavy active.html (frees its ~1.3-2KB onLoad G-table + 3-screen DOM + evals) and
+// mount the near-empty saving.html, WITHOUT touching `state`. Fired at onExercisePause so the freed memory is
+// reclaimed well before the onExerciseEnd save burst (the watch always pauses before ending). Deliberately does
+// NOT go through goState(): setting state to 7 would skip onExerciseEnd's state===1 pending-CLIMB flush and lose
+// an in-progress route. currentTemplate is decoupled from state (getUserInterface returns currentTemplate), so
+// swapping the template alone is safe and reversible on resume.
+var deLoad = function() {
+  if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }
+};
+
 var writeG = function(o, idx) {
   gradeV = encGrade(idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
   wGL(o);
@@ -621,11 +631,10 @@ function onExerciseEnd(input, _output) {
   // None-avail → cascade → watch ASSERT/reboot (log 2026-06-19 16:04:22, routesA empty). Nothing to
   // persist, so bail — leaving the disabled instance light enough for the re-enable's onLoad to fit.
   if (routesA.length === 0 && !projStatsDirty && !wsDirty && !pendF17) return;
-  // END-SAVE DE-LOAD: swap off the heavy active.html before the ext parse burst. goState(7) unloads
-  // active.html -> frees its ~1.3-2KB onLoad G-table + 3-screen DOM + evals, so the ext17/11/19
-  // parses land on a heap with room (the end-save freeze). saving.html is near-empty (no onLoad/G/
-  // evals) so its mount allocates ~nothing -> the swap is a net FREE, no new peak.
-  try { goState(7); } catch (e) {}
+  // Fallback de-load, in case End ever fires without a preceding Pause (normally onExercisePause already
+  // did this -> no-op here, currentTemplate is already "saving"). Frees active.html's ~1.3-2KB before the
+  // ext17/11/19 parse burst so the save lands on a heap with room.
+  try { deLoad(); } catch (e) {}
   // Free exec:zapp heap BEFORE the end-parse burst (loadExt 17/11/19). The save was evicting with
   // relMemCb(exec:zapp)/None-avail because three back-to-back evalFile parses hit a full heap. f10 (ext10
   // closure) is dead after the climb is over — commitDirty above was its last consumer. routesA/routesB
@@ -679,8 +688,8 @@ function onEvent(_input, output, eventId) {
   else if (state === 3) goState(0, output);  // LIMIT screen: any button → back to READY (to reach STATS/EDIT; START re-blocks until save+restart)
 }
 
-function onExercisePause(_input, _output) { isPaused = 1; }
-function onExerciseContinue(_input, _output) { isPaused = 0; }
+function onExercisePause(_input, _output) { isPaused = 1; deLoad(); }  // de-load active.html now — pause always precedes End, so this frees the heap with max GC lead time before the save burst
+function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }  // resume: remount the active screen for the (unchanged) state; clear the state-1/3 dwell so the first post-resume lap isn't absorbed
 
 function getSummaryOutputs(input, output) {
   // Recap reads the fully-decorated lastSummary INLINE (built + grade-decorated by ext19 at

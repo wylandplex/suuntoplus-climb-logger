@@ -1,10 +1,10 @@
 <uiView>
   <div id="climblogger">
-    <!-- Minimal end-of-session screen (state 7). ZERO onLoad, ZERO G table, ZERO eval bindings — mounted at
-         onExerciseEnd so unloading the heavy active.html frees its ~1.3-2KB G-table + DOM + evals BEFORE the
-         ext-parse save burst, giving the save-window heap room the parse needs (the end-save freeze fix). -->
+    <!-- Minimal pause/save screen. ZERO onLoad, ZERO G table, ZERO eval bindings — mounted at onExercisePause
+         so unloading the heavy active.html frees its ~1.3-2KB G-table + DOM + evals BEFORE the onExerciseEnd
+         ext-parse save burst (pause always runs before End), giving the GC max time to reclaim it. -->
     <div id="sc7" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-      <div class="sp-t-l p-hc" style="top:calc(40% - 50%e);">SAVING</div>
+      <div class="sp-t-l p-hc" style="top:calc(40% - 50%e);">PAUSE</div>
     </div>
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
