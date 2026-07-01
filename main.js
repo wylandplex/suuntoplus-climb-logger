@@ -29,6 +29,7 @@ var hrSum = 0;
 var hrCnt = 0;
 var hrMax = 0;
 var sessionH = 0;
+var sessionDur = 0, sessionHrSum = 0, sessionHrCnt = 0, topSendCount = 0;  // recap accumulators (mirror ext19 dur/hrSum/hrCnt/spC) — built per-route so the ext19 parse can be dropped from the save window
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastHrAvg = 0;
@@ -300,9 +301,11 @@ var saveAsProject = function(output) {
 
 var recalcBse = function() {
   bestSendIdx = -1;
+  var c = 0;
   for (var i = 0; i < routesA.length; i++) {
-    if (rSend(i) && rGrade(i) > bestSendIdx) bestSendIdx = rGrade(i);
+    if (rSend(i)) { var g = rGrade(i); if (g > bestSendIdx) { bestSendIdx = g; c = 1; } else if (g === bestSendIdx) c++; }
   }
+  topSendCount = c;  // sends at the top grade (== ext19 spC); recomputed here so every edit path stays correct for free
 };
 
 // Recompute a project slot's bestTime from this session's routes — call after deleting/un-sending a route
@@ -331,6 +334,7 @@ var commitDirty = function(input) {
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
       frSend, lastClimbMode, bestSendIdx, projStats, allTimeStats, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session (NOT per-route — the T7 reason); keeps it out of the onLoad/re-enable burst. lastClimbMode (slot at finish), NOT live climbMode — cycleSlot in BREAK must not re-tag this route
+    var oldBse = bestSendIdx;
     bestSendIdx = r[0];
     if (r[2]) {
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
@@ -342,6 +346,9 @@ var commitDirty = function(input) {
       recPct();
       if (r[3] && r[4]) { projStats[r[3]] = r[4]; projStatsDirty = 1; }
       sessionH += lastHeight || 0;
+      if (rec[4] > 0) sessionDur += rec[4];                        // dur (matches ext19 'if(d>0)')
+      if (rec[5] > 0) { sessionHrSum += rec[5]; sessionHrCnt++; }  // per-route hrAvg Hz (matches ext19 'if(hr>0)')
+      if (frSend) { if (rec[0] > oldBse) topSendCount = 1; else if (rec[0] === bestSendIdx) topSendCount++; }  // top-send count (ext10 set bestSendIdx=rec[0])
     }
     hrSum = hrCnt = hrMax = rSec = 0;
     // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
@@ -476,7 +483,7 @@ var evEdit = function(output, eid) {
   if (eid === 5 || eid === 6) {
     if (editDelMark) {
       if (editIdx < routesA.length) {
-        var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = rHt(editIdx);
+        var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = rHt(editIdx), dDur = rDur(editIdx), dHr = routesB[editIdx] % 1000;
         allTimeStats.totalRoutes--;
         if (dSend) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
         recPct();
@@ -490,6 +497,8 @@ var evEdit = function(output, eid) {
           }
         }
         if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
+        if (dDur > 0) sessionDur -= dDur;
+        if (dHr > 0) { sessionHrSum -= dHr; sessionHrCnt--; }
         routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
         recalcBse();
         if (dCm > 0) rescanBest(dCm);  // deleted route may have held the slot's best — recompute from what's left
@@ -604,6 +613,22 @@ function evaluate(input, output) {
   dwell = 0;
 }
 
+var doRecap = function(n) {
+  // Build the full 5-line recap (ids sr,b,d,a,h — identical to ext19) from RAM accumulators, so no ext19
+  // parse of routesA/routesB is needed. The one grade NAME (Highest-Send) is resolved via the slim ext20
+  // (~720B, parsed on the just-freed heap). Written to lastSummary; getSummaryOutputs reads it back.
+  try {
+    if (n > 0) {
+      var rc = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: sendsCount, postfix: '/ ' + n }];
+      if (bestSendIdx >= 0) { var nm = '?'; try { nm = loadExt(20)(gradeSystem, bestSendIdx); } catch (e) {} rc.push({ id: 'b', name: 'Highest Send', format: 'Count_Fourdigits', value: topSendCount, postfix: '* ' + nm }); }
+      if (sessionDur > 0) rc.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: sessionDur });
+      if (sessionHrCnt > 0) rc.push({ id: 'a', name: 'Avg HR', format: 'HeartRate_Fourdigits', value: sessionHrSum / sessionHrCnt });  // keep Hz (HeartRate_Fourdigits renders ×60)
+      if (sessionH > 0) rc.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(sessionH), postfix: 'm' });
+      LS.setObject("lastSummary", rc);
+    }
+  } catch (e) {}
+};
+
 function onExerciseEnd(input, _output) {
   if (finalized) return; finalized = 1;  // idempotent: a fast pause→end (or any double-fire) must not re-run the parse burst on an already-stressed heap
   if (state === 1) {
@@ -612,6 +637,7 @@ function onExerciseEnd(input, _output) {
     // An external lap that finished the climb just before session end (extLapPending still armed, not yet
     // drained by evaluate) is a SEND — the lap-finish default. A plain dangling climb flushes as FAIL.
     frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
+    if (frSend) sendsCount++;  // pending SEND bypasses finishRoute's sendsCount++ — count here so recap 'sr' matches routesA
     routeNumber++;
   }
   try { commitDirty(input); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
@@ -621,31 +647,19 @@ function onExerciseEnd(input, _output) {
   // None-avail → cascade → watch ASSERT/reboot (log 2026-06-19 16:04:22, routesA empty). Nothing to
   // persist, so bail — leaving the disabled instance light enough for the re-enable's onLoad to fit.
   if (routesA.length === 0 && !projStatsDirty && !wsDirty && !pendF17) return;
-  // Free exec:zapp heap BEFORE the end-parse burst (loadExt 17/11/19). The save was evicting with
-  // relMemCb(exec:zapp)/None-avail because three back-to-back evalFile parses hit a full heap. f10 (ext10
-  // closure) is dead after the climb is over — commitDirty above was its last consumer. routesA/routesB
-  // (ext19) and projStats/allTimeStats (ext11) stay live. (hrBuf HR-ring removed — 1'/3' peak feature cut.)
-  f10 = null;
-  // Parse-free fallback summary FIRST, so an eviction during the ext11/ext19 parse can never leave
-  // "0/0": ext19 overwrites this with the rich recap if its parse survives. Sends counted via rSend
-  // exactly like ext19 (no drift), no evalFile, no allocation beyond the tiny array.
-  try {
-    if (routesA.length > 0) {
-      var sFb = 0, iFb;
-      for (iFb = 0; iFb < routesA.length; iFb++) { if (rSend(iFb)) sFb++; }
-      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: sFb, postfix: '/ ' + routesA.length }];
-      if (sessionH > 0) { fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(sessionH), postfix: 'm' }); }
-      LS.setObject("lastSummary", fb);
-    }
-  } catch (e) {}
+  // Save-window fix: the ext19 recap parse (1785B -> ~2096B alloc) was the JSalloc:2096 that evicted the 3
+  // apps at end-of-a-long-session. Recap is now built from RAM accumulators (commitDirty + recalcBse), so
+  // routesA/routesB + f10 are freed BEFORE any parse and the heavy ext19 parse is GONE. (>50 splice /
+  // routesEvicted over-counts only in the 999 TEMP build — moot at cap 35.)
+  var n = routesA.length;
+  f10 = null; routesA = []; routesB = [];  // free ext10 closure + BOTH route arrays before the parse burst — nothing below reads them
+  doRecap(n);  // full RAM recap (replaces the ext19 parse AND the old fallback); written FIRST so an eviction in the remaining ext17/ext11 parses still leaves the rich recap
   if (pendF17) { try { loadExt(17)(gradeSystem); pendF17 = 0; } catch (e) {} }  // drain pending snapshot-swap — parse-on-use (ext17 not cached resident); clear pendF17 only AFTER a successful parse, so an evicted ext17 in a heap-full save window retries next end instead of silently dropping the grade-system snapshot
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
   if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
   allTimeStats.totalHeight = (allTimeStats.totalHeight || 0) + sessionH;
   try { writeStats(); } catch (e) {}
-  // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
-  try { if (routesA.length > 0) LS.setObject("lastSummary", loadExt(19)(routesA, routesB, gradeSystem)); } catch (e) {}
 }
 
 function onEvent(_input, output, eventId) {
