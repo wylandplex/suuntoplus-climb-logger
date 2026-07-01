@@ -76,16 +76,12 @@
 
       <div class="p-hc" style="top:44%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
 
-      <div class="sp-vertical-center" style="top:calc(55% - 24.5px); left:calc(30% - 50%e);">
+      <!-- CLIMB grade display removed — the grade is set on READY, so showing it again mid-climb is redundant;
+           dropping it (grade block + the vertical divider) trims nodes off the mount/swap-transient. routeHeight
+           re-centered (was the left column of a height|grade split). packedGL stays subscribed for READY/BREAK. -->
+      <div class="sp-vertical-center" style="top:calc(55% - 24.5px); left:calc(50% - 50%e);">
         <span class="sp-b-s">H</span>
         <span class="sp-b-m f-num" style="padding-left:4px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
-      </div>
-
-      <div class="p-hc" style="top:49%;width:2px;height:14%;background:rgba(255,255,255,0.3)"></div>
-
-      <div class="sp-vertical-center" style="top:calc(55% - 24.5px); left:calc(70% - 50%e);">
-        <span class="f-ico" style="padding-right:4px">&#xF144;</span>
-        <span class="sp-b-m"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" /></span>
       </div>
 
       <div class="sp-vertical-center" style="top:calc(72% - 50%e); left:calc(45% - 50%e);">
