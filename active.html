@@ -12,6 +12,7 @@
             setStyle('#sc1','visibility',x===1?'VISIBLE':'HIDDEN');
             setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
           }
+          function hdrCol(x){setStyle('#hg','visibility',x===1?'VISIBLE':'HIDDEN');setStyle('#ho','visibility',x===2?'VISIBLE':'HIDDEN')}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
@@ -24,6 +25,7 @@
     <!-- vState → applyVis: <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. -->
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
     <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (applyVis(x),'')" default="" /></div>
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hdrCol(x),'')" default="" /></div>
 
     <div id="sc0" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
@@ -130,11 +132,13 @@
          identical content; authored once here (rendered last so it sits above the section tops). Saves
          2 cm-fg bands + 2 evals + 2 self-size measure-passes from the resident active mount. -->
     <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.12)">
+      <!-- result bands: pre-built green/orange, toggled by hdrCol via the PROVEN visibility mechanism. Runtime setStyle only applies 'visibility' (like applyVis), NOT 'background' — the old inline setStyle('#hdr','background',rgba) was a silent on-watch no-op. Bands sit BEHIND the text. -->
+      <div id="hg" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(45,175,75,0.5);visibility:HIDDEN"></div>
+      <div id="ho" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(235,140,25,0.5);visibility:HIDDEN"></div>
       <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
         <span><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" /></span>
         <span style="padding-left:16px"><eval input="/Zapp/{zapp_index}/Output/hdrGrade" outputFormat="script x => x < 0 ? '' : dG(x)" default="" /></span>
       </div>
-      <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (setStyle('#hdr','background', x===1?'rgba(45,175,75,0.5)':x===2?'rgba(235,140,25,0.5)':'rgba(255,255,255,0.12)'),'')" default="" /></div>
     </div>
 
     <!-- Bottom time-bar with a cheap flat-fill backing panel + top hairline (replaces the removed clip-path
