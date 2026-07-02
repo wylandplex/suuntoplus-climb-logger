@@ -584,11 +584,18 @@ var drainF12 = function() {
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
   if (r[3]) allProjects = r[3];
-  try { if (LS.getItem("gN_s") !== "" + gradeSystem) pendGN = 1; } catch (e) { pendGN = 1; }  // slice stale/missing -> refresh at end
+  // gN slice check HERE, after ext12 loaded the REAL gradeSystem (the old onLoad check compared the
+  // marker against the DEFAULT system 0 -> false re-arm + an ext18 parse EVERY session). First-run
+  // CREATION happens right now — pre-start, the proven-clean drain moment (a mid-session creation
+  // stormed on-watch: 22:29:13 JSalloc:2057 exactly at the ext18 parse). Later system CHANGES re-arm
+  // pendGN via evSetup and REWRITE at END (rewriting an existing file is safe, creation is not).
+  try { if (LS.getItem("gN_s") !== "" + gradeSystem) drainGN(); } catch (e) { drainGN(); }
 };
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
+  // (gN marker check lives in drainF12 now — checking here compared against the DEFAULT gradeSystem
+  // before ext12 loaded the real one, falsely re-arming pendGN every session.)
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   // ZERO parses in onLoad now: ext12 deferred to drainF12 (first tick/event), f10 lazy at first
   // commitDirty. The enable burst is Load-script + this function only — lighter than it has ever been.
@@ -599,8 +606,7 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) drainF12();  // staggered ext12 bootstrap: first tick, after the enable burst settled
-  else if (pendGN && routesA.length === 0 && state === 0) drainGN();  // READY only, nothing logged: NEVER while the user is still on the SETUP screen — evSetup re-arms pendGN per system-switch press, and draining mid-cycling = an ext18 parse + LS writes PER PRESS (the exact freeze the old grade-table-ls branch died of; reproduced on-watch as 'freeze bei grade system switch')
+  if (pendF12) drainF12();  // staggered ext12 bootstrap: first tick, after the enable burst settled. Also creates the gN slice on first run (pre-start). NO pendGN drain in evaluate: a mid-session gN file CREATION storms the heap (on-watch 22:29:13, JSalloc:2057); system-change REWRITES belong to the safe END fallback only.
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
