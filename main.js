@@ -45,6 +45,7 @@ var pStep = 0;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
 var pendF17 = 0;
 var edRefresh = 0;  // # of post-mount pushEdit() refreshes to fire after entering EDIT (set in goState)
+var f20 = 0;  // ext20 (fEdit) parse cache: ONE parse per EDIT visit, freed in goState on leaving EDIT — an uncached loadExt(20) per press re-parsed ~4.8KB on the 99%-full heap = the on-watch EDIT freeze (log 13:53:43-13:54:01, 4 parses in 18s)
 
 var climbMode = 0;
 var curAsc = 0;
@@ -222,7 +223,7 @@ var goState = function(s, output) {
   // EDIT (state 5) entry: schedule a couple of pushEdit() refreshes in evaluate() — they must fire
   // AFTER manage.html mounts (this goState unloads the active cluster, so a synchronous setText here
   // hits no DOM). evEdit() handles subsequent in-edit updates directly, so this is mount-catch only.
-  if (s === 5) edRefresh = 2;
+  if (s === 5) edRefresh = 2; else f20 = 0;  // leaving EDIT frees the cached fEdit parse (GC reclaims its bytecode — the Pool-A win holds outside EDIT)
 };
 
 // De-load: tear down the heavy active.html (frees its ~1.3-2KB onLoad G-table + 3-screen DOM + evals) and
@@ -458,7 +459,7 @@ var evProjSetup = function(output, eid, dy) {
 // refresh-only rebuild of the #ed-* display (the post-mount edRefresh path).
 var evEdit = function(output, eid) {
   var sb = { editIdx: editIdx, editDelMark: editDelMark, routeNumber: routeNumber, sendsCount: sendsCount, sessionH: sessionH, bestSendIdx: bestSendIdx, projStatsDirty: projStatsDirty, lastGradeV: lastGradeV, gradeV: gradeV, routesEvicted: routesEvicted };
-  var r = loadExt(20)(eid, sb, gradeSystem, GRADE_LENS[gradeSystem], routesA, routesB, projStats, allTimeStats);
+  var r = (f20 || (f20 = loadExt(20)))(eid, sb, gradeSystem, GRADE_LENS[gradeSystem], routesA, routesB, projStats, allTimeStats);
   editIdx = sb.editIdx; editDelMark = sb.editDelMark; routeNumber = sb.routeNumber; sendsCount = sb.sendsCount;
   sessionH = sb.sessionH; bestSendIdx = sb.bestSendIdx; projStatsDirty = sb.projStatsDirty; lastGradeV = sb.lastGradeV;
   if (r.pg != null) output.packedGL = r.pg;  // literal write (deploy-safe)
