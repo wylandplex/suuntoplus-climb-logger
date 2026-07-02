@@ -1,0 +1,36 @@
+<uiView onLoad="
+          var lock=0;
+          function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
+          function ulk(){lock=0}
+          function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
+          function evL(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
+        ">
+  <div id="climblogger">
+
+    <!-- Dedicated LIMIT screen (state 3) — route-cap safety valve. Single static view, ZERO eval bindings
+         (no WB paths), mounted ONLY when the cap is hit (rare). Any button → READY (main.js onEvent state 3).
+         Split out of active.html so the route-cap screen no longer weighs on every active-screen swipe mount. -->
+    <div id="sc3" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
+      <div class="sp-t-l p-hc" style="top:calc(28% - 50%e);">LIMIT</div>
+      <div class="sp-b-s" style="position:absolute;top:48%;left:10%;width:80%;text-align:center;">Max routes logged — save activity &amp; restart to continue</div>
+    </div>
+
+    <!-- Physical pushButtons — universal events, main.js dispatches by state (state 3 → any event = READY) -->
+    <:if test="{{ HAS_ON_EVENT }}">
+    <userInput>
+      <!-- onLongPressFull consumes the firmware up=Multisport / down=Control Panel default; middle free. -->
+      <pushButton name="up" type="lock" longType="lock"
+        onClick="ev(1)"
+        onLongPressStart="evL(5)"
+        onLongPressFull=";" />
+      <pushButton name="next" longType="lock"
+        onLongPressStart="ev(4)" />
+      <pushButton name="down" type="lock" longType="lock"
+        onClick="ev(2)"
+        onLongPressStart="evL(6)"
+        onLongPressFull=";" />
+    </userInput>
+    </:if>
+
+  </div>
+</uiView>

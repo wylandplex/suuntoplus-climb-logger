@@ -27,7 +27,7 @@ var MAIN = path.join(__dirname, '..', '..', 'main.js');
 function extStub(n) {
   if (n === 12) return function (ats) { return [0, [-1, -1, -1, -1, -1], {}, {}]; };
   if (n === 11) return function () {};
-  if (n === 10) return function (lgi, gs, ld, lha, lmh, lp1, lp3, isSend, cm, bse, ps, ats, h) {
+  if (n === 10) return function (lgi, gs, ld, lha, lmh, isSend, cm, bse, ps, ats, h) {  // 11-param sig: lp1/lp3 (1'/3' peaks) removed
     if (isSend && lgi > bse) bse = lgi;
     // route tuple shape rr[0..5] = [grade, send, climbMode, height, dur, hrAvg]
     return [bse, 0, [lgi, isSend ? 1 : 0, cm, h || 0, ld, lha], null, null];
@@ -69,7 +69,9 @@ function makeApp() {
   src += '\n;this.__api={getUserInterface:typeof getUserInterface==="function"?getUserInterface:null,' +
     'onLoad:onLoad,evaluate:evaluate,onEvent:onEvent,onLap:onLap,' +
     'onExerciseEnd:onExerciseEnd,onExercisePause:onExercisePause,onExerciseContinue:onExerciseContinue,' +
-    'getState:function(){return state},getRoutes:function(){return routes},' +
+    'getState:function(){return state},' +
+    // routes are packed into routesA/routesB now — reconstruct the boxed [grade,send,cm,height,dur,hrAvg] tuples so existing assertions still read .length and [i][k].
+    'getRoutes:function(){var _o=[];for(var _i=0;_i<routesA.length;_i++)_o.push([Math.floor(routesA[_i]/1e6),Math.floor(routesA[_i]/1e5)%10,Math.floor(routesA[_i]/1e4)%10,routesA[_i]%1e4,Math.floor(routesB[_i]/1000),routesB[_i]%1000]);return _o},' +
     'getFrDirty:function(){return frDirty},' +
     'getLimit:function(){return ROUTE_LIMIT},' +
     'getExtLapPending:function(){return typeof extLapPending==="undefined"?undefined:extLapPending}};';
