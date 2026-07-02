@@ -54,59 +54,25 @@
   ],
   "template": [
     {
-      "name": "active.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "ready.html"
     },
     {
-      "name": "limit.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "active.html"
     },
     {
-      "name": "saving.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "setup.html"
     },
     {
-      "name": "manage.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "projsetup.html"
     },
     {
-      "name": "edit.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "edit.html"
+    },
+    {
+      "name": "limit.html"
+    },
+    {
+      "name": "saving.html"
     }
   ],
   "variables": [

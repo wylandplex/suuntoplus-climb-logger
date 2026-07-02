@@ -81,7 +81,7 @@ function getUserInterface() {
   // before or after onLoad (a returning user must open on active, not blank-out on manage). EDIT is never
   // the first screen (reached only from READY), so first resolve is only ever active/manage.
   // After first resolve, goState() owns currentTemplate.
-  if (!currentTemplate) currentTemplate = initReady() ? "active" : "manage";
+  if (!currentTemplate) currentTemplate = initReady() ? "ready" : "setup";
   return { template: currentTemplate };
 }
 
@@ -236,7 +236,7 @@ var pushEdit = function() {
 
 var goState = function(s, output) {
   state = s;
-  var t = s < 3 ? "active" : s === 3 ? "limit" : s === 5 ? "edit" : s === 7 ? "saving" : "manage";  // 0/1/2 → active, 3 → dedicated limit.html, 5 → edit.html, 4/6 → manage
+  var t = s === 0 ? "ready" : s < 3 ? "active" : s === 3 ? "limit" : s === 4 ? "setup" : s === 5 ? "edit" : s === 6 ? "projsetup" : "saving";  // idle-split: every cold screen is its own small template; active = CLIMB/BREAK only (zero per-lap swaps stay)
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
