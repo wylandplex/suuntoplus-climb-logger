@@ -44,7 +44,8 @@ var finalized = 0;  // onExerciseEnd idempotency (fast pause→end guard); reset
 var pStep = 0;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
 var pendF17 = 0;
-var pendGN = 0;  // grade-name slice (LS 'gN') stale: system changed this session or first run — drained at END via ext18 (pendF17 pattern)
+var pendGN = 0;
+var pendF12 = 0;  // ext12 bootstrap DEFERRED off the enable burst (the 20:28:35 re-enable JSalloc:2933 storm): parsed on the first evaluate tick / first event instead — staggers the 1.6KB parse + its ~2-3KB stats-JSON alloc away from Load-script + 3-app enable  // grade-name slice (LS 'gN') stale: system changed this session or first run — drained at END via ext18 (pendF17 pattern)
 var edRefresh = 0;  // # of post-mount pushEdit() refreshes to fire after entering EDIT (set in goState)
 
 var climbMode = 0;
@@ -561,13 +562,12 @@ var evEdit = function(output, eid) {
   }
 };
 
-function onLoad(_input, output) {
-  finalized = 0;  // new session → re-arm onExerciseEnd
-  try { if (LS.getItem("gN_s") !== "" + gradeSystem) pendGN = 1; } catch (e) { pendGN = 1; }  // slice stale/missing → refresh at end
-  pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
-  // f10 (ext10) is NOT parsed here — lazy at the first commitDirty (it isn't needed until a route
-  // finishes). Keeps the onLoad/re-enable parse burst to ONE file (ext12 bootstrap), so a fast
-  // disable→enable is less likely to race the firmware's not-yet-reclaimed prior instance into None-avail.
+// ext12 bootstrap, staggered: everything that used to run inline in onLoad. Guarded-called from the
+// first evaluate tick, the first event, and onExerciseEnd (belt: a start-then-instant-end session must
+// still attribute to the right system). By drain time the enable burst is settled and the firmware has
+// reclaimed the prior instance — the exact allocation that failed (JSalloc:2933) now lands on calm heap.
+var drainF12 = function() {
+  pendF12 = 0;
   var r = loadExt(12)(allTimeStats);
   gradeSystem = r[0];
   projGradeIdx = r[1];
@@ -575,12 +575,22 @@ function onLoad(_input, output) {
   currentGrade = DEFAULT_IDX[gradeSystem];
   allTimeStats.sessions++;
   if (r[3]) allProjects = r[3];
-  if (initReady()) { state = 0; }  // returning user → READY; currentTemplate resolved by getUserInterface() via the same initReady()
+  try { if (LS.getItem("gN_s") !== "" + gradeSystem) pendGN = 1; } catch (e) { pendGN = 1; }  // slice stale/missing -> refresh at end
+};
+
+function onLoad(_input, output) {
+  finalized = 0;  // new session → re-arm onExerciseEnd
+  pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
+  // ZERO parses in onLoad now: ext12 deferred to drainF12 (first tick/event), f10 lazy at first
+  // commitDirty. The enable burst is Load-script + this function only — lighter than it has ever been.
+  pendF12 = 1;
+  if (initReady()) { state = 0; }  // returning user → READY; currentTemplate resolved by getUserInterface() via the same initReady() — reads watchSetup directly, independent of ext12
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
 function evaluate(input, output) {
   if (isPaused) return;
+  if (pendF12) drainF12();  // staggered ext12 bootstrap: first tick, after the enable burst settled
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
@@ -645,7 +655,8 @@ var endSum = function(ag) {
 };
 
 function onExerciseEnd(input, _output) {
-  if (finalized) return; finalized = 1;  // idempotent: a fast pause→end (or any double-fire) must not re-run the parse burst on an already-stressed heap
+  if (finalized) return; finalized = 1;
+  if (pendF12) { try { drainF12(); } catch (e) {} }  // belt: an instant start->end session must still attribute stats/gN to the right system  // idempotent: a fast pause→end (or any double-fire) must not re-run the parse burst on an already-stressed heap
   if (state === 1) {
     lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
     lastHeight = Math.max(0, Math.round(curAsc - startAsc));
@@ -686,6 +697,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  if (pendF12) drainF12();  // user interacted before the first tick — bootstrap now
   // Commit-window action-lock: while a just-finished route awaits commitDirty (~1 tick, in BREAK), drop route
   // ACTIONS — a too-fast eid4 would save-as-project WITHOUT the pending route, and eid6 would bounce BREAK→READY
   // pre-commit. Grade/slot events (1/2/7/8) stay fluid (and are safe: the pending route is attributed to the
