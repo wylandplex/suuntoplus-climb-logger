@@ -44,6 +44,7 @@ var finalized = 0;  // onExerciseEnd idempotency (fast pause→end guard); reset
 var pStep = 0;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
 var pendF17 = 0;
+var pendGN = 0;  // grade-name slice (LS 'gN') stale: system changed this session or first run — drained at END via ext18 (pendF17 pattern)
 var edRefresh = 0;  // # of post-mount pushEdit() refreshes to fire after entering EDIT (set in goState)
 
 var climbMode = 0;
@@ -456,6 +457,7 @@ var evSetup = function(output, eid, dy) {
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
     wsDirty = 1;   // watchSetup needs persisting at session end
     pendF17 = 1;   // ext17 grade-system snapshot swap runs once at session end (parsed on-demand THERE — not cached resident)
+    pendGN = 1;    // gN slice now stale — rewrite at end via ext18
   } else if (eid === 6) {
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
@@ -561,6 +563,7 @@ var evEdit = function(output, eid) {
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
+  try { if (LS.getItem("gN_s") !== "" + gradeSystem) pendGN = 1; } catch (e) { pendGN = 1; }  // slice stale/missing → refresh at end
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   // f10 (ext10) is NOT parsed here — lazy at the first commitDirty (it isn't needed until a route
   // finishes). Keeps the onLoad/re-enable parse burst to ONE file (ext12 bootstrap), so a fast
@@ -607,6 +610,40 @@ function evaluate(input, output) {
   dwell = 0;
 }
 
+// End-window helpers live at TOP LEVEL (function expressions) so their bytecode stays OUT of the
+// merged lifecycle dispatcher (~1874B compile cliff — the aggregate pass inside onExerciseEnd blew it
+// to 2100B). endAgg: ONE allocation-light pass over the route records (the recap aggregates ext19's
+// loop used to compute while holding the arrays live), writes the parse-free fallback summary, then
+// FREES routesA/routesB so the burst lands on reclaimed heap. Returns the aggregate pack for endSum.
+var endAgg = function() {
+  var nR = routesA.length, sAg = 0, htAg = 0, spAg = -1, spcAg = 0, durAg = 0, hrsAg = 0, hrcAg = 0, iAg;
+  for (iAg = 0; iAg < nR; iAg++) {
+    var aAg = routesA[iAg], bAg = routesB[iAg];
+    var hAg = aAg % 1e4, dAg = Math.floor(bAg / 1000), rAg = bAg % 1000;
+    if (Math.floor(aAg / 1e5) % 10) { sAg++; var eAg = gradeSystem * 100 + Math.floor(aAg / 1e6); if (eAg > spAg) { spAg = eAg; spcAg = 1; } else if (eAg === spAg) { spcAg++; } }
+    if (hAg > 0) htAg += hAg;
+    if (dAg > 0) durAg += dAg;
+    if (rAg > 0) { hrsAg += rAg; hrcAg++; }
+  }
+  try {
+    if (nR > 0) {
+      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: sAg, postfix: '/ ' + nR }];
+      if (sessionH > 0) { fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(sessionH), postfix: 'm' }); }
+      LS.setObject("lastSummary", fb);
+    }
+  } catch (e) {}
+  routesA = []; routesB = [];  // FREE before the burst (the proven hrBuf/f10 pattern: ~1-1.5KB reclaimable where the burst needs it)
+  return [sAg, nR, spcAg, spAg, durAg, hrcAg > 0 ? hrsAg / hrcAg : 0, htAg];
+};
+// endSum: resolve the highest-send NAME from the LS gN slice (the G-table never enters this window)
+// and write the rich recap via the slim scalar-only ext19 parse.
+var endSum = function(ag) {
+  if (ag[1] <= 0) return;
+  var spNm = "";
+  if (ag[3] >= 0) { var giE = ag[3] % 100; spNm = giE >= 50 ? "OFF" : ((LS.getItem("gN") || "").split(",")[giE] || "?"); }
+  LS.setObject("lastSummary", loadExt(19)(ag[0], ag[1], ag[2], spNm, ag[4], ag[5], ag[6]));
+};
+
 function onExerciseEnd(input, _output) {
   if (finalized) return; finalized = 1;  // idempotent: a fast pause→end (or any double-fire) must not re-run the parse burst on an already-stressed heap
   if (state === 1) {
@@ -633,26 +670,18 @@ function onExerciseEnd(input, _output) {
   // closure) is dead after the climb is over — commitDirty above was its last consumer. routesA/routesB
   // (ext19) and projStats/allTimeStats (ext11) stay live. (hrBuf HR-ring removed — 1'/3' peak feature cut.)
   f10 = null;
-  // Parse-free fallback summary FIRST, so an eviction during the ext11/ext19 parse can never leave
-  // "0/0": ext19 overwrites this with the rich recap if its parse survives. Sends counted via rSend
-  // exactly like ext19 (no drift), no evalFile, no allocation beyond the tiny array.
-  try {
-    if (routesA.length > 0) {
-      var sFb = 0, iFb;
-      for (iFb = 0; iFb < routesA.length; iFb++) { if (rSend(iFb)) sFb++; }
-      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: sFb, postfix: '/ ' + routesA.length }];
-      if (sessionH > 0) { fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(sessionH), postfix: 'm' }); }
-      LS.setObject("lastSummary", fb);
-    }
-  } catch (e) {}
+  // aggregate pass + parse-free fallback + FREE routesA/routesB — top-level endAgg keeps the
+  // dispatcher under its compile cliff.
+  var ag = endAgg();
   if (pendF17) { try { loadExt(17)(gradeSystem); pendF17 = 0; } catch (e) {} }  // drain pending snapshot-swap — parse-on-use (ext17 not cached resident); clear pendF17 only AFTER a successful parse, so an evicted ext17 in a heap-full save window retries next end instead of silently dropping the grade-system snapshot
+  if (pendGN) { try { LS.setItem("gN", loadExt(18)(gradeSystem)); LS.setItem("gN_s", "" + gradeSystem); pendGN = 0; } catch (e) {} }  // refresh the grade-name slice (rare: system changed / first run) — the ONLY moment the full G-table is ever parsed on the ext side
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
   if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
   allTimeStats.totalHeight = (allTimeStats.totalHeight || 0) + sessionH;
   try { writeStats(); } catch (e) {}
   // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
-  try { if (routesA.length > 0) LS.setObject("lastSummary", loadExt(19)(routesA, routesB, gradeSystem)); } catch (e) {}
+  try { endSum(ag); } catch (e) {}
 }
 
 function onEvent(_input, output, eventId) {
