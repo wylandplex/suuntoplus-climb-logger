@@ -205,28 +205,7 @@ var writeActStats = function(output) {
 // silent no-op on this platform; sc0/sc2 are still hidden when goState(N) runs
 // from the event handler (applyVis(N) is async via the vState output binding).
 
-// T6: edit screen route counter + send-state icons/label pushed event-driven via setText.
-var pushEdit = function() {
-  var n = routesA.length, has = editIdx < n;
-  var ev = editDelMark ? 2 : (has ? rSend(editIdx) : 0);
-  setText("#ed-routeNum", "" + (n > 0 ? editIdx + 1 : 0));
-  // A-slimming: "/N" total + grade arrows moved off <eval> bindings (edit.html keeps only the lastGrade eval).
-  setText("#ed-total", "" + n);
-  // Grade up/down arrows: hidden on project routes (cm>0) — mirrors the old climbMode <eval>s and the evEdit eid 1/2 !cm guard.
-  var arr = (has && rCm(editIdx) > 0) ? "HIDDEN" : "VISIBLE";
-  setStyle("#ed-arrUp", "visibility", arr);
-  setStyle("#ed-arrDn", "visibility", arr);
-  setText("#ed-sendIcon", ev === 2 ? "" : ev === 1 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
-  setText("#ed-sendLabel", ev === 2 ? "DEL" : ev === 1 ? "SEND" : "FAIL");
-  // #101: mid-pill shows the NEXT MID action (cycle DEL→SEND→FAIL→DEL):
-  //   ev=0 FAIL → next is DEL  → text "DEL"
-  //   ev=1 SEND → next is FAIL → F110 glyph
-  //   ev=2 DEL  → next is SEND → F200 glyph
-  var pd = ev === 0;
-  setStyle("#ed-pillIcon", "visibility", pd ? "HIDDEN" : "VISIBLE");
-  setStyle("#ed-pillDel", "visibility", pd ? "VISIBLE" : "HIDDEN");
-  if (!pd) setText("#ed-pillIcon", ev === 2 ? String.fromCharCode(0xF200) : String.fromCharCode(0xF110));
-};
+// pushEdit externalized into ext20 fEdit (returns #ed-* DOM commands) — off the resident main.js.
 
 var goState = function(s, output) {
   state = s;
@@ -472,89 +451,21 @@ var evProjSetup = function(output, eid, dy) {
   }
 };
 
+// EDIT applier: the logic is externalized to ext20 (fEdit) — parsed on demand in EDIT ONLY, so its ~1KB of
+// bytecode never sits resident during the workout. Marshal state in via a scalar bag (sb) + by-reference
+// arrays/objects (routesA/routesB/projStats/allTimeStats, mutated in place); apply the returned scalar
+// mutations, LITERAL output writes, the #ed-* setText/setStyle DOM commands, and goState. eid 0 = a
+// refresh-only rebuild of the #ed-* display (the post-mount edRefresh path).
 var evEdit = function(output, eid) {
-  var n = routesA.length;
-  if (eid === 5 || eid === 6) {
-    if (editDelMark) {
-      if (editIdx < routesA.length) {
-        var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = rHt(editIdx);
-        allTimeStats.totalRoutes--;
-        if (dSend) { allTimeStats.totalSends--; if (sendsCount > 0) sendsCount--; }
-        recPct();
-        if (dCm > 0) {
-          var dk = gradeSystem + "_" + dCm, dp = projStats[dk];
-          if (dp) {
-            if (dp.attempts > 0) dp.attempts--;
-            if (dSend && dp.sends > 0) dp.sends--;
-            if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
-            projStatsDirty = 1;
-          }
-        }
-        if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
-        routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
-        recalcBse();
-        if (dCm > 0) rescanBest(dCm);  // deleted route may have held the slot's best — recompute from what's left
-        if (routeNumber > 1) routeNumber--;
-        n = routesA.length;
-        if (editIdx >= n && n > 0) editIdx = n - 1;
-      }
-      editDelMark = 0;
-    }
-    if (eid === 6 && n > 0) {
-      editIdx = (editIdx - 1 + n) % n;
-      if (editIdx < routesA.length) {
-        lastGradeV = encGrade(rGrade(editIdx)); wGL(output);
-        if (chg("modeSub", n)) output.modeSub = n;
-      }
-      pushEdit();  // T6: routeNum + editSend display moved to setText
-    } else {
-      goState(0, output);
-    }
-    return;
-  }
-  if (n === 0) return;
-  if (eid === 4) {
-    if (editIdx < routesA.length) {
-      if (editDelMark) {
-        editDelMark = 0;
-        wSend(editIdx, 1);
-        sendsCount++;
-        allTimeStats.totalSends++;
-        var cm4 = rCm(editIdx);
-        if (cm4 > 0) {
-          var k = gradeSystem + "_" + cm4, p = projStats[k];
-          if (p) { p.sends++; var d4 = rDur(editIdx); if (d4 > 0 && (p.bestTime === 0 || d4 < p.bestTime)) p.bestTime = d4; projStatsDirty = 1; }
-        }
-      } else if (rSend(editIdx)) {
-        wSend(editIdx, 0);
-        if (sendsCount > 0) sendsCount--;
-        allTimeStats.totalSends--;
-        var cm5 = rCm(editIdx);
-        if (cm5 > 0) {
-          var k2 = gradeSystem + "_" + cm5, p2 = projStats[k2];
-          if (p2 && p2.sends > 0) { p2.sends--; projStatsDirty = 1; }
-          rescanBest(cm5);  // un-sent route may have held the slot's best — recompute (send is now 0, so it's excluded)
-        }
-      } else {
-        editDelMark = 1;
-      }
-      recPct();
-      recalcBse();
-      pushEdit();  // T6: editSend icons/label moved to setText
-    }
-  } else if (eid === 1 || eid === 2) {
-    if (editIdx < routesA.length && !rCm(editIdx)) {
-      var dy5 = eid === 1 ? 1 : -1, L = GRADE_LENS[gradeSystem];
-      var ng = ((rGrade(editIdx) + dy5) % L + L) % L;
-      wGrade(editIdx, ng);
-      lastGradeV = encGrade(ng); wGL(output);
-      if (rSend(editIdx)) {
-        recalcBse();
-      }
-    }
-  }
+  var sb = { editIdx: editIdx, editDelMark: editDelMark, routeNumber: routeNumber, sendsCount: sendsCount, sessionH: sessionH, bestSendIdx: bestSendIdx, projStatsDirty: projStatsDirty, lastGradeV: lastGradeV, gradeV: gradeV, routesEvicted: routesEvicted };
+  var r = loadExt(20)(eid, sb, gradeSystem, GRADE_LENS[gradeSystem], routesA, routesB, projStats, allTimeStats);
+  editIdx = sb.editIdx; editDelMark = sb.editDelMark; routeNumber = sb.routeNumber; sendsCount = sb.sendsCount;
+  sessionH = sb.sessionH; bestSendIdx = sb.bestSendIdx; projStatsDirty = sb.projStatsDirty; lastGradeV = sb.lastGradeV;
+  if (r.pg != null) output.packedGL = r.pg;  // literal write (deploy-safe)
+  if (r.ms != null) output.modeSub = r.ms;
+  if (r.dom) { for (var i = 0; i < r.dom.length; i++) { var d = r.dom[i]; if (d.p) setStyle(d.s, d.p, d.v); else setText(d.s, d.v); } }
+  if (r.go >= 0) goState(r.go, output);
 };
-
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
@@ -599,7 +510,7 @@ function evaluate(input, output) {
   // state=4 (setup) needs it to publish vState so manage.html applyVis fires correctly on initial entry.
   // In edit (5), only a bounded post-mount pushEdit() (cheap setText) — goState's call ran pre-mount
   // (the cluster switch unloaded the old DOM), so this catches the remount without per-tick churn.
-  if (state !== 5) setOutputs(output); else if (edRefresh) { edRefresh--; pushEdit(); }
+  if (state !== 5) setOutputs(output); else if (edRefresh) { edRefresh--; evEdit(output, 0); }  // eid 0 = ext20 refresh-only rebuild
   dwell = 0;
 }
 
