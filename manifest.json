@@ -44,6 +44,12 @@
     },
     {
       "name": "actB"
+    },
+    {
+      "name": "hdrGrade"
+    },
+    {
+      "name": "hdrRes"
     }
   ],
   "template": [

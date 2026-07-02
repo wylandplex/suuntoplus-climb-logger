@@ -184,6 +184,10 @@ var setOutputs = function(output) {
     if (state === 0) writeActStats(output);
     else { if (chg("actT", -1)) output.actT = -1; if (chg("actS", -1)) output.actS = -1; if (chg("actB", -1)) output.actB = -1; }
   }
+  var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
+  if (chg("hdrGrade", hg)) output.hdrGrade = hg;
+  var hres = state === 2 ? (lastResult ? 1 : 2) : 0;  // header colour: 1=green(sent) / 2=orange(fail) on BREAK, set by the CLIMB-finish result; 0=neutral elsewhere
+  if (chg("hdrRes", hres)) output.hdrRes = hres;
   pubF = 0;
 };
 
