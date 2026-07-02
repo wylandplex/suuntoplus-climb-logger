@@ -600,7 +600,7 @@ function onLoad(_input, output) {
 function evaluate(input, output) {
   if (isPaused) return;
   if (pendF12) drainF12();  // staggered ext12 bootstrap: first tick, after the enable burst settled
-  else if (pendGN && routesA.length === 0 && state !== 1 && state !== 2) drainGN();  // next tick, EARLY-session only (pre-climb): creates the gN LS files at a calm moment, never in the end window
+  else if (pendGN && routesA.length === 0 && state === 0) drainGN();  // READY only, nothing logged: NEVER while the user is still on the SETUP screen — evSetup re-arms pendGN per system-switch press, and draining mid-cycling = an ext18 parse + LS writes PER PRESS (the exact freeze the old grade-table-ls branch died of; reproduced on-watch as 'freeze bei grade system switch')
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
