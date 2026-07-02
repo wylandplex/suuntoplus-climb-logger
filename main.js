@@ -566,6 +566,15 @@ var evEdit = function(output, eid) {
 // first evaluate tick, the first event, and onExerciseEnd (belt: a start-then-instant-end session must
 // still attribute to the right system). By drain time the enable burst is settled and the firmware has
 // reclaimed the prior instance — the exact allocation that failed (JSalloc:2933) now lands on calm heap.
+// gN slice refresh (ext18 parse + LS writes). FIRST-RUN LESSON (fresh-install end-crash 20:56:49,
+// JSalloc:2163 exactly at the end-window ext18 parse): CREATING new LS files in the end window is
+// lethal — "first-run pre-creates LS files at onLoad" existed for a reason. So the common case
+// (first run) drains EARLY from evaluate (one tick after the ext12 drain, empirically pre-start),
+// and only a rare mid-session system CHANGE falls back to the end drain.
+var drainGN = function() {
+  try { LS.setItem("gN", loadExt(18)(gradeSystem)); LS.setItem("gN_s", "" + gradeSystem); pendGN = 0; } catch (e) {}
+};
+
 var drainF12 = function() {
   pendF12 = 0;
   var r = loadExt(12)(allTimeStats);
@@ -591,6 +600,7 @@ function onLoad(_input, output) {
 function evaluate(input, output) {
   if (isPaused) return;
   if (pendF12) drainF12();  // staggered ext12 bootstrap: first tick, after the enable burst settled
+  else if (pendGN && routesA.length === 0 && state !== 1 && state !== 2) drainGN();  // next tick, EARLY-session only (pre-climb): creates the gN LS files at a calm moment, never in the end window
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
@@ -685,7 +695,7 @@ function onExerciseEnd(input, _output) {
   // dispatcher under its compile cliff.
   var ag = endAgg();
   if (pendF17) { try { loadExt(17)(gradeSystem); pendF17 = 0; } catch (e) {} }  // drain pending snapshot-swap — parse-on-use (ext17 not cached resident); clear pendF17 only AFTER a successful parse, so an evicted ext17 in a heap-full save window retries next end instead of silently dropping the grade-system snapshot
-  if (pendGN) { try { LS.setItem("gN", loadExt(18)(gradeSystem)); LS.setItem("gN_s", "" + gradeSystem); pendGN = 0; } catch (e) {} }  // refresh the grade-name slice (rare: system changed / first run) — the ONLY moment the full G-table is ever parsed on the ext side
+  if (pendGN) drainGN();  // rare fallback: system changed mid-session (first-run gN was already created by the EARLY evaluate drain — file creation never lands in the end window)
   try { LS.setObject("climbProjStats", projStats); } catch (e) {}
   projStatsDirty = 0;
   if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
