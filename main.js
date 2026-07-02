@@ -576,8 +576,7 @@ var drainGN = function() {
 };
 
 var drainF12 = function() {
-  pendF12 = 0;
-  var r = loadExt(12)(allTimeStats);
+  var r = loadExt(12)(allTimeStats);  // pendF12 cleared only AFTER success (pendF17 pattern): an OOM'd parse must RETRY next tick, not leave the app unbootstrapped (default system, no stats) for the whole session
   gradeSystem = r[0];
   projGradeIdx = r[1];
   projStats = r[2];
@@ -590,6 +589,7 @@ var drainF12 = function() {
   // stormed on-watch: 22:29:13 JSalloc:2057 exactly at the ext18 parse). Later system CHANGES re-arm
   // pendGN via evSetup and REWRITE at END (rewriting an existing file is safe, creation is not).
   try { if (LS.getItem("gN_s") !== "" + gradeSystem) drainGN(); } catch (e) { drainGN(); }
+  pendF12 = 0;
 };
 
 function onLoad(_input, output) {
@@ -606,7 +606,7 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) drainF12();  // staggered ext12 bootstrap: first tick, after the enable burst settled. Also creates the gN slice on first run (pre-start). NO pendGN drain in evaluate: a mid-session gN file CREATION storms the heap (on-watch 22:29:13, JSalloc:2057); system-change REWRITES belong to the safe END fallback only.
+  if (pendF12) { try { drainF12(); } catch (e) {} }  // staggered ext12 bootstrap: first tick, after the enable burst settled. Also creates the gN slice on first run (pre-start). NO pendGN drain in evaluate (a mid-session gN file CREATION storms the heap — on-watch 22:29:13); system-change REWRITES belong to the safe END fallback only. try/catch: an OOM'd parse must degrade to a next-tick retry, never throw out of the hook
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
@@ -713,7 +713,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (pendF12) drainF12();  // user interacted before the first tick — bootstrap now
+  if (pendF12) { try { drainF12(); } catch (e) {} }  // user interacted before the first tick — bootstrap now. try/catch: an OOM'd parse THROWING out of an event handler is the 'run evt 1' -> Disable app-death (on-watch 22:46:26, JSalloc:2068 x8 then run evt 1); caught = clean retry next tick
   // Commit-window action-lock: while a just-finished route awaits commitDirty (~1 tick, in BREAK), drop route
   // ACTIONS — a too-fast eid4 would save-as-project WITHOUT the pending route, and eid6 would bounce BREAK→READY
   // pre-commit. Grade/slot events (1/2/7/8) stay fluid (and are safe: the pending route is attributed to the
