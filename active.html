@@ -97,23 +97,24 @@
     <!-- BREAK — same big time+pulse as CLIMB (frozen lap -2) PLUS the climb summary row: height, avg, max. Grade+result are in the colored header. -->
     <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
 
-      <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
+      <div class="sp-d-l p-hc" style="top:calc(36% - 50%e);">
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <div class="sp-vertical-center" style="top:calc(53% - 50%e); left:calc(50% - 50%e);">
+      <div class="sp-vertical-center" style="top:calc(64% - 50%e); left:calc(50% - 50%e);">
         <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
         <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
 
-      <div class="p-hc" style="top:65%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
-
-      <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
+      <!-- timer/pulse sit at the SAME 36%/64% as CLIMB (no jump on phase switch); the climb summary hangs
+           below as a narrow attached band (77.5-85.5%, clear of the 87% bottom time-bar), static bg. -->
+      <div class="p-hc" style="top:77.5%;width:76%;height:8%;background:rgba(255,255,255,0.10)"></div>
+      <div class="p-hc sp-vertical-center" style="top:calc(81.5% - 20.5px);">
         <span class="sp-b-s" style="padding-right:3px">H</span>
-        <span class="sp-b-s f-num" style="padding-right:14px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
+        <span class="sp-b-s f-num" style="padding-right:12px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
         <span class="sp-b-s" style="padding-right:3px">AVG</span>
         <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-        <span class="sp-b-s" style="padding-left:12px;padding-right:3px">MAX</span>
+        <span class="sp-b-s" style="padding-left:10px;padding-right:3px">MAX</span>
         <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
 
