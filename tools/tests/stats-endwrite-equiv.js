@@ -273,6 +273,9 @@ const REC_0 = ['sessionsAtPeak', 'bestSessionHm', 'longestProjectSes', 'mostTrie
 function dump(ls) {
   const o = {};
   for (const k in ls.raw) o[k] = JSON.parse(ls.raw[k]);
+  delete o.lastSummary; // display cache, not stats: new ext12 pre-seeds it at the calm drain (end-window
+                        // creation insurance, 2026-07-03 freeze forensics); rewritten identically by both
+                        // flows at every real end — not part of the compared stats contract
   for (let n = 0; n < 10; n++) {
     const k = 's' + n, s = o[k];
     if (s && !(s.sessions | 0) && !(s.totalRoutes | 0)) delete o[k];
