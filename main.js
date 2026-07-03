@@ -18,6 +18,7 @@ var packB = function(d, hr) { return Math.min(86399, Math.max(0, Math.round(d)))
 var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
 var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
 var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), 0, routesA[i] % 1e4); };
+var wSend  = function(i, v) { routesA[i] = packA(rGrade(i), v, 0, routesA[i] % 1e4); };
 var lastResult = 0;
 
 var rSec = 0;
@@ -232,10 +233,19 @@ var evBreak = function(output, eid, dy) {
     if (lastResult) {
       recalcBse();
     }
+  } else if (eid === 5 && !frDirty && routesA.length > 0) {
+    // EDIT-light (slim rebuild of the cut EDIT screen): up-long in BREAK toggles the LAST committed
+    // route's result SEND<->FAIL. Feedback = the existing hdrRes green/orange band via setOutputs —
+    // zero new outputs, zero new state. !frDirty mirrors the wGrade guard (a pending route is fixed
+    // by frSend at commit, not by editing routes[len-1], which would hit the PREVIOUS route).
+    var li = routesA.length - 1;
+    lastResult = rSend(li) ? 0 : 1;
+    wSend(li, lastResult);
+    recalcBse();
+    setOutputs(output);
   } else if (eid === 6 && !frDirty) {
     goState(0, output);
   }
-  // PROBE: eid 4 (save-as-project) is a no-op — project subsystem cut
 };
 
 var evSetup = function(output, eid, dy) {
