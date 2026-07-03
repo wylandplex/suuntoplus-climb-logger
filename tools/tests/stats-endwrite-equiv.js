@@ -345,7 +345,10 @@ function runPipeline(initStore, plan, isOld) {
         ls.setObject('watchSetup', { sys: gs, proj: ap });
       }
     }
-    if (isOld) ext11(ats, pgi, ps, cm, gs); else ext11(ag, pgi, P, cm, gs, psDirty);
+    // new ext11 gates slot writes on dirty bit 2 (Companion-edit preservation, exercised on-watch
+    // via eP); the OLD pipeline wrote slots at EVERY end, so the strict-equivalence driver mirrors
+    // that with bit 2 always set.
+    if (isOld) ext11(ats, pgi, ps, cm, gs); else ext11(ag, pgi, P, cm, gs, (psDirty ? 1 : 0) | 2);
   }
   return dump(ls);
 }
@@ -356,7 +359,8 @@ const REC_M1 = ['peakGrade', 'lastSessionGrade', 'bestOfLast5', 'longestProjectG
 const REC_0 = ['sessionsAtPeak', 'bestSessionHm', 'longestProjectSes', 'mostTriesProject'];
 function dump(ls) {
   const o = {};
-  for (const k in ls.raw) o[k] = JSON.parse(ls.raw[k]);
+  for (const k in ls.raw) { try { o[k] = JSON.parse(ls.raw[k]); } catch (e) { o[k] = ls.raw[k]; } } // eP is a plain setItem string ("" when seeded/drained), not JSON
+  delete o.eP;          // deferred-persistence transport key — drained/empty by definition at compare time
   delete o.lastSummary; // display cache, not stats: new ext12 pre-seeds it at the calm drain (end-window
                         // creation insurance, 2026-07-03 freeze forensics); rewritten identically by both
                         // flows at every real end — not part of the compared stats contract

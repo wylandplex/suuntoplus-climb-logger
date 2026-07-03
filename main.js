@@ -54,6 +54,13 @@ var projAll = [];
 // projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19].
 var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
 var sessionsNo = 1;
+// eP deferred persistence (wires the built-but-idle ext11/ext12 pair): the workout path stays
+// 100% LS-free; the END writes ONE string "gs;cm;dirty;ag7;pgi5;pSlot20" and ext12 RMWs it into
+// stats/s<gs>/pS<gs> at the NEXT enable's calm drain window (the proven pre-start moment).
+var pendF12 = 1;   // ext12 bootstrap pending — drained on the first evaluate tick / first event; cleared only after success (retry-on-OOM pattern)
+var psDirty = 0;   // projSlot changed this session       -> eP dirty bit 0 (ext11 writes pS<gs>)
+var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> eP dirty bit 1 (ext11 writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
+var sysDirty = 0;  // grade system changed (persist even on a routeless session)
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 var ROUTE_LIMIT = 35;  // in-session route cap → at the cap, START shows the LIMIT screen (state 3); save+restart resets per-session heap/subscriptions/WB-pool occupancy (a periodic reset valve). packedBreak counts saturate at 63 (exact ≤63 routes, fine ≤35).
@@ -95,6 +102,24 @@ var loadProjects = function(sys) {
   for (var i = 0; i < 5; i++) {
     projGradeIdx[i] = projAll[b + i] !== undefined ? projAll[b + i] : -1;
   }
+};
+
+// ext12 bootstrap, staggered off the enable burst (the proven drain pattern): parses ext12 on the
+// first evaluate tick / first event / end-belt. ext12 also RMWs a pending eP end-payload from the
+// PREVIOUS session before returning, so everything below is already post-persist state.
+// autoSkip (tick-1 only): a returning user (persisted sessions > 0) jumps SETUP -> READY like the
+// classic build — never from the event path, where a press means the user is USING the setup screen.
+var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the tick-1 drain, fired on tick 2 (parse and template swap never share a tick), cancelled by any button press
+var drainF12 = function(autoSkip) {
+  var r = loadExt(12)();
+  gradeSystem = r[0];
+  projGradeIdx = r[1];
+  projSlot = r[2];
+  sessionsNo = (r[3] | 0) + 1;
+  projAll = r[4];
+  currentGrade = DEFAULT_IDX[gradeSystem];
+  pendF12 = 0;
+  if (autoSkip && r[3] > 0) skipP = 1;
 };
 
 var loadProjectStats = function() {
@@ -241,6 +266,7 @@ var saveAsProject = function(output) {
     currentGrade = r[0]; climbMode = r[1];
     if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
     projAll[gradeSystem * 5 + r[1] - 1] = r[0];
+    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats
     goState(0, output);
   }
 };
@@ -260,6 +286,7 @@ var toggleRes = function(i, v) {
     var p = c - 1;
     if (v) { projSlot[p + 5]++; var d = rDur(i); if (d > 0 && (projSlot[p + 10] === 0 || d < projSlot[p + 10])) projSlot[p + 10] = d; }
     else if (projSlot[p + 5] > 0) projSlot[p + 5]--;
+    psDirty = 1;
   }
   recalcBse();
 };
@@ -282,6 +309,7 @@ var edDel = function() {
       if (projSlot[dp] > 0) projSlot[dp]--;
       if (dSend && projSlot[dp + 5] > 0) projSlot[dp + 5]--;
       if (projSlot[dp] <= 0) { projSlot[dp] = projSlot[dp + 5] = projSlot[dp + 10] = 0; projSlot[dp + 15] = -1; }
+      psDirty = 1;
     }
     if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
     routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
@@ -331,6 +359,7 @@ var commitDirty = function(input) {
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
       frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode
+    if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
     bestSendIdx = r[0];
     if (r[2]) {
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
@@ -422,6 +451,7 @@ var evSetup = function(output, eid, dy) {
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
     loadProjectStats(gradeSystem);
+    sysDirty = 1;  // persist the system choice via eP even on a routeless session
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
@@ -435,6 +465,7 @@ var evProjSetup = function(output, eid, dy) {
     if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
     projAll[gradeSystem * 5 + pStep] = projGradeIdx[pStep];
+    slotsDirty = 1;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
   } else if (eid === 5) {
     setText("#edr", "");
@@ -457,6 +488,8 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
+  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered bootstrap + previous session's eP RMW, on the calm first tick; try/catch = retry next tick, never throw out of the hook
+  else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
@@ -493,7 +526,6 @@ var endAgg = function() {
   }
   var spNm = "";
   if (spAg >= 0) spNm = gradeName(gradeSystem, spAg % 100);
-  routesA = []; routesB = [];
   try {
     var tS = sAg, tN = nR, tSp = spAg, tSpC = spcAg, tNm = spNm, tD = durAg, tHrS = hrsAg, tHrC = hrcAg, tH = htAg;
     if (tN > 0) {
@@ -516,12 +548,25 @@ var endRoute = function() {
 };
 
 var finishSession = function(input, closeOpen) {
+  if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still apply the PREVIOUS session's eP before writing its own
   if (closeOpen && state === 1) endRoute();
   try { commitDirty(input); } catch (e) {}
-  if (routesA.length === 0) return;
+  if (routesA.length === 0 && !psDirty && !slotsDirty && !sysDirty) return;
   try { deLoad(); } catch (e) {}
   f10 = null;
-  endAgg();
+  var ag = endAgg();
+  // PAUSE (closeOpen=0) only precomputes the RAM summary — arrays stay live so pause->continue
+  // keeps the session (freeing here lost every pre-pause route). END frees + persists: ONE small
+  // eP string; the actual stats RMW runs at the NEXT enable's calm drain (ext12 -> ext11). The
+  // end window itself never parses and only REWRITES the eP key (seeded by ext12 on first run).
+  if (closeOpen) {
+    routesA = []; routesB = [];
+    try {
+      localStorage.setItem("eP", gradeSystem + ";" + climbMode + ";" + ((psDirty ? 1 : 0) | (slotsDirty ? 2 : 0)) + ";" +
+        ag[0] + "," + ag[1] + "," + ag[2] + "," + ag[3] + "," + ag[4] + "," + ag[5] + "," + ag[6] + ";" +
+        projGradeIdx.join(",") + ";" + projSlot.join(","));
+    } catch (e) {}
+  }
 };
 
 function onExerciseEnd(input, _output) {
@@ -531,6 +576,8 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  if (pendF12) { try { drainF12(0); } catch (e) {} }  // user beat the first tick — bootstrap now, NO auto-skip; caught: an OOM throw out of an event handler is the 'run evt 1' app-death
+  skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
