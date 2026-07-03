@@ -1,11 +1,11 @@
-function(lgi,gs,ld,lha,lmh,isSend,cm,bse,ps,ats,h){
+function(lgi,gs,ld,lha,lmh,isSend,cm,bse,ps,ses,h){
 var sk=cm>0?gs+"_"+cm:null;
 if(isSend){if(lgi>bse)bse=lgi;}
 var fs=0,np=null;
 if(sk){
 var isNew=!ps[sk];
 var p=ps[sk]||{attempts:0,sends:0,bestTime:0};
-if(isNew) p.firstSes=ats.sessions;
+if(isNew) p.firstSes=ses;
 if(!isNew&&p.g!==undefined&&p.g!==lgi){p.sends=0;p.bestTime=0;}
 p.g=lgi;p.attempts++;
 if(isSend){if(p.sends===0)fs=1;p.sends++;if(ld>0&&(p.bestTime===0||ld<p.bestTime))p.bestTime=ld}
