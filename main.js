@@ -112,6 +112,7 @@ var loadProjects = function(sys) {
 // autoSkip (tick-1 only): a returning user (persisted sessions > 0) jumps SETUP -> READY like the
 // classic build — never from the event path, where a press means the user is USING the setup screen.
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the tick-1 drain, fired on tick 2 (parse and template swap never share a tick), cancelled by any button press
+var pendInit = 0;  // first-run / system-switch: pre-write the FULL stats/s<gs>/pS<gs> shapes at the calm pre-start window (ext11 init mode: zero deltas, sessions untouched) so the FIRST end is size-neutral — the 18:10:39 storm was data.jsn GROWING at the first end's writes (JSalloc:2071 BEFORE the ext11 parse line), while every same-size follow-up end was same-second clean
 var pendRep = 0;  // crash-recovery: a surviving eP WAL from a stormed end, returned PARSED by ext12 — applied via a MAIN-context ext11 call on its OWN tick (one parse per tick, never nested), then ext12 re-runs for a fresh bootstrap
 var repWAL = function() {  // ONE attempt — on failure the WAL is DROPPED (one lost session beats any retry loop: the falsified eP build crash-looped on exactly this retry)
   var rp = pendRep; pendRep = 0;
@@ -127,6 +128,7 @@ var drainF12 = function() {
   projAll = r[4];
   currentGrade = DEFAULT_IDX[gradeSystem];
   pendF12 = 0;
+  if (r[6]) pendInit = 1;  // fresh install: shapes not yet at full size
   if (r[3] > 0) skipP = 1;  // armed unconditionally: the event path cancels it one line after its drain call, so only the tick-1 drain can fire it
 };
 
@@ -459,7 +461,7 @@ var evSetup = function(output, eid, dy) {
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
     loadProjectStats(gradeSystem);
-    dirtyF |= 4;  // persist the system choice even on a routeless session
+    dirtyF |= 4; pendInit = 1;  // persist the system choice even on a routeless session + pre-grow the new system's shapes once back on READY
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
@@ -499,6 +501,7 @@ function evaluate(input, output) {
   if (pendRep) repWAL();  // recovery tick: apply the previous session's surviving WAL
   else if (pendF12) { try { drainF12(); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
+  else if (pendInit && state === 0) { pendInit = 0; try { loadExt(11)([0, 0, 0, 0, 0, 0, 0], projGradeIdx, projSlot, climbMode, gradeSystem, 1, 1); } catch (e) {} }  // one tick after SETUP confirm: pre-grow the LS shapes (init mode) at the proven-calm pre-start moment
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
