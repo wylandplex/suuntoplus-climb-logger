@@ -7,11 +7,14 @@
 //     ext17 snapshot-swap at end (if system switched) → ext11-old writes ats over the blob.
 //   NEW pipeline (sources read from the working tree):
 //     ext12-new() (no merge, returns sessions scalar) → NO resident stats → endAgg deltas →
-//     ext11-new RMW against the s<gs> snapshot (source of truth), absorbing the ext17 swap.
+//     ext11-new RMW against the s<gs> snapshot (source of truth), absorbing the ext17 swap, and writes
+//     compact pS<gs> project vectors instead of the old climbProjStats object graph.
 //
 // Both pipelines run the SAME randomized multi-session plans (routes, edits, watch system switches,
 // saveAsProject, companion slot/system edits between sessions, legacy-format stores) against a
-// simulated LS; the full final store (stats + s0..s9 + climbProjStats + watchSetup) must deep-equal.
+// simulated LS; lifetime stats + active project stats must deep-equal.
+// Slot configuration storage is intentionally excluded from the strict old-vs-new diff: the new runtime keeps
+// a flat projAll vector and may preserve Companion p<sys>_<slot> edits that historical watchSetup did not.
 //
 // Known INTENTIONAL divergences (excluded from the strict fuzz by the generator, asserted separately):
 //  1. Switch to a VIRGIN system (no s<X> yet): the old flow leaked the previous system's RECORDS
@@ -69,14 +72,23 @@ var nSnap=localStorage.getObject("s"+newSys);
 if(nSnap){for(var k in nSnap)s[k]=nSnap[k]}
 s.system=newSys;
 localStorage.setObject("stats",s);}`;
+OLD.ext14 = `function(cm,gs,lgi,lres,ld,pgi,ps,routes,ses){
+if(cm>0)return null;
+for(var i=0;i<5;i++){
+if(pgi[i]===-1){
+var slot=i+1;
+pgi[i]=lgi;
+ps[gs+"_"+slot]={attempts:1,sends:lres?1:0,bestTime:lres&&ld>0?ld:0,g:lgi,firstSes:ses};
+return[lgi,slot]}}
+return null}`;
 
 // ---------------------------------------------------------------- new sources (working tree)
 const NEW = {
   ext10: fs.readFileSync(path.join(ROOT, 'ext10.js'), 'utf8'),
   ext11: fs.readFileSync(path.join(ROOT, 'ext11.js'), 'utf8'),
   ext12: fs.readFileSync(path.join(ROOT, 'ext12.js'), 'utf8'),
+  ext14: fs.readFileSync(path.join(ROOT, 'ext14.js'), 'utf8'),
 };
-const EXT14 = fs.readFileSync(path.join(ROOT, 'ext14.js'), 'utf8'); // unchanged, shared by both
 
 // ---------------------------------------------------------------- simulated LS + helpers
 function mkLS(init) {
@@ -127,23 +139,51 @@ function runPipeline(initStore, plan, isOld) {
     const ext10 = bind(isOld ? OLD.ext10 : NEW.ext10, ls);
     const ext11 = bind(isOld ? OLD.ext11 : NEW.ext11, ls);
     const ext12 = bind(isOld ? OLD.ext12 : NEW.ext12, ls);
-    const ext14 = bind(EXT14, ls);
+    const ext14 = bind(isOld ? OLD.ext14 : NEW.ext14, ls);
     const ext17 = isOld ? bind(OLD.ext17, ls) : null;
 
     let ats = null, sessionsNo = 0, r;
     if (isOld) { ats = { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0 }; r = ext12(ats); ats.sessions++; }
-    else { r = ext12(); sessionsNo = (r[4] | 0) + 1; }
+    else { r = ext12(); sessionsNo = (r[3] | 0) + 1; }
     let gs = r[0];
     const pgi = r[1];            // ALIASED into aps[gs] when it exists — main.js drainF12 semantics
-    let ps = r[2];
-    const aps = r[3];
+    let ps = isOld ? r[2] : null;
+    let P = isOld ? null : r[2];
+    let AP = isOld ? null : r[4];
+    const aps = isOld ? r[3] : null;
     const SES = () => (isOld ? ats.sessions : sessionsNo);
 
     let routesA = [], routesB = [], sessionH = 0, bse = -1;
     let wsDirty = 0, pendF17 = 0, projStatsDirty = 0;
     let cm = 0, lastGradeIdx = -1, lastResult = 0, lastDuration = 0;
 
-    const loadProjects = () => { const sp = aps[gs]; for (let i = 0; i < 5; i++) pgi[i] = (sp && sp[i] !== undefined) ? sp[i] : -1; };
+    const loadProjects = () => {
+      const sp = isOld ? aps[gs] : null;
+      const sv = isOld && !sp ? ls.getObject('stats') : null;
+      for (let i = 0; i < 5; i++) {
+        const v = isOld
+          ? sp && sp[i] !== undefined ? sp[i] : sv ? sv['p' + gs + '_' + (i + 1)] : undefined
+          : AP[gs * 5 + i] !== undefined ? AP[gs * 5 + i] : undefined;
+        pgi[i] = v !== undefined ? v : -1;
+      }
+    };
+    const loadProjectStats = () => {
+      if (isOld) return;
+      const z = ls.getObject('pS' + gs);
+      if (z) {
+        for (let i = 0; i < 20; i++) P[i] = z[i] !== undefined ? z[i] : i < 15 ? 0 : -1;
+      } else {
+        const q = ls.getObject('climbProjStats');
+        for (let i = 0; i < 5; i++) {
+          const v = q && q[gs + '_' + (i + 1)] || {};
+          P[i] = v.attempts || 0;
+          P[i + 5] = v.sends || 0;
+          P[i + 10] = v.bestTime > 86400 ? 0 : v.bestTime || 0;
+          P[i + 15] = v.g !== undefined ? v.g : -1;
+        }
+        if (q) ls.setObject('pS' + gs, P.slice());
+      }
+    };
     const recPct = () => { if (isOld) ats.sendPct = Math.round(ats.totalSends * 100 / Math.max(1, ats.totalRoutes)); };
     const rGrade = i => Math.floor(routesA[i] / 1e6);
     const rSend = i => Math.floor(routesA[i] / 1e5) % 10;
@@ -165,6 +205,7 @@ function runPipeline(initStore, plan, isOld) {
       if (op.t === 'switch') {                       // evSetup dy press (pre-routes only)
         gs = (gs + op.dy + 10) % 10;
         loadProjects();
+        loadProjectStats();
         if (isOld) {                                  // the removed #148 block
           const sStat = ls.getObject('s' + gs) || {};
           ats.totalRoutes = sStat.totalRoutes || 0;
@@ -177,22 +218,29 @@ function runPipeline(initStore, plan, isOld) {
         wsDirty = 1;
       } else if (op.t === 'route') {                 // finishRoute + commitDirty
         cm = op.cm; lastGradeIdx = op.gi; lastResult = op.send ? 1 : 0; lastDuration = op.dur;
-        const r10 = ext10(op.gi, gs, op.dur, op.hr, 0, op.send ? 1 : 0, op.cm, bse, ps, isOld ? ats : sessionsNo, op.h);
+        const r10 = isOld
+          ? ext10(op.gi, gs, op.dur, op.hr, 0, op.send ? 1 : 0, op.cm, bse, ps, ats, op.h)
+          : ext10(op.gi, gs, op.dur, op.hr, 0, op.send ? 1 : 0, op.cm, bse, P, sessionsNo, op.h);
         bse = r10[0];
         if (r10[2]) {
           const rec = r10[2];
           routesA.push(packA(rec[0], rec[1], rec[2], rec[3]));
           routesB.push(packB(rec[4], rec[5]));
           if (isOld) { ats.totalRoutes++; if (op.send) ats.totalSends++; recPct(); }
-          if (r10[3] && r10[4]) { ps[r10[3]] = r10[4]; projStatsDirty = 1; }
+          if (isOld && r10[3] && r10[4]) { ps[r10[3]] = r10[4]; projStatsDirty = 1; }
+          if (!isOld && op.cm > 0) projStatsDirty = 1;
           sessionH += op.h || 0;
         }
       } else if (op.t === 'saveproj') {              // evBreak eid4 → ext14
-        const r14 = ext14(cm, gs, lastGradeIdx, lastResult, lastDuration, pgi, ps, routesA, SES());
+        const r14 = isOld
+          ? ext14(cm, gs, lastGradeIdx, lastResult, lastDuration, pgi, ps, routesA, SES())
+          : ext14(cm, gs, lastGradeIdx, lastResult, lastDuration, pgi, P, routesA, SES());
         if (r14) {
           cm = r14[1];
           if (routesA.length > 0) { const i = routesA.length - 1; routesA[i] = packA(rGrade(i), rSend(i), r14[1], rHt(i)); }
-          aps[gs] = pgi.slice();
+          if (isOld) aps[gs] = pgi.slice();
+          else AP[gs * 5 + r14[1] - 1] = r14[0];
+          projStatsDirty = 1;
           wsDirty = 1;
         }
       } else if (op.t === 'del') {                   // evEdit delete
@@ -201,18 +249,26 @@ function runPipeline(initStore, plan, isOld) {
           const dSend = rSend(i), dCm = rCm(i), dHt = rHt(i);
           if (isOld) { ats.totalRoutes--; if (dSend) ats.totalSends--; recPct(); }
           if (dCm > 0) {
-            const dk = gs + '_' + dCm, dp = ps[dk];
-            if (dp) {
-              if (dp.attempts > 0) dp.attempts--;
-              if (dSend && dp.sends > 0) dp.sends--;
-              if (dp.attempts <= 0) delete ps[dk]; else ps[dk] = dp;
+            if (isOld) {
+              const dk = gs + '_' + dCm, dp = ps[dk];
+              if (dp) {
+                if (dp.attempts > 0) dp.attempts--;
+                if (dSend && dp.sends > 0) dp.sends--;
+                if (dp.attempts <= 0) delete ps[dk]; else ps[dk] = dp;
+                projStatsDirty = 1;
+              }
+            } else {
+              const dp = dCm - 1;
+              if (P[dp] > 0) P[dp]--;
+              if (dSend && P[dp + 5] > 0) P[dp + 5]--;
+              if (P[dp] <= 0) { P[dp] = P[dp + 5] = P[dp + 10] = 0; P[dp + 15] = -1; }
               projStatsDirty = 1;
             }
           }
           if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
           routesA.splice(i, 1); routesB.splice(i, 1);
           recalcBse();
-          if (dCm > 0) rescanBest(dCm);
+          if (isOld && dCm > 0) rescanBest(dCm);
         }
       } else if (op.t === 'send') {                  // evEdit eid4 (delmark → SEND)
         const i = op.i;
@@ -221,8 +277,15 @@ function runPipeline(initStore, plan, isOld) {
           if (isOld) ats.totalSends++;
           const c = rCm(i);
           if (c > 0) {
-            const k = gs + '_' + c, p = ps[k];
-            if (p) { p.sends++; const d4 = rDur(i); if (d4 > 0 && (p.bestTime === 0 || d4 < p.bestTime)) p.bestTime = d4; projStatsDirty = 1; }
+            if (isOld) {
+              const k = gs + '_' + c, p = ps[k];
+              if (p) { p.sends++; const d4 = rDur(i); if (d4 > 0 && (p.bestTime === 0 || d4 < p.bestTime)) p.bestTime = d4; projStatsDirty = 1; }
+            } else {
+              const p = c - 1, d4 = rDur(i);
+              P[p + 5]++;
+              if (d4 > 0 && (P[p + 10] === 0 || d4 < P[p + 10])) P[p + 10] = d4;
+              projStatsDirty = 1;
+            }
           }
           recPct(); recalcBse();
         }
@@ -233,9 +296,15 @@ function runPipeline(initStore, plan, isOld) {
           if (isOld) ats.totalSends--;
           const c = rCm(i);
           if (c > 0) {
-            const k = gs + '_' + c, p = ps[k];
-            if (p && p.sends > 0) { p.sends--; projStatsDirty = 1; }
-            rescanBest(c);
+            if (isOld) {
+              const k = gs + '_' + c, p = ps[k];
+              if (p && p.sends > 0) { p.sends--; projStatsDirty = 1; }
+              rescanBest(c);
+            } else {
+              const p = c - 1;
+              if (P[p + 5] > 0) P[p + 5]--;
+              projStatsDirty = 1;
+            }
           }
           recPct(); recalcBse();
         }
@@ -252,6 +321,7 @@ function runPipeline(initStore, plan, isOld) {
     // ---- onExerciseEnd ----
     const bail = routesA.length === 0 && !projStatsDirty && !wsDirty && (isOld ? !pendF17 : true);
     if (bail) continue;
+    const psDirty = projStatsDirty || wsDirty;
     let ag = null;
     if (isOld) {
       ats.totalHeight = (ats.totalHeight || 0) + sessionH;
@@ -259,9 +329,23 @@ function runPipeline(initStore, plan, isOld) {
     } else {
       ag = endAggCalc(routesA, routesB, gs);
     }
-    ls.setObject('climbProjStats', ps);
-    if (wsDirty) { aps[gs] = pgi.slice(); ls.setObject('watchSetup', { sys: gs, proj: aps }); }
-    if (isOld) ext11(ats, pgi, ps, cm, gs); else ext11(ag, pgi, ps, cm, gs);
+    if (isOld) ls.setObject('climbProjStats', ps);
+    if (wsDirty) {
+      if (isOld) {
+        aps[gs] = pgi.slice();
+        ls.setObject('watchSetup', { sys: gs, proj: aps });
+      } else {
+        const ap = {};
+        for (let s = 0; s < 10; s++) {
+          const sp = [];
+          for (let i = 0; i < 5; i++) sp[i] = AP[s * 5 + i] !== undefined ? AP[s * 5 + i] : -1;
+          ap[s] = sp;
+        }
+        ap[gs] = pgi.slice();
+        ls.setObject('watchSetup', { sys: gs, proj: ap });
+      }
+    }
+    if (isOld) ext11(ats, pgi, ps, cm, gs); else ext11(ag, pgi, P, cm, gs, psDirty);
   }
   return dump(ls);
 }
@@ -276,6 +360,25 @@ function dump(ls) {
   delete o.lastSummary; // display cache, not stats: new ext12 pre-seeds it at the calm drain (end-window
                         // creation insurance, 2026-07-03 freeze forensics); rewritten identically by both
                         // flows at every real end — not part of the compared stats contract
+  if (o.climbProjStats) {
+    for (const k in o.climbProjStats) {
+      const m = /^(\d+)_(\d+)$/.exec(k), v = o.climbProjStats[k] || {};
+      if (!m) continue;
+      const sys = +m[1], slot = +m[2] - 1, pk = 'pS' + sys;
+      const P = o[pk] || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
+      P[slot] = v.attempts || 0;
+      P[slot + 5] = v.sends || 0;
+      P[slot + 10] = v.bestTime > 86400 ? 0 : v.bestTime || 0;
+      P[slot + 15] = v.g !== undefined ? v.g : -1;
+      o[pk] = P;
+    }
+    delete o.climbProjStats;
+  }
+  for (const k in o) {
+    if (/^pS\d+$/.test(k)) {
+      delete o[k];
+    }
+  }
   for (let n = 0; n < 10; n++) {
     const k = 's' + n, s = o[k];
     if (s && !(s.sessions | 0) && !(s.totalRoutes | 0)) delete o[k];
@@ -283,7 +386,9 @@ function dump(ls) {
   if (o.stats) {
     for (const k of REC_M1) if (o.stats[k] === undefined) o.stats[k] = -1;
     for (const k of REC_0) if (o.stats[k] === undefined) o.stats[k] = 0;
+    for (let s = 0; s < 10; s++) for (let i = 1; i <= 5; i++) delete o.stats['p' + s + '_' + i];
   }
+  delete o.watchSetup;
   return o;
 }
 

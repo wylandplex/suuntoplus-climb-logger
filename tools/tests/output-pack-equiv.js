@@ -2,7 +2,7 @@
 // every composite is float32-exact (SuuntoPlus outputs reach template scripts as float32; a value
 // above 2^24 silently loses low digits → wrong grade/count on the watch). See outputs-are-float32.
 //
-// Encoders mirror main.js wGL/wBrk; decoders mirror the active/manage/edit.html outputFormat scripts.
+// Encoders mirror main.js wGL; decoders mirror the active/ready/setup.html outputFormat scripts.
 // If you change a pack, change it in ALL FOUR places and re-run: node tools/tests/output-pack-equiv.js
 
 var f32 = function(x) { return Math.fround(x) === x; };  // exact in float32?

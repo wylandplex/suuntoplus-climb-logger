@@ -7,12 +7,10 @@ var routeNumber = 1;
 // ~16B/route vs ~120B for the boxed JS array — the exec:zapp HEAP lever (route-record growth is what
 // fills the JS heap at 30+ routes → JSalloc storm / freeze-on-end). App-internal only: these never cross
 // the float32 output transit, so float64's exact-integer range (2^53) holds the packs. hrAvg stays in Hz
-// (unrounded): ext19 renders it via HeartRate_Fourdigits (×60), so packing bpm would show HR 60× wrong.
+// (unrounded): the end summary renders it via HeartRate_Fourdigits (×60), so packing bpm would show HR 60× wrong.
 //   A = grade*1e6 + send*1e5 + cm*1e4 + height(0..9999)   B = dur(0..86399)*1000 + hrAvgHz(0..~4, fractional kept)
 var routesA = [], routesB = [];
-// MINIMAL-CORE PROBE (exp/minimal-core): EDIT + project subsystem + LIMIT cut — a MEASUREMENT build
-// isolating the resident-footprint axis (JsTotMem 99% baseline). exts deliberately UNCHANGED (they are
-// parse transients, not resident); ext10/11/12 are fed dummies (cm=0, ps={}, pgi=[-1×5]).
+// Space-capsule project state: routes are packed, project slot stats are one flat 20-number vector.
 var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, Math.max(0, Math.round(h))); };
 var packB = function(d, hr) { return Math.min(86399, Math.max(0, Math.round(d))) * 1000 + (hr > 0 ? hr : 0); };
 var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
@@ -40,9 +38,8 @@ var editIdx = 0;        // EDIT overlay (state 5 ON the ready template — no sw
 var editDelMark = 0;    // old mid-button cycle SEND->FAIL->DEL; the DEL mark executes on nav/exit (eid 5/6)
 var isPaused = 0;
 var finalized = 0;  // onExerciseEnd idempotency (fast pause→end guard); reset to 0 in onLoad each session
+var lastSummaryCache = null;
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
-var pendGN = 0;
-var pendF12 = 0;  // ext12 bootstrap DEFERRED off the enable burst (the 20:28:35 re-enable JSalloc:2933 storm): parsed on the first evaluate tick / first event instead — staggers the 1.6KB parse + its ~2-3KB stats-JSON alloc away from Load-script + 3-app enable  // grade-name slice (LS 'gN') stale: system changed this session or first run — drained at END via ext18 (retry-on-failure pattern)
 
 var curAsc = 0;
 var startAsc = 0;
@@ -53,36 +50,39 @@ var climbMode = 0;
 var lastClimbMode = 0;   // slot snapshot at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (cycleSlot in the BREAK commit window must not re-tag it)
 var pStep = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
-var allProjects = {};
-var projStats = {};
-var projStatsDirty = 0;  // climbProjStats persisted at onExerciseEnd only (defer-to-end)
-var actKey = "";         // cached projStats key of the ACTIVE slot ("" in free mode) — maintained via setAK() at every climbMode/gradeSystem change, so the per-tick packedAct publish does ZERO string allocation
-var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on flash — saveSetup() at onExerciseEnd (defer-to-end)
-var sessionsNo = 0;  // current session number (stored sessions+1, set in drainF12) — feeds firstSes semantics only (ext10/ext14/rescanBest). The PERSISTED lifetime stats live off the resident path entirely: ext11 resolves them at session end by RMW against the s<gs> snapshot (write-only-at-end); after a system switch this scalar can briefly belong to the previous system — accepted firstSes edge, documented in the plan.
+var projAll = [];
+// projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19].
+var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
+var sessionsNo = 1;
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 var ROUTE_LIMIT = 35;  // in-session route cap → at the cap, START shows the LIMIT screen (state 3); save+restart resets per-session heap/subscriptions/WB-pool occupancy (a periodic reset valve). packedBreak counts saturate at 63 (exact ≤63 routes, fine ≤35).
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
-var LS = localStorage;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
-var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason). ext11 (writeStats) runs ONCE at session end, so caching it would hold ~1.4KB resident the WHOLE session for nothing; parsed on-demand at onExerciseEnd. (ext17 deleted — its snapshot swap is absorbed by ext11's snapshot-base RMW.)
+var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason).
+
+var gradeName = function(s, i) {
+  if (i >= 50) return "OFF";
+  if (s === 0) return "" + (3 + Math.floor(i / 6)) + "abc".charAt(Math.floor(i / 2) % 3) + (i % 2 ? "+" : "");
+  if (s === 1) { var u = (i - 2) % 3; return i < 2 ? "4" + (i ? "+" : "") : "" + (5 + Math.floor((i - 2) / 3)) + (u === 0 ? "-" : u === 2 ? "+" : ""); }
+  if (s === 2) return i < 5 ? "5." + (i + 5) : "5." + (10 + Math.floor((i - 5) / 4)) + "abcd".charAt((i - 5) % 4);
+  if (s === 3) return "" + (4 + Math.floor(i / 3)) + "abc".charAt(i % 3);
+  if (s === 4) return i ? "V" + (i - 1) : "VB";
+  if (s === 5) return "" + (4 + Math.floor(i / 6)) + "ABC".charAt(Math.floor(i / 2) % 3) + (i % 2 ? "+" : "");
+  if (s === 6) return "WI" + (i ? 3 + Math.floor((i - 1) / 2) : 2) + (i && (i - 1) % 2 ? "+" : "");
+  if (s === 7) return "M" + (i + 1);
+  return s === 8 ? "Set" : "Lap";
+};
 
 // Start-screen rule — single source of truth for getUserInterface() + onLoad(): returning user with a
 // saved setup and showSetupOnStart off → READY (active cluster); otherwise first-run SETUP (manage).
-var initReady = function() {
-  var ws = LS.getObject("watchSetup"), sv = LS.getObject("stats");
-  return ws && !(sv && sv.showSetupOnStart);
-};
-
 function getUserInterface() {
-  // Three-cluster split: active.html (states 0/1/2/3), manage.html (setup sc4 / proj-setup sc6),
-  // edit.html (dedicated EDIT sc5 — mounted alone so entering EDIT no longer drags SETUP+proj-setup weight).
-  // Resolve the FIRST template via initReady() so it's correct whether the framework queries this
-  // before or after onLoad (a returning user must open on active, not blank-out on manage). EDIT is never
-  // the first screen (reached only from READY), so first resolve is only ever active/manage.
+  // Three-cluster split: ready.html (READY + EDIT/project-slot overlays), active.html (CLIMB/BREAK),
+  // setup.html (grade-system setup), and saving.html (pause/end de-load).
+  // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
   // After first resolve, goState() owns currentTemplate.
-  if (!currentTemplate) currentTemplate = initReady() ? "ready" : "setup";
+  if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
   return { template: currentTemplate };
 }
 
@@ -90,28 +90,15 @@ var encGrade = function(idx) {
   return gradeSystem * 100 + idx;
 };
 
-var setAK = function() {
-  actKey = climbMode > 0 ? gradeSystem + "_" + climbMode : "";
-};
-
 var loadProjects = function(sys) {
-  var sp = allProjects[sys];
+  var b = sys * 5;
   for (var i = 0; i < 5; i++) {
-    projGradeIdx[i] = (sp && sp[i] !== undefined) ? sp[i] : -1;
+    projGradeIdx[i] = projAll[b + i] !== undefined ? projAll[b + i] : -1;
   }
 };
 
-var writeStats = function(ag) {
-  loadExt(11)(ag, projGradeIdx, projStats, climbMode, gradeSystem);  // parse-on-use ext11 RMW vs the s<gs> snapshot (write-only-at-end)
-};
-
-var saveSetup = function() {
-  allProjects[gradeSystem] = projGradeIdx.slice();
-  LS.setObject("watchSetup", { sys: gradeSystem, proj: allProjects });
-};
-
-var wrap = function(idx, len, off) {
-  return idx >= len ? -off : idx < -off ? len - 1 : idx;
+var loadProjectStats = function() {
+  for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;
 };
 
 // Project-slot cycle (climbMode 1..5): step by ±1, clamp-wrapping over the 5 slots,
@@ -125,7 +112,6 @@ var cycleSlot = function(dy) {
     if (projGradeIdx[next - 1] >= 0) break;
   } while (next !== start);
   climbMode = next;
-  setAK();
   if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
 };
 
@@ -136,8 +122,8 @@ var cycleSlot = function(dy) {
 //   packedBreak = (bestSend+1)*4096 + brkSends*64 + brkRoutes → 1 path (was 3). base-64; counts saturate at
 //                 63 (ROUTE_LIMIT test build logs >35; prod cap 35 / splice 50). max (900+1)*4096+63*64+63 = 3,694,591 < 2^24.
 // Outputs reach template scripts as FLOAT32, so each composite stays <= 2^24 (16.7M); see outputs-are-float32.
-// DECODE SITES (bare literals, NOT build-checked — change in lockstep): active.html (grade/lastGrade/brkSends/
-// brkRoutes/bestSend), manage.html (grade), edit.html (lastGrade), tools/tests/output-pack-equiv.js (the equiv proof).
+// DECODE SITES (bare literals, NOT build-checked — change in lockstep): active.html, ready.html,
+// setup.html, tools/tests/output-pack-equiv.js (the equiv proof).
 // Mirrors hold the latest component so any single-component write republishes the WHOLE composite (a
 // SuuntoPlus output publishes whole — a partial write would zero the other fields). vState stays its own
 // output: it drives applyVis in active+manage, and packing it would re-fire applyVis on every grade change.
@@ -151,7 +137,7 @@ var gradeV = 0, lastGradeV = -1;
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
 var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg("packedGL", v)) o.packedGL = v; };
-// packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (ext19: Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
+// packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
@@ -187,9 +173,9 @@ var setOutputs = function(output) {
   // replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish, setText would not).
   // actKey is precomputed — this per-tick path allocates nothing.
   var pAct = -1;
-  if (state === 0 && actKey) {
-    var apA = projStats[actKey];
-    pAct = apA ? Math.min(apA.attempts || 0, 16700) * 1000 + Math.min(apA.sends || 0, 999) : 0;
+  if (state === 0 && climbMode > 0) {
+    var apI = climbMode - 1;
+    pAct = projSlot[apI + 15] === projGradeIdx[apI] ? Math.min(projSlot[apI] || 0, 16700) * 1000 + Math.min(projSlot[apI + 5] || 0, 999) : 0;
   }
   if (chg("packedAct", pAct)) output.packedAct = pAct;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
@@ -247,17 +233,15 @@ var toggleMode = function() {
       }
     }
   }
-  setAK();
 };
 
 var saveAsProject = function(output) {
-  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routesA, sessionsNo);
+  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projSlot, routesA, sessionsNo);
   if (r) {
-    currentGrade = r[0]; climbMode = r[1]; setAK();
+    currentGrade = r[0]; climbMode = r[1];
     if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
-    allProjects[gradeSystem] = projGradeIdx.slice();  // in-memory update only
-    wsDirty = 1;  // ext14 mutated projGradeIdx — persist watchSetup at onExerciseEnd
-    goState(0, output);  // instant; no mid-session LS write
+    projAll[gradeSystem * 5 + r[1] - 1] = r[0];
+    goState(0, output);
   }
 };
 
@@ -268,19 +252,14 @@ var recalcBse = function() {
   }
 };
 
-// Set route i's result to v (1/0) + mirror the change into its project slot's stats. Shared by the
-// BREAK last-route toggle and the EDIT overlay's mid-button cycle. No rescanBest (slim-rebuild trade:
-// an un-send can leave a stale slot bestTime; ext11's g-mismatch purge still cleans grade changes).
+// Set route i's result to v (1/0) + mirror the change into its project slot's in-memory stats.
 var toggleRes = function(i, v) {
   wSend(i, v);
   var c = rCm(i);
   if (c > 0) {
-    var k = gradeSystem + "_" + c, p = projStats[k];
-    if (p) {
-      if (v) { p.sends++; var d = rDur(i); if (d > 0 && (p.bestTime === 0 || d < p.bestTime)) p.bestTime = d; }
-      else if (p.sends > 0) p.sends--;
-      projStatsDirty = 1;
-    }
+    var p = c - 1;
+    if (v) { projSlot[p + 5]++; var d = rDur(i); if (d > 0 && (projSlot[p + 10] === 0 || d < projSlot[p + 10])) projSlot[p + 10] = d; }
+    else if (projSlot[p + 5] > 0) projSlot[p + 5]--;
   }
   recalcBse();
 };
@@ -292,11 +271,6 @@ var pushEd = function() {
   setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " " + (editDelMark ? "DEL" : rSend(editIdx) ? "SEND" : "FAIL"));
 };
 
-// Project-setup overlay indicator (state 6 rides the ready template too — projsetup.html deleted).
-var pushPS = function() {
-  setText("#edr", "SLOT " + (pStep + 1) + "/5");
-};
-
 // Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
 var edDel = function() {
   if (!editDelMark) return;
@@ -304,13 +278,10 @@ var edDel = function() {
   if (editIdx < routesA.length) {
     var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = routesA[editIdx] % 1e4;
     if (dCm > 0) {
-      var dk = gradeSystem + "_" + dCm, dp = projStats[dk];
-      if (dp) {
-        if (dp.attempts > 0) dp.attempts--;
-        if (dSend && dp.sends > 0) dp.sends--;
-        if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
-        projStatsDirty = 1;
-      }
+      var dp = dCm - 1;
+      if (projSlot[dp] > 0) projSlot[dp]--;
+      if (dSend && projSlot[dp + 5] > 0) projSlot[dp + 5]--;
+      if (projSlot[dp] <= 0) { projSlot[dp] = projSlot[dp + 5] = projSlot[dp + 10] = 0; projSlot[dp + 15] = -1; }
     }
     if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
     routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
@@ -359,14 +330,13 @@ var commitDirty = function(input) {
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
-      frSend, lastClimbMode, bestSendIdx, projStats, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode
+      frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode
     bestSendIdx = r[0];
     if (r[2]) {
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
       routesA.push(packA(rec[0], rec[1], rec[2], rec[3]));
       routesB.push(packB(rec[4], rec[5]));
       if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
-      if (r[3] && r[4]) { projStats[r[3]] = r[4]; projStatsDirty = 1; }
       sessionH += lastHeight || 0;
     }
     hrSum = hrCnt = hrMax = rSec = 0;
@@ -396,7 +366,7 @@ var evReady = function(output, eid, dy) {
     if (climbMode > 0) {                                          // proj-setup overlay (old binding)
       pStep = 0;
       goState(6, output);  // same template — no swap; DOM alive, indicators render immediately
-      pushPS();
+      setText("#edr", "SLOT " + (pStep + 1) + "/5");
     } else {                                                      // free mode: EDIT overlay (old binding,
       editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
       goState(5, output);
@@ -408,10 +378,6 @@ var evReady = function(output, eid, dy) {
   } else if (eid === 6) {
     startClimb(output);
   }
-};
-
-var evClimb = function(output, eid) {
-  if (eid === 5 || eid === 6) finishRoute(eid === 6 ? 1 : 0, output);
 };
 
 var evBreak = function(output, eid, dy) {
@@ -455,12 +421,9 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
-    setAK();
-    // (write-only-at-end: zero stats/LS bookkeeping per switch press — ext11's end RMW bases on s<gs>)
+    loadProjectStats(gradeSystem);
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
-    wsDirty = 1;   // watchSetup needs persisting at session end
-    pendGN = 1;    // gN slice now stale — rewrite at end via ext18
   } else if (eid === 6) {
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
@@ -468,9 +431,11 @@ var evSetup = function(output, eid, dy) {
 
 var evProjSetup = function(output, eid, dy) {
   if (dy) {
-    projGradeIdx[pStep] = wrap(projGradeIdx[pStep] + dy, GRADE_LENS[gradeSystem], 1);
+    projGradeIdx[pStep] += dy;
+    if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
+    else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
+    projAll[gradeSystem * 5 + pStep] = projGradeIdx[pStep];
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    wsDirty = 1;   // watchSetup needs persisting at session end
   } else if (eid === 5) {
     setText("#edr", "");
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
@@ -478,55 +443,20 @@ var evProjSetup = function(output, eid, dy) {
     pStep = (pStep + 1) % 5;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
     if (chg("modeSub", -(pStep + 1))) output.modeSub = -(pStep + 1);
-    pushPS();
+    setText("#edr", "SLOT " + (pStep + 1) + "/5");
   }
-};
-
-// ext12 bootstrap, staggered: everything that used to run inline in onLoad. Guarded-called from the
-// first evaluate tick, the first event, and onExerciseEnd (belt: a start-then-instant-end session must
-// still attribute to the right system). By drain time the enable burst is settled and the firmware has
-// reclaimed the prior instance — the exact allocation that failed (JSalloc:2933) now lands on calm heap.
-// gN slice refresh (ext18 parse + LS writes). FIRST-RUN LESSON (fresh-install end-crash 20:56:49,
-// JSalloc:2163 exactly at the end-window ext18 parse): CREATING new LS files in the end window is
-// lethal — "first-run pre-creates LS files at onLoad" existed for a reason. So the common case
-// (first run) drains EARLY from evaluate (one tick after the ext12 drain, empirically pre-start),
-// and only a rare mid-session system CHANGE falls back to the end drain.
-var drainGN = function() {
-  try { LS.setItem("gN", loadExt(18)(gradeSystem)); LS.setItem("gN_s", "" + gradeSystem); pendGN = 0; } catch (e) {}
-};
-
-var drainF12 = function() {
-  var r = loadExt(12)();  // pendF12 cleared only AFTER success: an OOM'd parse must RETRY next tick, not leave the app unbootstrapped (default system, no stats) for the whole session
-  gradeSystem = r[0];
-  projGradeIdx = r[1];
-  projStats = r[2];
-  currentGrade = DEFAULT_IDX[gradeSystem];
-  sessionsNo = (r[4] | 0) + 1;  // stored sessions + 1 = this session's number (write-only-at-end: no resident stats object; ext12 returns the scalar)
-  if (r[3]) allProjects = r[3];
-  // gN slice check HERE, after ext12 loaded the REAL gradeSystem (the old onLoad check compared the
-  // marker against the DEFAULT system 0 -> false re-arm + an ext18 parse EVERY session). First-run
-  // CREATION happens right now — pre-start, the proven-clean drain moment (a mid-session creation
-  // stormed on-watch: 22:29:13 JSalloc:2057 exactly at the ext18 parse). Later system CHANGES re-arm
-  // pendGN via evSetup and REWRITE at END (rewriting an existing file is safe, creation is not).
-  try { if (LS.getItem("gN_s") !== "" + gradeSystem) drainGN(); } catch (e) { drainGN(); }
-  pendF12 = 0;
 };
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
-  // (gN marker check lives in drainF12 now — checking here compared against the DEFAULT gradeSystem
-  // before ext12 loaded the real one, falsely re-arming pendGN every session.)
+  lastSummaryCache = null;
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
-  // ZERO parses in onLoad now: ext12 deferred to drainF12 (first tick/event), f10 lazy at first
-  // commitDirty. The enable burst is Load-script + this function only — lighter than it has ever been.
-  pendF12 = 1;
-  if (initReady()) { state = 0; }  // returning user → READY; currentTemplate resolved by getUserInterface() via the same initReady() — reads watchSetup directly, independent of ext12
+  state = 4; currentTemplate = "setup";
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(); } catch (e) {} }  // staggered ext12 bootstrap: first tick, after the enable burst settled. Also creates the gN slice on first run (pre-start). NO pendGN drain in evaluate (a mid-session gN file CREATION storms the heap — on-watch 22:29:13); system-change REWRITES belong to the safe END fallback only. try/catch: an OOM'd parse must degrade to a next-tick retry, never throw out of the hook
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
@@ -545,16 +475,12 @@ function evaluate(input, output) {
   if (extLapPending && !dwell) { if (state === 1) finishRoute(1, output); else extLapPending = 0; }
 
   commitDirty(input);
-  // All LS writes deferred to onExerciseEnd (reference-app pattern; mid-session flash writes stall).
   setOutputs(output);
   dwell = 0;
 }
 
-// End-window helpers live at TOP LEVEL (function expressions) so their bytecode stays OUT of the
-// merged lifecycle dispatcher (~1874B compile cliff — the aggregate pass inside onExerciseEnd blew it
-// to 2100B). endAgg: ONE allocation-light pass over the route records (the recap aggregates ext19's
-// loop used to compute while holding the arrays live), writes the parse-free fallback summary, then
-// FREES routesA/routesB so the burst lands on reclaimed heap. Returns the aggregate pack for endSum.
+// End-window helpers live at top level so their bytecode stays out of the lifecycle dispatcher.
+// endAgg does one allocation-light pass, writes the RAM summary, then frees routesA/routesB.
 var endAgg = function() {
   var nR = routesA.length, sAg = 0, htAg = 0, spAg = -1, spcAg = 0, durAg = 0, hrsAg = 0, hrcAg = 0, iAg;
   for (iAg = 0; iAg < nR; iAg++) {
@@ -565,100 +491,67 @@ var endAgg = function() {
     if (dAg > 0) durAg += dAg;
     if (rAg > 0) { hrsAg += rAg; hrcAg++; }
   }
+  var spNm = "";
+  if (spAg >= 0) spNm = gradeName(gradeSystem, spAg % 100);
+  routesA = []; routesB = [];
   try {
-    if (nR > 0) {
-      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: sAg, postfix: '/ ' + nR }];
-      if (sessionH > 0) { fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(sessionH), postfix: 'm' }); }
-      LS.setObject("lastSummary", fb);
+    var tS = sAg, tN = nR, tSp = spAg, tSpC = spcAg, tNm = spNm, tD = durAg, tHrS = hrsAg, tHrC = hrcAg, tH = htAg;
+    if (tN > 0) {
+      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: tS, postfix: '/ ' + tN }];
+      if (tNm) fb.push({ id: 'b', name: 'Highest Send', format: 'Count_Fourdigits', value: tSpC, postfix: '* ' + tNm });
+      if (tD) fb.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: tD });
+      if (tHrC) fb.push({ id: 'a', name: 'Avg HR', format: 'HeartRate_Fourdigits', value: tHrS / tHrC });
+      if (tH) fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(tH), postfix: 'm' });
+      lastSummaryCache = fb;
     }
   } catch (e) {}
-  routesA = []; routesB = [];  // FREE before the burst (the proven hrBuf/f10 pattern: ~1-1.5KB reclaimable where the burst needs it)
-  return [sAg, nR, spcAg, spAg, durAg, hrcAg > 0 ? hrsAg / hrcAg : 0, htAg];
+  return [sAg, nR, spcAg, spNm, durAg, hrcAg > 0 ? hrsAg / hrcAg : 0, htAg, spAg, hrsAg, hrcAg];
 };
-// endSum: resolve the highest-send NAME from the LS gN slice (the G-table never enters this window)
-// and write the rich recap via the slim scalar-only ext19 parse.
-var endSum = function(ag) {
-  if (ag[1] <= 0) return;
-  var spNm = "";
-  if (ag[3] >= 0) { var giE = ag[3] % 100; spNm = giE >= 50 ? "OFF" : ((LS.getItem("gN") || "").split(",")[giE] || "?"); }
-  LS.setObject("lastSummary", loadExt(19)(ag[0], ag[1], ag[2], spNm, ag[4], ag[5], ag[6]));
+
+var endRoute = function() {
+  lastGradeIdx = currentGrade; lastClimbMode = climbMode;
+  lastHeight = Math.max(0, Math.round(curAsc - startAsc));
+  frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
+  routeNumber++;
+};
+
+var finishSession = function(input, closeOpen) {
+  if (closeOpen && state === 1) endRoute();
+  try { commitDirty(input); } catch (e) {}
+  if (routesA.length === 0) return;
+  try { deLoad(); } catch (e) {}
+  f10 = null;
+  endAgg();
 };
 
 function onExerciseEnd(input, _output) {
   if (finalized) return; finalized = 1;
-  if (pendF12) { try { drainF12(); } catch (e) {} }  // belt: an instant start->end session must still attribute stats/gN to the right system  // idempotent: a fast pause→end (or any double-fire) must not re-run the parse burst on an already-stressed heap
-  if (state === 1) {
-    lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // mirror finishRoute's slot snapshot for the end-of-session pending route
-    lastHeight = Math.max(0, Math.round(curAsc - startAsc));
-    // An external lap that finished the climb just before session end (extLapPending still armed, not yet
-    // drained by evaluate) is a SEND — the lap-finish default. A plain dangling climb flushes as FAIL.
-    frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
-    routeNumber++;
-  }
-  try { commitDirty(input); } catch (e) { LS.setObject("dbgEndErr", { msg: "" + e }); }
-  // Fast disable→enable safeguard: if this session logged/changed NOTHING (no routes, no dirty
-  // project/setup/grade state), skip the whole save burst (ext11/ext19 parses + LS writes). On a FAST
-  // re-enable those parses race the firmware's not-yet-reclaimed prior instance → relMemCb(exec:zapp)/
-  // None-avail → cascade → watch ASSERT/reboot (log 2026-06-19 16:04:22, routesA empty). Nothing to
-  // persist, so bail — leaving the disabled instance light enough for the re-enable's onLoad to fit.
-  if (routesA.length === 0 && !projStatsDirty && !wsDirty) return;  // (a system switch always sets wsDirty, so a routeless switch session still reaches the ext11 RMW)
-  // Fallback de-load, in case End ever fires without a preceding Pause (normally onExercisePause already
-  // did this -> no-op here, currentTemplate is already "saving"). Frees active.html's ~1.3-2KB before the
-  // ext11/19 parse burst so the save lands on a heap with room.
-  try { deLoad(); } catch (e) {}
-  // Free exec:zapp heap BEFORE the end-parse burst (loadExt 11/19). The save was evicting with
-  // relMemCb(exec:zapp)/None-avail because back-to-back evalFile parses hit a full heap. f10 (ext10
-  // closure) is dead after the climb is over — commitDirty above was its last consumer.
-  f10 = null;
-  // aggregate pass + parse-free fallback + FREE routesA/routesB — top-level endAgg keeps the
-  // dispatcher under its compile cliff. ag also carries the ext11 lifetime deltas (sends/routes/height).
-  var ag = endAgg();
-  if (pendGN) drainGN();  // rare fallback: system changed mid-session (first-run gN was already created by the EARLY evaluate drain — file creation never lands in the end window)
-  try { LS.setObject("climbProjStats", projStats); } catch (e) {}  // REWRITE (created at the drain by ext12's seed)
-  projStatsDirty = 0;
-  if (wsDirty) { wsDirty = 0; try { saveSetup(); } catch (e) {} }  // deferred watchSetup persist (defer-to-end pattern)
-  try { writeStats(ag); } catch (e) {}
-  // Summary cache here, not in ext19 — LS in ex-saving window drops summary.
-  try { endSum(ag); } catch (e) {}
+  finishSession(input, 1);
 }
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(); } catch (e) {} }  // user interacted before the first tick — bootstrap now. try/catch: an OOM'd parse THROWING out of an event handler is the 'run evt 1' -> Disable app-death (on-watch 22:46:26, JSalloc:2068 x8 then run evt 1); caught = clean retry next tick
-  // Commit-window action-lock: while a just-finished route awaits commitDirty (~1 tick, in BREAK), drop route
-  // ACTIONS — a too-fast eid4 would save-as-project WITHOUT the pending route, and eid6 would bounce BREAK→READY
-  // pre-commit. Grade/slot events (1/2/7/8) stay fluid (and are safe: the pending route is attributed to the
-  // finish-time snapshot lastGradeIdx, so grade cycling in BREAK can't re-tag it). frDirty is 0 in
-  // every non-BREAK state, so this guard only ever fires in the BREAK commit window.
   if (frDirty && (eventId === 4 || eventId === 6)) return;
-  if (dwell && eventId === 6 && state === 1) return;  // climb-entry guard: absorb the redundant start-button(6) after an app START that onLap already handled. A fast FAIL(5) still reaches onEvent and wins.
+  if (dwell && eventId === 6 && state === 1) return;
   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
   if (state === 0 || state === 1 || state === 2) {
     if (eventId === 7) dy = 3;
     else if (eventId === 8) dy = -3;
   } else if (eventId === 7 || eventId === 8) return;
-  // (selfLapExpected swallow removed — onLap fires BEFORE onEvent here, so the flag was set after the
-  //  firmware lap it targeted and stuck at 1, eating the next external lap; app double-finish is now
-  //  prevented by the extLapPending defer+cancel in onLap/finishRoute.)
   if (state === 0) evReady(output, eventId, dy);
-  else if (state === 1) evClimb(output, eventId);
+  else if (state === 1) { if (eventId === 5 || eventId === 6) finishRoute(eventId === 6 ? 1 : 0, output); }
   else if (state === 2) evBreak(output, eventId, dy);
   else if (state === 5) evEdit(output, eventId);
   else if (state === 4) evSetup(output, eventId, dy);
   else if (state === 6) evProjSetup(output, eventId, dy);
 }
 
-function onExercisePause(_input, _output) { isPaused = 1; deLoad(); }  // de-load active.html now — pause always precedes End, so this frees the heap with max GC lead time before the save burst
-function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }  // resume: remount the active screen for the (unchanged) state; clear the state-1/3 dwell so the first post-resume lap isn't absorbed
+function onExercisePause(input, _output) { isPaused = 1; deLoad(); finishSession(input, 0); }
+function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }
 
 function getSummaryOutputs(input, output) {
-  // Recap reads the fully-decorated lastSummary INLINE (built + grade-decorated by ext19 at
-  // onExerciseEnd). No ext9 evalFile here: that fresh parse of ext9's ~600-char grade table in the
-  // busy exercise-saving window STALLED the watch right before recap (vertical2.log 19:35:21 →
-  // ERR WBMAIN ... ui Wait). Grade names are now baked into the cache by ext19's dG, so the recap
-  // is a pure LS read — zero parse, zero added residency (caching at onLoad tipped the exec:ui
-  // mount ceiling — see no-midsession-flash-writes).
-  return LS.getObject("lastSummary") || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
+  // Recap is served from RAM. No localStorage and no evalFile in the summary path.
+  return lastSummaryCache || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
 }
 
 function onLap(_input, output) {

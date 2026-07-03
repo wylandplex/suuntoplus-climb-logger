@@ -57,30 +57,35 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 
 | File                | Role                                                       | Loaded         |
 |---------------------|------------------------------------------------------------|----------------|
-| `main.js`           | State machine, event dispatcher, HR buffer, save logic    | App start      |
-| `active.html`       | READY / CLIMB / BREAK / LIMIT cluster (states 0/1/2/3)     | Workout        |
-| `manage.html`       | SETUP / EDIT / PROJSETUP cluster (states 4/5/6)            | Config         |
-| `ext9.js`           | Summary viewer — serves cached `lastSummary`, resolves grade names | On summary view |
+| `main.js`           | State machine, event dispatcher, HR aggregation, save logic | App start      |
+| `ready.html`        | READY plus EDIT / project-slot overlays                    | Idle / editing |
+| `active.html`       | CLIMB / BREAK cluster                                      | Workout        |
+| `setup.html`        | Grade-system setup                                         | Config         |
+| `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
 | `ext10.js`          | Route end — build route record + update project stats      | On SEND/FAIL   |
-| `ext11.js`          | Persist all-time / per-system stats (writeStats)           | On workout end |
-| `ext12.js`          | Load stats + one-time migration                            | App start      |
+| `ext11.js`          | Legacy/maintenance stats writer                            | Not in runtime |
+| `ext12.js`          | Legacy/maintenance stats loader                            | Not in runtime |
 | `ext14.js`          | Save current route as a project slot                       | On save-project |
-| `ext17.js`          | Grade-system snapshot swap                                 | On system change |
-| `ext19.js`          | Build workout summary tiles (emits grade indices)          | On workout end |
+| `ext18.js`          | Grade-name slice provider                                  | Not in runtime |
 | `manifest.json`     | Outputs, variables, settings, templates                    | App config     |
 | `data.json`         | Companion app defaults                                     | First install  |
 
-The two-cluster split keeps live WB `<eval>` bindings ~25 during a workout (vs ~43 if all
-screens were one template) — the mitigation for the multi-app path-param ceiling.
+The current runtime path is a flight-recorder build: no localStorage reads/writes and no stats
+maintenance evals while the workout is active. The log showed `data.jsn` reads and `ext12/ext11`
+parses pushing `exec:zapp` over the limit with other zapps enabled.
 
 ### Data model (localStorage)
 
-- **`watchSetup`**: `{sys, proj}` — current grade system + per-system project-slot cache.
+- **Runtime state**: current grade system, routes, project slots, and summary are held in RAM only.
 - **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
-  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror.
-- **`climbProjStats`**: `{"sys_slot": {attempts, sends, bestTime, g}}` — per-slot stats.
-- **`s<sys>`**: per-grade-system snapshot of `stats` (swapped in by `ext17` on system change).
-- **`lastSummary`**: cached session-summary tiles, served by `ext9` on the post-activity view.
+  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror. These paths
+  are retained for companion compatibility but are not touched by the watch runtime.
+- **`pS<sys>`**: compact 20-number project-stat vector for one grade system
+  (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
+- **`climbProjStats`**: legacy object-form project stats; imported lazily into `pS<sys>`,
+  not used for normal end writes.
+- **`s<sys>`**: per-grade-system snapshot of `stats`; retained for maintenance tooling.
+- **Summary**: cached in RAM and served directly by `getSummaryOutputs`.
 
 *(In-session `routes[]` is in-memory only — capped at the route limit; persisted route history
 was removed as it was never read back.)*
@@ -98,14 +103,15 @@ BREAK screen an external lap starts the next route directly (skipping READY) —
 multi-route sessions; if the route limit is reached it routes to the LIMIT screen instead. In
 CLIMB/READY, external laps are ignored (the app's own SEND/FAIL/START manage laps there).
 
-### Work split: route-end vs session-end
+### Work split: route-end / pause / end
 
-- **Route-end** (`commitDirty` → `ext10`, per SEND/FAIL): build the route record, increment
-  per-project attempts/sends/best-time, update running HR aggregates and totals — all in memory.
-- **Session-end** (`onExerciseEnd`): persist stats (`ext11`/writeStats, incl. peak-grade and the
-  per-system snapshot via `ext17`) and build the summary tiles (`ext19`).
-- **Summary view** (`getSummaryOutputs` → `ext9`): serve the cached `lastSummary` and resolve
-  grade-index → name. localStorage writes are kept at session end to avoid mid-session flash-GC stalls.
+- **Route-end** (`commitDirty` → `ext10`, per SEND/FAIL): build the route record and update
+  the flat in-memory project-stat vector.
+- **Pause** (`onExercisePause`): de-load the active template and aggregate committed routes into
+  the in-memory summary cache.
+- **End** (`onExerciseEnd`): close any open route, aggregate, free route arrays, and return. No
+  localStorage and no evalFile.
+- **Summary view** (`getSummaryOutputs`): serve the RAM summary cache.
 
 ---
 
