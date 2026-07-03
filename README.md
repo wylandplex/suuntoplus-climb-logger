@@ -10,21 +10,21 @@ A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes 
 
 ## Screen Flow
 
-The UI is split into two template clusters, loaded on demand (only the active cluster's
-Watch-Bridge bindings are subscribed — see [ADR-002](docs/adr/ADR-002-binding-architecture.md)):
+Four small templates; the idle screens are separate so no swap ever carries more than one screen's
+DOM. EDIT and PROJSETUP are **overlays on the ready template** (states 5/6 map to `ready.html`) —
+entering or leaving them swaps nothing:
 
-- **`active.html`** — READY · CLIMB · BREAK · LIMIT (states 0/1/2/3)
-- **`manage.html`** — SETUP · EDIT · PROJSETUP (states 4/5/6)
+- **`setup.html`** — SETUP (state 4, every app start)
+- **`ready.html`** — READY (state 0) + EDIT overlay (state 5) + PROJSETUP overlay (state 6)
+- **`active.html`** — CLIMB · BREAK (states 1/2, the hot pair — zero per-lap swaps via applyVis)
+- **`saving.html`** — near-empty pause/end de-load screen
 
 ```
-  manage.html                         active.html
-  ───────────                         ───────────
-  SETUP ──save──►  READY  ──START──►  CLIMB  ──SEND/FAIL──►  BREAK
-  (first run)      ▲   │                                       │
-                   │   └──────────────── NEXT ─────────────────┘
-  EDIT  ◄─up-long──┤
-  PROJSETUP ◄──────┘   READY ──START @ 35 routes──► LIMIT ──any──► READY
-  (──save──► READY)                                  (save & restart to log more)
+  SETUP ──confirm──►  READY  ──START──►  CLIMB  ──SEND/FAIL──►  BREAK
+  (every start)       ▲ │  ▲                                      │
+                      │ │  └────────────────── NEXT ──────────────┘
+   EDIT overlay ◄─up-long (free mode)
+   PROJSETUP overlay ◄─up-long (project mode)
 ```
 
 ### Per-screen button matrix
@@ -36,11 +36,15 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 |-----------|---------------------|---------------------|----------------------|-----------------------------|----------------------|
 | READY     | grade / project cycle | grade / project cycle | toggle free/project | → EDIT (free) / PROJSETUP (project) | START          |
 | CLIMB     | — *(locked)*        | — *(locked)*        | — *(locked)*         | FAIL ✗                      | SEND ✓               |
-| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | —                           | NEXT                 |
-| LIMIT     | → READY             | → READY             | → READY              | → READY                     | → READY              |
-| SETUP     | grade system +      | grade system −      | —                    | —                           | save & → READY       |
+| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | toggle last SEND↔FAIL       | NEXT                 |
+| SETUP     | grade system +      | grade system −      | —                    | —                           | confirm & → READY    |
 | EDIT      | route grade +       | route grade −       | cycle SEND/FAIL/DEL  | → READY                     | prev route / → READY |
-| PROJSETUP | slot grade +        | slot grade −        | —                    | save & → READY              | save & next slot     |
+| PROJSETUP | slot grade +        | slot grade −        | —                    | done & → READY              | next slot            |
+
+The EDIT/PROJSETUP overlays render through the READY bindings: big grade = selected route / slot
+grade, header `#N` / `P1..P5` (negative `modeSub`), plus a setText status line (`EDIT i/n SEND` /
+`SLOT n/5`). `ready.html` gates its firmware `lap()` on `vState !== 5` so EDIT route-navigation
+never records a lap.
 
 **Universal rules:**
 - `mid-short` is OS-reserved (scrolls Suunto's native activity screens).
@@ -48,8 +52,8 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 - Touch tap-zones mirror the long-press action on their respective button pills.
 - Flicks fire the short-press grade step ×3; in project mode (READY/BREAK) flicks are a no-op
   (project cycling is single-step only).
-- At 35 logged routes (`ROUTE_LIMIT`), START is blocked → LIMIT screen → save & restart. This
-  caps per-session resource accumulation (see [CHANGELOG](CHANGELOG.md) / issue #121).
+- At 35 logged routes (`ROUTE_LIMIT`), START is silently refused (the dedicated LIMIT screen was
+  cut in the resident diet) — save & restart to log more.
 
 ---
 
@@ -79,7 +83,11 @@ parses pushing `exec:zapp` over the limit with other zapps enabled.
 - **Runtime state**: current grade system, routes, project slots, and summary are held in RAM only.
 - **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
   grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror. These paths
-  are retained for companion compatibility but are not touched by the watch runtime.
+  are retained for companion compatibility but are **not written by the current runtime — the
+  companion's lifetime tiles do not update, and grade system / project slots reset every session.**
+  `ext11`/`ext12` implement a complete deferred-persistence mechanism for this (`eP` end-payload
+  string, drained + RMW'd at the next enable's calm window) that is deliberately NOT wired into
+  `main.js` yet — pending the product decision stateless vs. persistent.
 - **`pS<sys>`**: compact 20-number project-stat vector for one grade system
   (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
 - **`climbProjStats`**: legacy object-form project stats; imported lazily into `pS<sys>`,
@@ -100,8 +108,8 @@ matching the system's noise filtering and counting re-ascents on up-down-up prof
 
 The physical lap button (and auto-lap, if enabled) is detected via the `onLap` callback. On the
 BREAK screen an external lap starts the next route directly (skipping READY) — handy for fast
-multi-route sessions; if the route limit is reached it routes to the LIMIT screen instead. In
-CLIMB/READY, external laps are ignored (the app's own SEND/FAIL/START manage laps there).
+multi-route sessions; at the route limit the start is silently refused. In CLIMB, an external lap
+finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
 
 ### Work split: route-end / pause / end
 
@@ -134,12 +142,14 @@ Suunto watches have a startup parser budget that limits `main.js` size. The mini
 - Terser (`toplevel=true`, `reserved=["_e","_","_d"]`) for initial mangling.
 - SuuntoPlus property-to-array-index transform (outputs become `_[N]`).
 
-Each manifest output costs ~36 B of startup budget. Template files (`active.html`, `manage.html`,
-`ext*.js`) are lazy-loaded and don't count against the startup budget.
+Each manifest output costs ~36 B of startup budget. Template files and `ext*.js` are lazy-loaded
+and don't count against the startup budget — but `main.js` bytecode is RESIDENT on the shared
+~133 KB three-app JS heap, and that residency is what decides whether the pool sits at a
+99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
-Current v3.0 footprint:
-- `main.js` minified: ~6 KB
-- `.fea` (q-display): ~70 KB
+Current footprint (built, q-display):
+- `main.js` minified: 7 088 B (merged lifecycle dispatcher 860 B, cliff ~1 874 B)
+- runtime ext parses: `ext10` 229 B (per route), `ext14` 217 B (per save-project)
 
 ### Backlog
 
