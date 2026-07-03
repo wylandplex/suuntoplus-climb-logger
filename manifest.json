@@ -37,15 +37,6 @@
       "name": "vState"
     },
     {
-      "name": "actT"
-    },
-    {
-      "name": "actS"
-    },
-    {
-      "name": "actB"
-    },
-    {
       "name": "hdrGrade"
     },
     {
@@ -61,15 +52,6 @@
     },
     {
       "name": "setup.html"
-    },
-    {
-      "name": "projsetup.html"
-    },
-    {
-      "name": "edit.html"
-    },
-    {
-      "name": "limit.html"
     },
     {
       "name": "saving.html"

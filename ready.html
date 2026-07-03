@@ -43,13 +43,6 @@
     </div>
     <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Project stats (project mode only; -1/0 -> '' hides) -->
-    <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/actT" outputFormat="script x => x < 0 ? '' : x + 'T'" default="" /></span>
-      <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actS" outputFormat="script x => x < 0 ? '' : x + 'S'" default="" /></span>
-      <span class="sp-b-s" style="padding-left:6px"><eval input="/Zapp/{zapp_index}/Output/actB" outputFormat="script x => x <= 0 ? '' : Math.floor(x/60) + ':' + ('0'+(x%60)).slice(-2)" default="" /></span>
-    </div>
-
     <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->
     <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.12)">
       <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
