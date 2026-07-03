@@ -36,6 +36,8 @@ var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
 var extLapPending = 0;  // deferred CLIMB-finish armed by an EXTERNAL lap (auto-lap / non-app lap) in onLap; drained in evaluate one tick later so an app FAIL/SEND button (onEvent fires AFTER onLap on this platform) can cancel it via finishRoute. SEND by default.
+var editIdx = 0;        // EDIT overlay (state 5 ON the ready template — no swap): selected route
+var editDelMark = 0;    // old mid-button cycle SEND->FAIL->DEL; the DEL mark executes on nav/exit (eid 5/6)
 var isPaused = 0;
 var finalized = 0;  // onExerciseEnd idempotency (fast pause→end guard); reset to 0 in onLoad each session
 var dwell = 0;  // CLIMB-entry guard — cleared at end of next evaluate tick
@@ -163,7 +165,11 @@ var setOutputs = function(output) {
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
   if (chg("routeHeight", rh)) output.routeHeight = rh;
-  if (state === 6) {
+  if (state === 5) {
+    gradeV = editIdx < routesA.length ? encGrade(rGrade(editIdx)) : encGrade(50);  // big grade display = selected route
+    if (chg("modeSub", editIdx + 1)) output.modeSub = editIdx + 1;                 // header #N = route number
+    lastGradeV = -1; wGL(output);
+  } else if (state === 6) {
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
     if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
     lastGradeV = -1; wGL(output);
@@ -195,7 +201,7 @@ var setOutputs = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  var t = s === 0 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : s === 6 ? "projsetup" : "saving";  // slim rebuild: edit/limit stay cut, projsetup back
+  var t = s === 0 || s === 5 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : s === 6 ? "projsetup" : "saving";  // slim rebuild: limit stays cut; EDIT (5) is an OVERLAY on the ready template — entering/leaving edit swaps nothing
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -262,6 +268,84 @@ var recalcBse = function() {
   }
 };
 
+// Set route i's result to v (1/0) + mirror the change into its project slot's stats. Shared by the
+// BREAK last-route toggle and the EDIT overlay's mid-button cycle. No rescanBest (slim-rebuild trade:
+// an un-send can leave a stale slot bestTime; ext11's g-mismatch purge still cleans grade changes).
+var toggleRes = function(i, v) {
+  wSend(i, v);
+  var c = rCm(i);
+  if (c > 0) {
+    var k = gradeSystem + "_" + c, p = projStats[k];
+    if (p) {
+      if (v) { p.sends++; var d = rDur(i); if (d > 0 && (p.bestTime === 0 || d < p.bestTime)) p.bestTime = d; }
+      else if (p.sends > 0) p.sends--;
+      projStatsDirty = 1;
+    }
+  }
+  recalcBse();
+};
+
+// EDIT overlay bottom-line indicator: "i/n SEND|FAIL|DEL" via setText into ready.html's #edr node —
+// safe because the overlay never swaps the template (DOM is mounted when this runs).
+var pushEd = function() {
+  setText("#edr", (editIdx + 1) + "/" + routesA.length + " " + (editDelMark ? "DEL" : rSend(editIdx) ? "SEND" : "FAIL"));
+};
+
+// Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
+var edDel = function() {
+  if (!editDelMark) return;
+  editDelMark = 0;
+  if (editIdx < routesA.length) {
+    var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = routesA[editIdx] % 1e4;
+    if (dCm > 0) {
+      var dk = gradeSystem + "_" + dCm, dp = projStats[dk];
+      if (dp) {
+        if (dp.attempts > 0) dp.attempts--;
+        if (dSend && dp.sends > 0) dp.sends--;
+        if (dp.attempts <= 0) delete projStats[dk]; else projStats[dk] = dp;
+        projStatsDirty = 1;
+      }
+    }
+    if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
+    routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
+    recalcBse();
+    if (routeNumber > 1) routeNumber--;
+    if (editIdx >= routesA.length && routesA.length > 0) editIdx = routesA.length - 1;
+  }
+};
+
+// EDIT overlay (state 5) — OLD controls preserved: eid1/2 grade ±1 (free routes), eid4 result cycle
+// SEND->FAIL->DEL, eid6 previous route (executes a DEL mark), eid5 exit (executes a DEL mark).
+// Rendering rides the READY template: big grade = selected route (packedGL), header #N = route number
+// (modeSub), #edr line = i/n + result. ready.html gates its lap() on vState!==5, so eid6 stays lap-free.
+var evEdit = function(output, eid) {
+  if (eid === 5 || eid === 6) {
+    edDel();
+    if (eid === 6 && routesA.length > 0) {
+      editIdx = (editIdx - 1 + routesA.length) % routesA.length;
+      setOutputs(output); pushEd();
+    } else {
+      setText("#edr", "");
+      goState(0, output);
+    }
+    return;
+  }
+  if (routesA.length === 0) { setText("#edr", ""); goState(0, output); return; }
+  if (eid === 4) {
+    if (editDelMark) { editDelMark = 0; toggleRes(editIdx, 1); }
+    else if (rSend(editIdx)) toggleRes(editIdx, 0);
+    else editDelMark = 1;
+    setOutputs(output); pushEd();
+  } else if (eid === 1 || eid === 2) {
+    if (!rCm(editIdx)) {
+      var Le = GRADE_LENS[gradeSystem];
+      wGrade(editIdx, ((rGrade(editIdx) + (eid === 1 ? 1 : -1)) % Le + Le) % Le);
+      if (rSend(editIdx)) recalcBse();
+      setOutputs(output); pushEd();
+    }
+  }
+};
+
 var commitDirty = function(input) {
   input = input || {};  // guard lives HERE, not at the call site: the build minifier leaves a bare `input` wrapped in `|| {}` un-renamed (it only renames `input` as a direct call arg or `input.X` member), so onExerciseEnd's commitDirty(input||{}) silently ReferenceError'd and the end-of-session route was never committed. Both call sites now pass bare `input`.
   if (frDirty) {
@@ -303,7 +387,12 @@ var evReady = function(output, eid, dy) {
     }
     pushMode(output);
   } else if (eid === 5) {
-    if (climbMode > 0) { pStep = 0; goState(6, output); }  // proj-setup; free mode: no-op (EDIT screen stays cut)
+    if (climbMode > 0) { pStep = 0; goState(6, output); }        // proj-setup (old binding)
+    else if (routesA.length > 0) {                                // free mode: EDIT overlay (old binding)
+      editDelMark = 0; editIdx = routesA.length - 1;
+      goState(5, output);  // same template — no swap; DOM alive, so pushEd renders immediately
+      pushEd();
+    }
   } else if (eid === 4) {
     toggleMode();
     pushMode(output);
@@ -338,23 +427,12 @@ var evBreak = function(output, eid, dy) {
       }
     }
   } else if (eid === 5 && !frDirty && routesA.length > 0) {
-    // EDIT-light (slim rebuild of the cut EDIT screen): up-long in BREAK toggles the LAST committed
-    // route's result SEND<->FAIL. Feedback = the existing hdrRes green/orange band via setOutputs —
-    // zero new outputs, zero new state. !frDirty mirrors the wGrade guard (a pending route is fixed
-    // by frSend at commit, not by editing routes[len-1], which would hit the PREVIOUS route).
+    // Quick-fix: up-long in BREAK toggles the LAST committed route's result SEND<->FAIL (feedback =
+    // the hdrRes green/orange band). !frDirty mirrors the wGrade guard (a pending route is fixed by
+    // frSend at commit, not by editing routes[len-1], which would hit the PREVIOUS route).
     var li = routesA.length - 1;
     lastResult = rSend(li) ? 0 : 1;
-    wSend(li, lastResult);
-    var c = rCm(li);  // project route: mirror the toggle into the slot's stats (no rescanBest — an
-    if (c > 0) {      // un-send can leave a stale bestTime; accepted slim-rebuild trade)
-      var k = gradeSystem + "_" + c, p = projStats[k];
-      if (p) {
-        if (lastResult) { p.sends++; var d = rDur(li); if (d > 0 && (p.bestTime === 0 || d < p.bestTime)) p.bestTime = d; }
-        else if (p.sends > 0) p.sends--;
-        projStatsDirty = 1;
-      }
-    }
-    recalcBse();
+    toggleRes(li, lastResult);
     setOutputs(output);
   } else if (eid === 4) {
     saveAsProject(output);
@@ -555,6 +633,7 @@ function onEvent(_input, output, eventId) {
   if (state === 0) evReady(output, eventId, dy);
   else if (state === 1) evClimb(output, eventId);
   else if (state === 2) evBreak(output, eventId, dy);
+  else if (state === 5) evEdit(output, eventId);
   else if (state === 4) evSetup(output, eventId, dy);
   else if (state === 6) evProjSetup(output, eventId, dy);
 }
