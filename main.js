@@ -54,12 +54,12 @@ var projAll = [];
 // projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19].
 var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
 var sessionsNo = 1;
-// eP deferred persistence (wires the built-but-idle ext11/ext12 pair): the workout path stays
-// 100% LS-free; the END writes ONE string "gs;cm;dirty;ag7;pgi5;pSlot20" and ext12 RMWs it into
-// stats/s<gs>/pS<gs> at the NEXT enable's calm drain window (the proven pre-start moment).
+// Persistence = the PROVEN choreography: ext12 loads at the calm first-tick drain; the workout
+// path is LS-free; the END does the RMW directly via ext11 (see finishSession). The eP/WAL
+// variant (pause write + next-enable replay) was FALSIFIED on-watch 2026-07-03 — do not re-add.
 var pendF12 = 1;   // ext12 bootstrap pending — drained on the first evaluate tick / first event; cleared only after success (retry-on-OOM pattern)
-var psDirty = 0;   // projSlot changed this session       -> eP dirty bit 0 (ext11 writes pS<gs>)
-var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> eP dirty bit 1 (ext11 writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
+var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes pS<gs>)
+var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
 var sysDirty = 0;  // grade system changed (persist even on a routeless session)
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
@@ -488,7 +488,7 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered bootstrap + previous session's eP RMW, on the calm first tick; try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
@@ -547,38 +547,30 @@ var endRoute = function() {
   routeNumber++;
 };
 
-var finishSession = function(input, closeOpen) {
-  if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still apply the PREVIOUS session's eP before writing its own
-  if (closeOpen && state === 1) endRoute();
+// PROVEN save choreography, transplanted 1:1 after the eP/WAL falsification (both crash logs
+// anchored at the pause-window flash write; the enable replay nested evalFile-in-evalFile — two
+// no-gos the validated builds never committed). The anatomy that ran clean on EVERY validated
+// build (6x on 02.07 at 8.7KB resident, minimal-core probe incl. fresh-install first end,
+// slim-S2): PAUSE does nothing but de-load; the END frees RAM FIRST (f10, routesA/B inside
+// endAgg), then ONE flat sub-envelope parse (ext11, 1049B) does the RMW directly — sequential,
+// never nested, every LS access a REWRITE of a drain-seeded key. Stats are in LS the moment the
+// activity saves, so the companion sync right after a session is current.
+var finishSession = function(input) {
+  if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
+  if (state === 1) endRoute();
   try { commitDirty(input); } catch (e) {}
   if (routesA.length === 0 && !psDirty && !slotsDirty && !sysDirty) return;
   try { deLoad(); } catch (e) {}
   f10 = null;
-  var ag = endAgg();
-  // eP = WRITE-AHEAD LOG: pause AND end persist the session as ONE string (rewrite of a seeded
-  // key). The END then applies the stats RMW IMMEDIATELY (ext11 with the live RAM values — the
-  // companion syncs right after a session, so stats must be current at save time) and clears the
-  // WAL. If the end window ever wedges/dies mid-RMW, the eP survives and ext12's next-enable
-  // drain replays it — nothing is lost, nothing double-counts (clear happens only after success).
-  // PAUSE (closeOpen=0) does NOT free the arrays — pause->continue keeps the session.
-  var d = (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0);
+  var ag = endAgg();  // one allocation-light pass: RAM summary tiles + frees routesA/routesB BEFORE the parse
   try {
-    localStorage.setItem("eP", gradeSystem + ";" + climbMode + ";" + d + ";" +
-      ag[0] + "," + ag[1] + "," + ag[2] + "," + ag[3] + "," + ag[4] + "," + ag[5] + "," + ag[6] + ";" +
-      projGradeIdx.join(",") + ";" + projSlot.join(","));
+    loadExt(11)(ag, projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));
   } catch (e) {}
-  if (closeOpen) {
-    routesA = []; routesB = [];
-    try {
-      loadExt(11)(ag, projGradeIdx, projSlot, climbMode, gradeSystem, d);
-      localStorage.setItem("eP", "");
-    } catch (e) {}  // RMW failed -> the WAL stays armed for the next-enable replay
-  }
 };
 
 function onExerciseEnd(input, _output) {
   if (finalized) return; finalized = 1;
-  finishSession(input, 1);
+  finishSession(input);
 }
 
 function onEvent(_input, output, eventId) {
@@ -600,7 +592,7 @@ function onEvent(_input, output, eventId) {
   else if (state === 6) evProjSetup(output, eventId, dy);
 }
 
-function onExercisePause(input, _output) { isPaused = 1; deLoad(); finishSession(input, 0); }
+function onExercisePause(input, _output) { isPaused = 1; deLoad(); }  // de-load ONLY — the proven pause. NO aggregation, NO LS, NO flash here: the eP build's pause-window setItem froze the watch twice (mid-session flash-write no-go); the summary is built at END, which always follows
 function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }
 
 function getSummaryOutputs(input, output) {
