@@ -170,8 +170,8 @@ var setOutputs = function(output) {
     if (chg("modeSub", editIdx + 1)) output.modeSub = editIdx + 1;                 // header #N = route number
     lastGradeV = -1; wGL(output);
   } else if (state === 6) {
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);
-    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
+    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);  // big display = slot grade (OFF sentinel when unset)
+    if (chg("modeSub", -(pStep + 1))) output.modeSub = -(pStep + 1);  // header renders negatives as "P1".."P5" — the slot being configured
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
@@ -201,7 +201,7 @@ var setOutputs = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  var t = s === 0 || s === 5 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : s === 6 ? "projsetup" : "saving";  // slim rebuild: limit stays cut; EDIT (5) is an OVERLAY on the ready template — entering/leaving edit swaps nothing
+  var t = s === 0 || s === 5 || s === 6 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : "saving";  // slim rebuild: limit stays cut; EDIT (5) and PROJ-SETUP (6) are OVERLAYS on the ready template — entering/leaving them swaps nothing (projsetup.html deleted)
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -285,10 +285,16 @@ var toggleRes = function(i, v) {
   recalcBse();
 };
 
-// EDIT overlay bottom-line indicator: "i/n SEND|FAIL|DEL" via setText into ready.html's #edr node —
-// safe because the overlay never swaps the template (DOM is mounted when this runs).
+// EDIT overlay bottom-line indicator: "EDIT i/n SEND|FAIL|DEL" via setText into ready.html's #edr
+// node — safe because the overlay never swaps the template (DOM is mounted when this runs). The
+// EDIT prefix is the visual marker that distinguishes the overlay from plain READY.
 var pushEd = function() {
-  setText("#edr", (editIdx + 1) + "/" + routesA.length + " " + (editDelMark ? "DEL" : rSend(editIdx) ? "SEND" : "FAIL"));
+  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " " + (editDelMark ? "DEL" : rSend(editIdx) ? "SEND" : "FAIL"));
+};
+
+// Project-setup overlay indicator (state 6 rides the ready template too — projsetup.html deleted).
+var pushPS = function() {
+  setText("#edr", "SLOT " + (pStep + 1) + "/5");
 };
 
 // Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
@@ -330,7 +336,7 @@ var evEdit = function(output, eid) {
     }
     return;
   }
-  if (routesA.length === 0) { setText("#edr", ""); goState(0, output); return; }
+  if (routesA.length === 0) return;  // empty editor: stay (old behavior); exit via eid 5/6
   if (eid === 4) {
     if (editDelMark) { editDelMark = 0; toggleRes(editIdx, 1); }
     else if (rSend(editIdx)) toggleRes(editIdx, 0);
@@ -387,10 +393,13 @@ var evReady = function(output, eid, dy) {
     }
     pushMode(output);
   } else if (eid === 5) {
-    if (climbMode > 0) { pStep = 0; goState(6, output); }        // proj-setup (old binding)
-    else if (routesA.length > 0) {                                // free mode: EDIT overlay (old binding)
-      editDelMark = 0; editIdx = routesA.length - 1;
-      goState(5, output);  // same template — no swap; DOM alive, so pushEd renders immediately
+    if (climbMode > 0) {                                          // proj-setup overlay (old binding)
+      pStep = 0;
+      goState(6, output);  // same template — no swap; DOM alive, indicators render immediately
+      pushPS();
+    } else {                                                      // free mode: EDIT overlay (old binding,
+      editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
+      goState(5, output);
       pushEd();
     }
   } else if (eid === 4) {
@@ -461,14 +470,15 @@ var evProjSetup = function(output, eid, dy) {
   if (dy) {
     projGradeIdx[pStep] = wrap(projGradeIdx[pStep] + dy, GRADE_LENS[gradeSystem], 1);
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
     wsDirty = 1;   // watchSetup needs persisting at session end
   } else if (eid === 5) {
+    setText("#edr", "");
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg("modeSub", pStep + 1)) output.modeSub = pStep + 1;
+    if (chg("modeSub", -(pStep + 1))) output.modeSub = -(pStep + 1);
+    pushPS();
   }
 };
 
