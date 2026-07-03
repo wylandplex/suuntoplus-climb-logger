@@ -67,8 +67,8 @@ never records a lap.
 | `setup.html`        | Grade-system setup                                         | Config         |
 | `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
 | `ext10.js`          | Route end — build route record + update project stats      | On SEND/FAIL   |
-| `ext11.js`          | Stats RMW writer (called by ext12's eP drain)              | Next enable    |
-| `ext12.js`          | Bootstrap loader + eP end-payload drain                    | First tick     |
+| `ext11.js`          | Stats RMW writer (at END; via ext12 replay on recovery)    | Workout end    |
+| `ext12.js`          | Bootstrap loader + eP write-ahead-log replay               | First tick     |
 | `ext14.js`          | Save current route as a project slot                       | On save-project |
 | `ext18.js`          | Grade-name slice provider (legacy)                         | Not in runtime |
 | `manifest.json`     | Outputs, variables, settings, templates                    | App config     |
@@ -76,19 +76,22 @@ never records a lap.
 
 The runtime path is a flight-recorder: no localStorage and no stats-maintenance evals while the
 workout is active (the log showed `data.jsn` reads and enable-window parses pushing `exec:zapp`
-over the limit with other zapps enabled). Persistence rides the eP deferral: one `setItem` at END,
-one ext12 parse + RMW at the next enable's calm first tick.
+over the limit with other zapps enabled). Persistence = the eP write-ahead log: one `setItem` at
+pause/end, the RMW applied at END (companion-ready), replayed by ext12 at the next enable only if
+the end ever failed.
 
 ### Data model (localStorage)
 
 - **Runtime state**: current grade system, routes, project slots, and summary are held in RAM only.
 - **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
-  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror — written by
-  the **deferred `eP` persistence**: the workout path never touches localStorage; the END writes ONE
-  string `eP = "gs;cm;dirty;ag7;pgi5;pSlot20"`, and `ext12` applies it (RMW via `ext11` against the
-  `s<sys>` snapshot) at the NEXT enable's calm pre-start drain. Dirty bits gate the writes: bit 0 =
-  `pS<sys>`, bit 1 = slot config (unset ⇒ Companion slot edits made between sessions survive).
-  A returning user auto-skips SETUP → READY one tick after the drain.
+  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror — maintained by
+  the **`eP` write-ahead persistence**: the workout path never touches localStorage; PAUSE and END
+  persist the session as ONE string `eP = "gs;cm;dirty;ag7;pgi5;pSlot20"`; the END then applies the
+  RMW immediately (`ext11` against the `s<sys>` snapshot — stats are current when the companion
+  syncs) and clears the WAL. If the end window ever dies mid-RMW, `ext12` replays the surviving
+  `eP` at the next enable's calm drain — nothing lost, nothing double-counted. Dirty bits gate the
+  writes: bit 0 = `pS<sys>`, bit 1 = slot config (unset ⇒ Companion slot edits made between
+  sessions survive). A returning user auto-skips SETUP → READY one tick after the drain.
 - **`pS<sys>`**: compact 20-number project-stat vector for one grade system
   (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
 - **`climbProjStats`**: legacy object-form project stats; imported lazily into `pS<sys>`,

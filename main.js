@@ -555,17 +555,24 @@ var finishSession = function(input, closeOpen) {
   try { deLoad(); } catch (e) {}
   f10 = null;
   var ag = endAgg();
-  // PAUSE (closeOpen=0) only precomputes the RAM summary — arrays stay live so pause->continue
-  // keeps the session (freeing here lost every pre-pause route). END frees + persists: ONE small
-  // eP string; the actual stats RMW runs at the NEXT enable's calm drain (ext12 -> ext11). The
-  // end window itself never parses and only REWRITES the eP key (seeded by ext12 on first run).
+  // eP = WRITE-AHEAD LOG: pause AND end persist the session as ONE string (rewrite of a seeded
+  // key). The END then applies the stats RMW IMMEDIATELY (ext11 with the live RAM values — the
+  // companion syncs right after a session, so stats must be current at save time) and clears the
+  // WAL. If the end window ever wedges/dies mid-RMW, the eP survives and ext12's next-enable
+  // drain replays it — nothing is lost, nothing double-counts (clear happens only after success).
+  // PAUSE (closeOpen=0) does NOT free the arrays — pause->continue keeps the session.
+  var d = (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0);
+  try {
+    localStorage.setItem("eP", gradeSystem + ";" + climbMode + ";" + d + ";" +
+      ag[0] + "," + ag[1] + "," + ag[2] + "," + ag[3] + "," + ag[4] + "," + ag[5] + "," + ag[6] + ";" +
+      projGradeIdx.join(",") + ";" + projSlot.join(","));
+  } catch (e) {}
   if (closeOpen) {
     routesA = []; routesB = [];
     try {
-      localStorage.setItem("eP", gradeSystem + ";" + climbMode + ";" + ((psDirty ? 1 : 0) | (slotsDirty ? 2 : 0)) + ";" +
-        ag[0] + "," + ag[1] + "," + ag[2] + "," + ag[3] + "," + ag[4] + "," + ag[5] + "," + ag[6] + ";" +
-        projGradeIdx.join(",") + ";" + projSlot.join(","));
-    } catch (e) {}
+      loadExt(11)(ag, projGradeIdx, projSlot, climbMode, gradeSystem, d);
+      localStorage.setItem("eP", "");
+    } catch (e) {}  // RMW failed -> the WAL stays armed for the next-enable replay
   }
 };
 
