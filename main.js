@@ -54,6 +54,7 @@ var projGradeIdx = [-1, -1, -1, -1, -1];
 var allProjects = {};
 var projStats = {};
 var projStatsDirty = 0;  // climbProjStats persisted at onExerciseEnd only (defer-to-end)
+var actKey = "";         // cached projStats key of the ACTIVE slot ("" in free mode) — maintained via setAK() at every climbMode/gradeSystem change, so the per-tick packedAct publish does ZERO string allocation
 var wsDirty = 0;         // gradeSystem/projGradeIdx diverge from watchSetup on flash — saveSetup() at onExerciseEnd (defer-to-end)
 var sessionsNo = 0;  // current session number (stored sessions+1, set in drainF12) — feeds firstSes semantics only (ext10/ext14/rescanBest). The PERSISTED lifetime stats live off the resident path entirely: ext11 resolves them at session end by RMW against the s<gs> snapshot (write-only-at-end); after a system switch this scalar can briefly belong to the previous system — accepted firstSes edge, documented in the plan.
 
@@ -87,6 +88,10 @@ var encGrade = function(idx) {
   return gradeSystem * 100 + idx;
 };
 
+var setAK = function() {
+  actKey = climbMode > 0 ? gradeSystem + "_" + climbMode : "";
+};
+
 var loadProjects = function(sys) {
   var sp = allProjects[sys];
   for (var i = 0; i < 5; i++) {
@@ -118,6 +123,7 @@ var cycleSlot = function(dy) {
     if (projGradeIdx[next - 1] >= 0) break;
   } while (next !== start);
   climbMode = next;
+  setAK();
   if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
 };
 
@@ -171,6 +177,15 @@ var setOutputs = function(output) {
     var ms = climbMode > 0 ? -climbMode : rn;
     if (chg("modeSub", ms)) output.modeSub = ms;
   }
+  // packedAct = activeTries*1000 + activeSends (READY, P-mode only; -1 hides the line). ONE output
+  // replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish, setText would not).
+  // actKey is precomputed — this per-tick path allocates nothing.
+  var pAct = -1;
+  if (state === 0 && actKey) {
+    var apA = projStats[actKey];
+    pAct = apA ? Math.min(apA.attempts || 0, 16700) * 1000 + Math.min(apA.sends || 0, 999) : 0;
+  }
+  if (chg("packedAct", pAct)) output.packedAct = pAct;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
   if (chg("hdrGrade", hg)) output.hdrGrade = hg;
   var hres = state === 2 ? (lastResult ? 1 : 2) : 0;  // header colour: 1=green(sent) / 2=orange(fail) on BREAK, set by the CLIMB-finish result; 0=neutral elsewhere
@@ -226,12 +241,13 @@ var toggleMode = function() {
       }
     }
   }
+  setAK();
 };
 
 var saveAsProject = function(output) {
   var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projStats, routesA, sessionsNo);
   if (r) {
-    currentGrade = r[0]; climbMode = r[1];
+    currentGrade = r[0]; climbMode = r[1]; setAK();
     if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
     allProjects[gradeSystem] = projGradeIdx.slice();  // in-memory update only
     wsDirty = 1;  // ext14 mutated projGradeIdx — persist watchSetup at onExerciseEnd
@@ -352,6 +368,7 @@ var evSetup = function(output, eid, dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
+    setAK();
     // (write-only-at-end: zero stats/LS bookkeeping per switch press — ext11's end RMW bases on s<gs>)
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
