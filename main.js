@@ -445,6 +445,23 @@ var evBreak = function(output, eid, dy) {
   }
 };
 
+// Seed system g's FULL 14-field s<g> shape (matching what ext11 writes at end) via a direct write —
+// NO ext parse. Placed at SETUP-LEAVE (the moment the system is "chosen/created", the user's idea)
+// so the FIRST end on this system is a SAME-SIZE rewrite, not a growing data.jsn write (the first-end
+// storm). Guarded: a USED system's s<g> already has mostTriesGrade -> skip, never wipe real data.
+// Deliberately NOT bundled at the enable/drain — doing all the growth there stormed exec:zapp and
+// hard-ASSERTed the watch (2026-07-06). This is one small write at a calm, meaningful, pre-start moment.
+var seedSys = function(g) {
+  var s = localStorage.getObject("s" + g);
+  if (s && s.mostTriesGrade !== undefined) return;
+  var o = s || {}, i,
+    Z = "totalRoutes,totalSends,sendPct,sessions,totalHeight,sessionsAtPeak,bestSessionHm,longestProjectSes,mostTriesProject".split(","),
+    M = "peakGrade,lastSessionGrade,bestOfLast5,longestProjectGrade,mostTriesGrade".split(",");
+  for (i = 0; i < 9; i++) if (o[Z[i]] === undefined) o[Z[i]] = 0;
+  for (i = 0; i < 5; i++) if (o[M[i]] === undefined) o[M[i]] = -1;
+  localStorage.setObject("s" + g, o);
+};
+
 var evSetup = function(output, eid, dy) {
   if (dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
@@ -455,6 +472,7 @@ var evSetup = function(output, eid, dy) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
+    try { seedSys(gradeSystem); } catch (e) {}  // pre-grow this system's shape NOW (calm, pre-start) so its first end is size-neutral
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
 };
