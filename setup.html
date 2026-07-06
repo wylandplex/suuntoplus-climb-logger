@@ -6,10 +6,8 @@
           function sN(x){return SN[x]||'?'}
           var lock=0;
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
-          function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
-          function evL(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
         ">
   <div id="climblogger">
 
@@ -42,14 +40,9 @@
     </div>
 
 
-    <!-- Bottom time-bar with a cheap flat-fill backing panel + top hairline (the old clip-path diamond was removed — masks are expensive, plain rgba rects are not). -->
-    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
-    <div class="p-hc" style="top:87%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
-    <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
-      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
-      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
-    </div>
+    <!-- No bottom time-bar on SETUP: pre-activity there is nothing to time (duration is 0:00), so the
+         clock+duration wrapper and its two eval subscriptions are omitted here — a lighter setup mount
+         (the template the watch builds on every enable/re-enable). The time-bar lives on ready/active. -->
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">
@@ -60,13 +53,13 @@
            pendBack "defer goState(0) one tick" attempt was tried and reverted.) 'next' stays free (middle = screen nav). -->
       <pushButton name="up" type="lock" longType="lock"
         onClick="ev(1)"
-        onLongPressStart="evL(5)"
+        onLongPressStart="evX(5)"
         onLongPressFull=";" />
       <pushButton name="next" longType="lock"
         onLongPressStart="ev(4)" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="ev(2)"
-        onLongPressStart="evL(6)"
+        onLongPressStart="evX(6)"
         onLongPressFull=";" />
     </userInput>
     </:if>
