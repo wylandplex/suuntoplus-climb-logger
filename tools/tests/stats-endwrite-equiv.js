@@ -388,6 +388,7 @@ function dump(ls) {
     if (s && !(s.sessions | 0) && !(s.totalRoutes | 0)) delete o[k];
   }
   if (o.stats) {
+    delete o.stats.mig;  // the OLD pipeline's migration tail set stats.mig=1 for any mig!==1 input; the NEW ext12 no longer touches mig. Not a real-state field (data.json ships mig:1) — ignore it.
     for (const k of REC_M1) if (o.stats[k] === undefined) o.stats[k] = -1;
     for (const k of REC_0) if (o.stats[k] === undefined) o.stats[k] = 0;
     for (let s = 0; s < 10; s++) for (let i = 1; i <= 5; i++) delete o.stats['p' + s + '_' + i];
@@ -405,7 +406,7 @@ function genPlan(seed) {
   let genGs = 0;                // mirrors the driver's gs evolution
   let sesMismatch = false;      // inline sessions ≠ s<gs> sessions (companion system edit) → cm=0 only
 
-  if (rng() < 0.25) {           // legacy-format store (pre-migration), internally consistent
+  if (false) {                  // MIGRATION REMOVED: ext12 no longer migrates legacy rou<ms>/mig stores (dead code stripped to shrink the re-enable drain parse-block; data.json ships mig:1 + full shapes). Legacy-store fuzzing disabled — that input can no longer occur on-watch.
     const cur = Math.floor(rng() * 8);
     const sv = { system: cur, mig: undefined };
     for (let m = 0; m < 8; m++) {
