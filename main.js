@@ -451,7 +451,13 @@ var evBreak = function(output, eid, dy) {
 // storm). Guarded: a USED system's s<g> already has mostTriesGrade -> skip, never wipe real data.
 // Deliberately NOT bundled at the enable/drain — doing all the growth there stormed exec:zapp and
 // hard-ASSERTed the watch (2026-07-06). This is one small write at a calm, meaningful, pre-start moment.
-
+var seedSys = function(g) {
+  var s = localStorage.getObject("s" + g);
+  if (s && s.mostTriesGrade !== undefined) return;  // used system already at full shape -> keep its real data
+  // replace the missing/short shell (data.json ships s<n> as 5 zero-fields) with the full 14-field
+  // zero shape ext11 writes at end, so the first end is a same-size rewrite. Shells are all zero -> no loss.
+  localStorage.setObject("s" + g, { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0, peakGrade: -1, lastSessionGrade: -1, bestOfLast5: -1, longestProjectGrade: -1, mostTriesGrade: -1, sessionsAtPeak: 0, bestSessionHm: 0, longestProjectSes: 0, mostTriesProject: 0 });
+};
 
 var evSetup = function(output, eid, dy) {
   if (dy) {
@@ -463,6 +469,7 @@ var evSetup = function(output, eid, dy) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
+    try { seedSys(gradeSystem); } catch (e) {}  // pre-grow this system's shape NOW (calm, pre-start) so its first end is size-neutral
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
 };
@@ -488,7 +495,7 @@ var evProjSetup = function(output, eid, dy) {
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
-  lastSummaryCache = null;
+  lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
@@ -521,31 +528,39 @@ function evaluate(input, output) {
 }
 
 // End-window helpers live at top level so their bytecode stays out of the lifecycle dispatcher.
-// endAgg does one allocation-light pass, writes the RAM summary, then frees routesA/routesB.
-var endAgg = function() {
-  var nR = routesA.length, sAg = 0, htAg = 0, spAg = -1, spcAg = 0, durAg = 0, hrsAg = 0, hrcAg = 0, iAg;
-  for (iAg = 0; iAg < nR; iAg++) {
-    var aAg = routesA[iAg], bAg = routesB[iAg];
-    var hAg = aAg % 1e4, dAg = Math.floor(bAg / 1000), rAg = bAg % 1000;
-    if (Math.floor(aAg / 1e5) % 10) { sAg++; var eAg = gradeSystem * 100 + Math.floor(aAg / 1e6); if (eAg > spAg) { spAg = eAg; spcAg = 1; } else if (eAg === spAg) { spcAg++; } }
-    if (hAg > 0) htAg += hAg;
-    if (dAg > 0) durAg += dAg;
-    if (rAg > 0) { hrsAg += rAg; hrcAg++; }
-  }
-  var spNm = "";
-  if (spAg >= 0) spNm = gradeName(gradeSystem, spAg % 100);
+// (route aggregation is now incremental — foldRoutes folds committed routes into `acc` and frees the
+// arrays, callable at PAUSE so the end save runs on a compacted heap; see foldRoutes below.)
+// Incremental session aggregate (the user's pause-unload idea): committed routes are FOLDED into a
+// tiny resident accumulator so routesA/routesB can be FREED at PAUSE — long before the end-save ext11
+// parse, giving the GC seconds to compact a contiguous block. acc = [sends, routes, height, dur,
+// hrSum, hrCnt, peakEnc, peakCount]; reset each session in onLoad. Folding is idempotent per route
+// (a folded batch clears the arrays), so pause->continue->climb->end never double-counts.
+var acc = null;
+var buildSummary = function() {
+  if (!acc || acc[1] === 0) return;
   try {
-    var tS = sAg, tN = nR, tSp = spAg, tSpC = spcAg, tNm = spNm, tD = durAg, tHrS = hrsAg, tHrC = hrcAg, tH = htAg;
-    if (tN > 0) {
-      var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: tS, postfix: '/ ' + tN }];
-      if (tNm) fb.push({ id: 'b', name: 'Highest Send', format: 'Count_Fourdigits', value: tSpC, postfix: '* ' + tNm });
-      if (tD) fb.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: tD });
-      if (tHrC) fb.push({ id: 'a', name: 'Avg HR', format: 'HeartRate_Fourdigits', value: tHrS / tHrC });
-      if (tH) fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(tH), postfix: 'm' });
-      lastSummaryCache = fb;
-    }
+    var spNm = acc[6] >= 0 ? gradeName(gradeSystem, acc[6] % 100) : "";
+    var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }];
+    if (spNm) fb.push({ id: 'b', name: 'Highest Send', format: 'Count_Fourdigits', value: acc[7], postfix: '* ' + spNm });
+    if (acc[3]) fb.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: acc[3] });
+    if (acc[5]) fb.push({ id: 'a', name: 'Avg HR', format: 'HeartRate_Fourdigits', value: acc[4] / acc[5] });
+    if (acc[2]) fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(acc[2]), postfix: 'm' });
+    lastSummaryCache = fb;
   } catch (e) {}
-  return [sAg, nR, spcAg, spNm, durAg, hrcAg > 0 ? hrsAg / hrcAg : 0, htAg, spAg, hrsAg, hrcAg];
+};
+var foldRoutes = function() {
+  if (!acc) acc = [0, 0, 0, 0, 0, 0, -1, 0];
+  var nR = routesA.length, i;
+  for (i = 0; i < nR; i++) {
+    var a = routesA[i], b = routesB[i], h = a % 1e4, dd = Math.floor(b / 1000), rr = b % 1000;
+    acc[1]++;
+    if (Math.floor(a / 1e5) % 10) { acc[0]++; var e = gradeSystem * 100 + Math.floor(a / 1e6); if (e > acc[6]) { acc[6] = e; acc[7] = 1; } else if (e === acc[6]) acc[7]++; }
+    if (h > 0) acc[2] += h;
+    if (dd > 0) acc[3] += dd;
+    if (rr > 0) { acc[4] += rr; acc[5]++; }
+  }
+  if (nR) { routesA = []; routesB = []; }  // FREE the packed route arrays now that they are folded
+  buildSummary();
 };
 
 var endRoute = function() {
@@ -559,20 +574,20 @@ var endRoute = function() {
 // anchored at the pause-window flash write; the enable replay nested evalFile-in-evalFile — two
 // no-gos the validated builds never committed). The anatomy that ran clean on EVERY validated
 // build (6x on 02.07 at 8.7KB resident, minimal-core probe incl. fresh-install first end,
-// slim-S2): PAUSE does nothing but de-load; the END frees RAM FIRST (f10, routesA/B inside
-// endAgg), then ONE flat sub-envelope parse (ext11, 1049B) does the RMW directly — sequential,
+// slim-S2): the END frees RAM FIRST (f10, routesA/B — now already freed at PAUSE via foldRoutes),
+// then ONE flat sub-envelope parse (ext11, 1049B) does the RMW directly — sequential,
 // never nested, every LS access a REWRITE of a drain-seeded key. Stats are in LS the moment the
 // activity saves, so the companion sync right after a session is current.
 var finishSession = function(input) {
   if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
   if (state === 1) endRoute();
   try { commitDirty(input); } catch (e) {}
-  if (routesA.length === 0 && !psDirty && !slotsDirty && !sysDirty) return;
+  try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
+  if ((!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst (acc, not routesA, is the route tally now: routesA may already be folded+freed at pause)
   try { deLoad(); } catch (e) {}
   f10 = null;
-  var ag = endAgg();  // one allocation-light pass: RAM summary tiles + frees routesA/routesB BEFORE the parse
   try {
-    loadExt(11)(ag, projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));
+    loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, 0, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));  // ext11 reads a[0]=sends, a[1]=routes, a[6]=height from the folded accumulator
   } catch (e) {}
 };
 
@@ -600,7 +615,11 @@ function onEvent(_input, output, eventId) {
   else if (state === 6) evProjSetup(output, eventId, dy);
 }
 
-function onExercisePause(input, _output) { isPaused = 1; deLoad(); }  // de-load ONLY — the proven pause. NO aggregation, NO LS, NO flash here: the eP build's pause-window setItem froze the watch twice (mid-session flash-write no-go); the summary is built at END, which always follows
+function onExercisePause(input, _output) {
+  isPaused = 1; deLoad();  // de-load active.html (the ~13KB template — the biggest RAM chunk)
+  f10 = null;              // free the cached ext10 parse (re-parses on the next route after a continue)
+  if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
+}
 function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }
 
 function getSummaryOutputs(input, output) {
