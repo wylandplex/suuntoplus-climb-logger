@@ -70,7 +70,7 @@ var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
 var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason).
 
 var gradeName = function(s, i) {
-  if (i >= 50) return "OFF";
+  // sole caller is buildSummary(gradeSystem, acc[6] % 100) — acc[6]%100 is a route-array packed grade, always GRADE_LENS-bounded (0..40), so the old i>=50 OFF guard was unreachable; OFF is rendered template-side via encGrade(50).
   if (s === 0) return "" + (3 + Math.floor(i / 6)) + "abc".charAt(Math.floor(i / 2) % 3) + (i % 2 ? "+" : "");
   if (s === 1) { var u = (i - 2) % 3; return i < 2 ? "4" + (i ? "+" : "") : "" + (5 + Math.floor((i - 2) / 3)) + (u === 0 ? "-" : u === 2 ? "+" : ""); }
   if (s === 2) return i < 5 ? "5." + (i + 5) : "5." + (10 + Math.floor((i - 5) / 4)) + "abcd".charAt((i - 5) % 4);
@@ -161,38 +161,38 @@ var gradeV = 0, lastGradeV = -1;
 // freshly-mounted template never reads a stale Output store; setOutputs clears pubF when done.
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
-var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg("packedGL", v)) o.packedGL = v; };
+var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
 // packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
   writeG(o);
   var m = climbMode > 0 ? -climbMode : routeNumber;
-  if (chg("modeSub", m)) o.modeSub = m;
+  if (chg(4, m)) o.modeSub = m;
 };
 
 var setOutputs = function(output) {
-  if (chg("vState", state)) output.vState = state;
+  if (chg(1, state)) output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
-  if (chg("routeHeight", rh)) output.routeHeight = rh;
+  if (chg(2, rh)) output.routeHeight = rh;
   if (state === 5) {
     gradeV = editIdx < routesA.length ? encGrade(rGrade(editIdx)) : encGrade(50);  // big grade display = selected route
-    if (chg("modeSub", editIdx + 1)) output.modeSub = editIdx + 1;                 // header #N = route number
+    if (chg(4, editIdx + 1)) output.modeSub = editIdx + 1;                 // header #N = route number
     lastGradeV = -1; wGL(output);
   } else if (state === 6) {
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);  // big display = slot grade (OFF sentinel when unset)
-    if (chg("modeSub", -(pStep + 1))) output.modeSub = -(pStep + 1);  // header renders negatives as "P1".."P5" — the slot being configured
+    if (chg(4, -(pStep + 1))) output.modeSub = -(pStep + 1);  // header renders negatives as "P1".."P5" — the slot being configured
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
-    if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
+    if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
     lastGradeV = -1; wGL(output);
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     var ms = climbMode > 0 ? -climbMode : rn;
-    if (chg("modeSub", ms)) output.modeSub = ms;
+    if (chg(4, ms)) output.modeSub = ms;
   }
   // packedAct = activeTries*1000 + activeSends (READY, P-mode only; -1 hides the line). ONE output
   // replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish, setText would not).
@@ -202,11 +202,11 @@ var setOutputs = function(output) {
     var apI = climbMode - 1;
     pAct = projSlot[apI + 15] === projGradeIdx[apI] ? Math.min(projSlot[apI] || 0, 16700) * 1000 + Math.min(projSlot[apI + 5] || 0, 999) : 0;
   }
-  if (chg("packedAct", pAct)) output.packedAct = pAct;
+  if (chg(5, pAct)) output.packedAct = pAct;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
-  if (chg("hdrGrade", hg)) output.hdrGrade = hg;
+  if (chg(6, hg)) output.hdrGrade = hg;
   var hres = state === 2 ? (lastResult ? 1 : 2) : 0;  // header colour: 1=green(sent) / 2=orange(fail) on BREAK, set by the CLIMB-finish result; 0=neutral elsewhere
-  if (chg("hdrRes", hres)) output.hdrRes = hres;
+  if (chg(7, hres)) output.hdrRes = hres;
   pubF = 0;
 };
 
@@ -467,7 +467,7 @@ var evSetup = function(output, eid, dy) {
     loadProjectStats(gradeSystem);
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
-    if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
+    if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
     try { seedSys(gradeSystem); } catch (e) {}  // pre-grow this system's shape NOW (calm, pre-start) so its first end is size-neutral
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
@@ -488,7 +488,7 @@ var evProjSetup = function(output, eid, dy) {
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg("modeSub", -(pStep + 1))) output.modeSub = -(pStep + 1);
+    if (chg(4, -(pStep + 1))) output.modeSub = -(pStep + 1);
     setText("#edr", "SLOT " + (pStep + 1) + "/5");
   }
 };

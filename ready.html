@@ -1,14 +1,14 @@
 <uiView onFlickUp="ev(7)"
         onFlickDown="ev(8)"
         onLoad="
-          function dG(x){if(x<0)return'--';var s=Math.floor(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+Math.floor(i/6))+'abc'.charAt(Math.floor(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):''+(5+Math.floor((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+Math.floor((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+Math.floor(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+Math.floor(i/6))+'ABC'.charAt(Math.floor(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+Math.floor((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          var lock=0,vs=0;
+          var lock=0,vs=0,M=Math.floor;
+          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
           function setVs(x){vs=x;return ''}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
-          function evL(n){if(lock)return;if(n===6&&vs!==5)lap();ev(n);lock=1;setTimeout(ulk,300)}
+          function evL(){if(lock)return;if(vs!==5)lap();evX(6)}
         ">
   <div id="climblogger">
 
@@ -25,7 +25,7 @@
     <div class="f-ico p-hc" style="top:calc(36% - 18.5px);">&#xF266;</div>
 
     <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(Math.floor(x/952))" default="--" />
+      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(M(x/952))" default="--" />
     </div>
 
     <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
@@ -44,28 +44,27 @@
     <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
       <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
     </div>
-    <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+    <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Project stats line (P-mode only): ONE packed output (tries*1000+sends) replaces the old
          actT/S/B trio — 2 subscriptions fewer on the swap transient; bestTime lives in summary/companion.
          In EDIT overlay mode packedAct is -1 (blank) and #edr (setText) shows i/n SEND|FAIL|DEL instead. -->
     <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : Math.floor(x/1000) + 'T ' + (x%1000) + 'S'" default="" /></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : M(x/1000) + 'T ' + (x%1000) + 'S'" default="" /></span>
       <span id="edr" class="sp-b-s"></span>
     </div>
 
     <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->
     <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.12)">
       <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
-        <span><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" /></span>
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" />
       </div>
     </div>
 
     <!-- Bottom time-bar -->
     <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
-    <div class="p-hc" style="top:87%;width:70%;height:2px;background:rgba(255,255,255,0.3)"></div>
     <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
-      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
+      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
       <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
@@ -74,13 +73,13 @@
     <userInput>
       <pushButton name="up" type="lock" longType="lock"
         onClick="ev(1)"
-        onLongPressStart="evL(5)"
+        onLongPressStart="evX(5)"
         onLongPressFull=";" />
       <pushButton name="next" longType="lock"
         onLongPressStart="ev(4)" />
       <pushButton name="down" type="lock" longType="lock"
         onClick="ev(2)"
-        onLongPressStart="evL(6)"
+        onLongPressStart="evL()"
         onLongPressFull=";" />
     </userInput>
     </:if>
