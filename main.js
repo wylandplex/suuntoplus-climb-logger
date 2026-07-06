@@ -452,15 +452,13 @@ var evBreak = function(output, eid, dy) {
 // Deliberately NOT bundled at the enable/drain — doing all the growth there stormed exec:zapp and
 // hard-ASSERTed the watch (2026-07-06). This is one small write at a calm, meaningful, pre-start moment.
 var seedSys = function(g) {
-  // Seed the per-system flash keys at the CALM setup-leave (distribute-ops), so a SWITCH to a fresh
-  // s1..s9 gets the SAME zero-growth end that data.json's pre-populated s0/pS0 gives on first run:
-  // the project vector pS<g> would otherwise be first-created at that system's end (a growth transient
-  // during the ext11 parse — the exact storm class s0's pre-population removed).
-  if (!localStorage.getObject("pS" + g)) localStorage.setObject("pS" + g, projSlot);  // projSlot is the default 20-vector here (evSetup's loadProjectStats reset it on the dy-switch; a fresh system has no projects)
+  // ONE calm write at setup-leave: grow the short s<g> shell to the full 14-field zero shape ext11
+  // writes at end, so a switch to a fresh s1..s9 has a size-neutral end. (A SECOND write here —
+  // seeding pS<g> too — stalled the flash on a switch right before the ready.html mount: two
+  // back-to-back mid-session writes are the no-mid-session-flash-write class. pS<g> is left to be
+  // first-written at that system's end; on the now-loose post-pre-pop baseline its +46B is absorbed.)
   var s = localStorage.getObject("s" + g);
   if (s && s.mostTriesGrade !== undefined) return;  // used system already at full shape -> keep its real data
-  // replace the missing/short shell (data.json ships s1..s9 as 5 zero-fields) with the full 14-field
-  // zero shape ext11 writes at end, so the first end is a same-size rewrite. Shells are all zero -> no loss.
   localStorage.setObject("s" + g, { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0, peakGrade: -1, lastSessionGrade: -1, bestOfLast5: -1, longestProjectGrade: -1, mostTriesGrade: -1, sessionsAtPeak: 0, bestSessionHm: 0, longestProjectSes: 0, mostTriesProject: 0 });
 };
 
