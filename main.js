@@ -468,7 +468,8 @@ var evSetup = function(output, eid, dy) {
     // ext12's drain seed for the loaded system) — so the FIRST end on it is a SAME-SIZE rewrite, not
     // a growing data.jsn write (the deterministic first-end storm; reboot does not change it). ext11
     // init mode (z=1: zero deltas, no session increment; d=1 seeds pS<gs>). Caches f11 for the end.
-    if (dirtyF & 4 && !localStorage.getObject("s" + gradeSystem)) { try { (f11 = f11 || loadExt(11))([0, 0, 0, 0, 0, 0, 0], projGradeIdx, projSlot, 0, gradeSystem, 1, 1); } catch (e) {} }
+    var so = localStorage.getObject("s" + gradeSystem);  // data.json ships s1-s9 as SHORT 5-field shells; fill to full 14-field here so this system's first end is same-size. Safe for returning users: a used system's s<gs> is complete (has mostTriesGrade) -> skip, never wipe real data.
+    if (dirtyF & 4 && (!so || so.mostTriesGrade === undefined)) { try { (f11 = f11 || loadExt(11))([0, 0, 0, 0, 0, 0, 0], projGradeIdx, projSlot, 0, gradeSystem, 1, 1); } catch (e) {} }
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
 };
