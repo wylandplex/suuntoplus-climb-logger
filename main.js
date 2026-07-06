@@ -112,6 +112,10 @@ var loadProjects = function(sys) {
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the tick-1 drain, fired on tick 2 (parse and template swap never share a tick), cancelled by any button press
 var drainF12 = function(autoSkip) {
   var r = loadExt(12)();
+  // r[6] = needsMig: an upgraded/legacy LS (stats.mig!==1 or a legacy climbProjStats object). Run the
+  // COLD migration ext ONCE to heal it (rou<ms>->s<ms>, mig=1, climbProjStats->pS<g>), then re-drain the
+  // healed state. ext13 NEVER parses on a fresh mig:1 install, so the hot re-enable drain stays lean.
+  if (r[6]) { try { loadExt(13)(); r = loadExt(12)(); } catch (e) {} }
   gradeSystem = r[0];
   projGradeIdx = r[1];
   projSlot = r[2];
