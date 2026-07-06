@@ -445,22 +445,11 @@ var evBreak = function(output, eid, dy) {
   }
 };
 
-// Seed system g's FULL 14-field s<g> shape (matching what ext11 writes at end) via a direct write —
-// NO ext parse. Placed at SETUP-LEAVE (the moment the system is "chosen/created", the user's idea)
-// so the FIRST end on this system is a SAME-SIZE rewrite, not a growing data.jsn write (the first-end
-// storm). Guarded: a USED system's s<g> already has mostTriesGrade -> skip, never wipe real data.
-// Deliberately NOT bundled at the enable/drain — doing all the growth there stormed exec:zapp and
-// hard-ASSERTed the watch (2026-07-06). This is one small write at a calm, meaningful, pre-start moment.
-var seedSys = function(g) {
-  // ONE calm write at setup-leave: grow the short s<g> shell to the full 14-field zero shape ext11
-  // writes at end, so a switch to a fresh s1..s9 has a size-neutral end. (A SECOND write here —
-  // seeding pS<g> too — stalled the flash on a switch right before the ready.html mount: two
-  // back-to-back mid-session writes are the no-mid-session-flash-write class. pS<g> is left to be
-  // first-written at that system's end; on the now-loose post-pre-pop baseline its +46B is absorbed.)
-  var s = localStorage.getObject("s" + g);
-  if (s && s.mostTriesGrade !== undefined) return;  // used system already at full shape -> keep its real data
-  localStorage.setObject("s" + g, { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0, peakGrade: -1, lastSessionGrade: -1, bestOfLast5: -1, longestProjectGrade: -1, mostTriesGrade: -1, sessionsAtPeak: 0, bestSessionHm: 0, longestProjectSes: 0, mostTriesProject: 0 });
-};
+// A grade-system SWITCH persists NOTHING at the switch itself (the user's insight): gradeSystem lives
+// in RAM, and the choice is written once at the END via sysDirty -> ext11 (v.system=g). No seedSys
+// pre-grow: that ONE flash write at setup-leave stalled the setup->ready mount on a switch (the confirm
+// must stay mount-only, exactly like the clean default-system confirm where s0 is pre-shipped). ext11
+// grows s<g> to the full 14-field shape at that system's end — on the loose post-pre-pop baseline.
 
 var evSetup = function(output, eid, dy) {
   if (dy) {
@@ -472,8 +461,7 @@ var evSetup = function(output, eid, dy) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
-    try { seedSys(gradeSystem); } catch (e) {}  // pre-grow this system's shape NOW (calm, pre-start) so its first end is size-neutral
-    goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
+    goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
   }
 };
 
