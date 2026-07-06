@@ -531,12 +531,17 @@ var buildSummary = function() {
   if (!acc || acc[1] === 0) return;
   try {
     var spNm = acc[6] >= 0 ? gradeName(gradeSystem, acc[6] % 100) : "";
+    // The watch drops the WHOLE post-exercise summary above ~4 rows (reference.html: "one might face
+    // the limit at around 4 or 5 summary outputs") — a 5th row (Avg HR appears only when HR was worn,
+    // which is why a LONG ride with real HR showed nothing while a short no-HR session did). Cap to 4,
+    // priority sr > highest-send > Avg HR > Height > Climb Time (Climb Time drops first — it overlaps
+    // the watch's native total duration).
     var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }];
     if (spNm) fb.push({ id: 'b', name: 'Highest Send', format: 'Count_Fourdigits', value: acc[7], postfix: '* ' + spNm });
-    if (acc[3]) fb.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: acc[3] });
     if (acc[5]) fb.push({ id: 'a', name: 'Avg HR', format: 'HeartRate_Fourdigits', value: acc[4] / acc[5] });
     if (acc[2]) fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(acc[2]), postfix: 'm' });
-    lastSummaryCache = fb;
+    if (acc[3]) fb.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: acc[3] });
+    lastSummaryCache = fb.slice(0, 4);
   } catch (e) {}
 };
 var foldRoutes = function() {
