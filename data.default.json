@@ -77,14 +77,83 @@
   "projNames5": "",
   "projNames6": "",
   "projNames7": "",
-  "s0": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s1": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s2": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s3": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s4": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s5": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s6": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s7": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "peakGrade": -1 },
-  "s8": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "totalHeight": 0 },
-  "s9": { "totalRoutes": 0, "totalSends": 0, "sendPct": 0, "sessions": 0, "totalHeight": 0 }
+  "s0": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "totalHeight": 0,
+    "peakGrade": -1,
+    "lastSessionGrade": -1,
+    "bestOfLast5": -1,
+    "longestProjectGrade": -1,
+    "mostTriesGrade": -1,
+    "sessionsAtPeak": 0,
+    "bestSessionHm": 0,
+    "longestProjectSes": 0,
+    "mostTriesProject": 0
+  },
+  "s1": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s2": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s3": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s4": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s5": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s6": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s7": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "peakGrade": -1
+  },
+  "s8": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "totalHeight": 0
+  },
+  "s9": {
+    "totalRoutes": 0,
+    "totalSends": 0,
+    "sendPct": 0,
+    "sessions": 0,
+    "totalHeight": 0
+  }
 }
