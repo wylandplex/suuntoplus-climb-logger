@@ -89,7 +89,7 @@ function getUserInterface() {
   // setup.html (grade-system setup), and saving.html (pause/end de-load).
   // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
   // After first resolve, goState() owns currentTemplate.
-  if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
+  if (!currentTemplate) currentTemplate = "ready";  // SETUP is now an overlay on ready.html (no setup.html) — first-resolve is always "ready"
   return { template: currentTemplate };
 }
 
@@ -171,8 +171,15 @@ var pushMode = function(o) {
   if (chg("modeSub", m)) o.modeSub = m;
 };
 
+var setupVis = -1;  // applyVis latch for the SETUP<->READY overlay (#sc4 vs #rdy) — reset to -1 on any template (re)mount so it re-applies
 var setOutputs = function(output) {
   if (chg("vState", state)) output.vState = state;
+  // SETUP overlay applyVis: show #sc4 (SETUP) only in state 4, else #rdy (READY + EDIT/projsetup).
+  // Only meaningful on the ready template; setStyle on a missing id is a no-op on the other templates.
+  if (currentTemplate === "ready") {
+    var s4 = state === 4 ? 1 : 0;
+    if (setupVis !== s4) { setupVis = s4; setStyle("#sc4", "visibility", s4 ? "VISIBLE" : "HIDDEN"); setStyle("#rdy", "visibility", s4 ? "HIDDEN" : "VISIBLE"); }
+  }
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
   if (chg("routeHeight", rh)) output.routeHeight = rh;
@@ -212,10 +219,10 @@ var setOutputs = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  var t = s === 0 || s === 5 || s === 6 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : "saving";  // slim rebuild: limit stays cut; EDIT (5) and PROJ-SETUP (6) are OVERLAYS on the ready template — entering/leaving them swaps nothing (projsetup.html deleted)
+  var t = s === 0 || s === 4 || s === 5 || s === 6 ? "ready" : s < 3 ? "active" : "saving";  // SETUP (4) + EDIT (5) + PROJ-SETUP (6) are ALL overlays on ready.html — entering/leaving them swaps NOTHING (no setup.html/projsetup.html). Only READY<->CLIMB/BREAK<->pause still swap.
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
-  if (tChanged) unload('_cm');
+  if (tChanged) { unload('_cm'); setupVis = -1; }  // fresh mount → re-apply the SETUP/READY overlay visibility (the remounted ready.html defaults to #sc4 VISIBLE)
   if (s === 1) dwell = 1;
   pubF = 1;  // force a FULL republish on this template mount — the freshly-mounted template must read every Output, not just the ones changed since the last publish (setOutputs clears pubF when done)
   if (output) setOutputs(output);
@@ -497,7 +504,7 @@ function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
   lastSummaryCache = null;
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
-  state = 4; currentTemplate = "setup";
+  state = 4; currentTemplate = "ready"; setupVis = -1;  // SETUP is an overlay on ready.html now; ready mounts with #sc4 (SETUP) default-visible, applyVis re-applies on the first tick
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
