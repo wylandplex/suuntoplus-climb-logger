@@ -119,7 +119,7 @@ var drainF12 = function(autoSkip) {
   projAll = r[4];
   currentGrade = DEFAULT_IDX[gradeSystem];
   pendF12 = 0;
-  if (autoSkip && r[3] > 0) skipP = 1;
+  if (autoSkip && r[3] > 0 && r[5] === 0) skipP = 1;  // returning-user SETUP->READY auto-skip ONLY when the companion setting stats.showSetupOnStart is explicitly 0; default (1/undefined) = ask every start
 };
 
 var loadProjectStats = function() {
