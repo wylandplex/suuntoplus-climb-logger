@@ -453,13 +453,10 @@ var evBreak = function(output, eid, dy) {
 // hard-ASSERTed the watch (2026-07-06). This is one small write at a calm, meaningful, pre-start moment.
 var seedSys = function(g) {
   var s = localStorage.getObject("s" + g);
-  if (s && s.mostTriesGrade !== undefined) return;
-  var o = s || {}, i,
-    Z = "totalRoutes,totalSends,sendPct,sessions,totalHeight,sessionsAtPeak,bestSessionHm,longestProjectSes,mostTriesProject".split(","),
-    M = "peakGrade,lastSessionGrade,bestOfLast5,longestProjectGrade,mostTriesGrade".split(",");
-  for (i = 0; i < 9; i++) if (o[Z[i]] === undefined) o[Z[i]] = 0;
-  for (i = 0; i < 5; i++) if (o[M[i]] === undefined) o[M[i]] = -1;
-  localStorage.setObject("s" + g, o);
+  if (s && s.mostTriesGrade !== undefined) return;  // used system already at full shape -> keep its real data
+  // replace the missing/short shell (data.json ships s<n> as 5 zero-fields) with the full 14-field
+  // zero shape ext11 writes at end, so the first end is a same-size rewrite. Shells are all zero -> no loss.
+  localStorage.setObject("s" + g, { totalRoutes: 0, totalSends: 0, sendPct: 0, sessions: 0, totalHeight: 0, peakGrade: -1, lastSessionGrade: -1, bestOfLast5: -1, longestProjectGrade: -1, mostTriesGrade: -1, sessionsAtPeak: 0, bestSessionHm: 0, longestProjectSes: 0, mostTriesProject: 0 });
 };
 
 var evSetup = function(output, eid, dy) {
