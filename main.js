@@ -55,13 +55,12 @@ var projAll = [];
 var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
 var sessionsNo = 1;
 // Persistence = the PROVEN choreography: ext12 loads at the calm first-tick drain; the workout
-// path is LS-free; the END does the RMW directly via ext11 (see finishSession), with the eP key
-// as a WRITE-AHEAD LOG armed immediately before it (ext11's last statement clears it — a
-// surviving eP means the RMW never completed and drainF12/repWAL replays it once, staggered,
-// never nested). The FALSIFIED 2026-07-03 variant (pause-window flash write + nested
-// evalFile-in-ext12 replay + retry-forever) must never come back in that shape.
+// path is LS-free; the END does the RMW directly via ext11 (see finishSession). The eP/WAL
+// variant (pause write + next-enable replay) was FALSIFIED on-watch 2026-07-03 — do not re-add.
 var pendF12 = 1;   // ext12 bootstrap pending — drained on the first evaluate tick / first event; cleared only after success (retry-on-OOM pattern)
-var dirtyF = 0;    // persistence dirty bits: 1 = projSlot changed (ext11 writes pS<gs>), 2 = slot config changed ON THE WATCH (ext11 writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits), 4 = grade system changed (persist even on a routeless session)
+var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes pS<gs>)
+var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
+var sysDirty = 0;  // grade system changed (persist even on a routeless session)
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 var ROUTE_LIMIT = 35;  // in-session route cap → at the cap, START shows the LIMIT screen (state 3); save+restart resets per-session heap/subscriptions/WB-pool occupancy (a periodic reset valve). packedBreak counts saturate at 63 (exact ≤63 routes, fine ≤35).
@@ -69,7 +68,6 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
 var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason).
-var f11;  // ext11 (the end RMW writer) parsed AT PAUSE, not at Disable. The 2026-07-06 storm (JSalloc:2073 = ext11's ~2KB evalFile block) fired at the Disable teardown moment (co-app evict cascade + cable) where no contiguous block was free. Pause always precedes end and is a CALM, non-teardown moment (12s earlier in that log) — parse there, then just CALL f11 at end (zero evalFile at Disable). Archaeology verdict wf_91b65323: the failing axis is the ~2KB-contiguous evalFile block AT the fragmented Disable instant; master "never froze" only because it ran on rebooted/settled pools, never a first-end after churn-without-reboot.
 
 var gradeName = function(s, i) {
   if (i >= 50) return "OFF";
@@ -107,20 +105,13 @@ var loadProjects = function(sys) {
 };
 
 // ext12 bootstrap, staggered off the enable burst (the proven drain pattern): parses ext12 on the
-// first evaluate tick / first event / end-belt. If ext12 finds a surviving eP WAL it returns it
-// PARSED (r[5]) without touching it — repWAL applies it via a main-context ext11 call on the NEXT
-// tick, then ext12 re-runs for a fresh post-replay bootstrap: one parse per tick, never nested.
+// first evaluate tick / first event / end-belt. ext12 also RMWs a pending eP end-payload from the
+// PREVIOUS session before returning, so everything below is already post-persist state.
 // autoSkip (tick-1 only): a returning user (persisted sessions > 0) jumps SETUP -> READY like the
 // classic build — never from the event path, where a press means the user is USING the setup screen.
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the tick-1 drain, fired on tick 2 (parse and template swap never share a tick), cancelled by any button press
-var pendRep = 0;  // crash-recovery: a surviving eP WAL from a stormed end, returned PARSED by ext12 — applied via a MAIN-context ext11 call on its OWN tick (one parse per tick, never nested), then ext12 re-runs for a fresh bootstrap
-var repWAL = function() {  // ONE attempt — on failure the WAL is DROPPED (one lost session beats any retry loop: the falsified eP build crash-looped on exactly this retry)
-  var rp = pendRep; pendRep = 0;
-  try { loadExt(11).apply(0, rp); } catch (e) { try { localStorage.setItem("eP", ""); } catch (e2) {} }
-};
-var drainF12 = function() {
+var drainF12 = function(autoSkip) {
   var r = loadExt(12)();
-  if (r[5]) { pendRep = r[5]; return; }  // bootstrap is pre-replay (stale) — replay first, re-drain after; pendF12 stays set
   gradeSystem = r[0];
   projGradeIdx = r[1];
   projSlot = r[2];
@@ -128,7 +119,7 @@ var drainF12 = function() {
   projAll = r[4];
   currentGrade = DEFAULT_IDX[gradeSystem];
   pendF12 = 0;
-  if (r[3] > 0) skipP = 1;  // armed unconditionally: the event path cancels it one line after its drain call, so only the tick-1 drain can fire it
+  if (autoSkip && r[3] > 0) skipP = 1;
 };
 
 var loadProjectStats = function() {
@@ -275,7 +266,7 @@ var saveAsProject = function(output) {
     currentGrade = r[0]; climbMode = r[1];
     if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
     projAll[gradeSystem * 5 + r[1] - 1] = r[0];
-    dirtyF |= 3;  // ext14 seeded a slot + its stats
+    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats
     goState(0, output);
   }
 };
@@ -295,7 +286,7 @@ var toggleRes = function(i, v) {
     var p = c - 1;
     if (v) { projSlot[p + 5]++; var d = rDur(i); if (d > 0 && (projSlot[p + 10] === 0 || d < projSlot[p + 10])) projSlot[p + 10] = d; }
     else if (projSlot[p + 5] > 0) projSlot[p + 5]--;
-    dirtyF |= 1;
+    psDirty = 1;
   }
   recalcBse();
 };
@@ -318,7 +309,7 @@ var edDel = function() {
       if (projSlot[dp] > 0) projSlot[dp]--;
       if (dSend && projSlot[dp + 5] > 0) projSlot[dp + 5]--;
       if (projSlot[dp] <= 0) { projSlot[dp] = projSlot[dp + 5] = projSlot[dp + 10] = 0; projSlot[dp + 15] = -1; }
-      dirtyF |= 1;
+      psDirty = 1;
     }
     if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
     routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
@@ -368,7 +359,7 @@ var commitDirty = function(input) {
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
     var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
       frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode
-    if (lastClimbMode > 0) dirtyF |= 1;  // ext10 mutated the slot's stats vector
+    if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
     bestSendIdx = r[0];
     if (r[2]) {
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
@@ -460,16 +451,10 @@ var evSetup = function(output, eid, dy) {
     currentGrade = DEFAULT_IDX[gradeSystem];
     loadProjects(gradeSystem);
     loadProjectStats(gradeSystem);
-    dirtyF |= 4;  // persist the system choice even on a routeless session
+    sysDirty = 1;  // persist the system choice via eP even on a routeless session
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     if (chg("modeSub", gradeSystem)) output.modeSub = gradeSystem;
   } else if (eid === 6) {
-    // FULL-SHAPE SEED for the CONFIRMED system if never used, at this calm pre-start moment (like
-    // ext12's drain seed for the loaded system) — so the FIRST end on it is a SAME-SIZE rewrite, not
-    // a growing data.jsn write (the deterministic first-end storm; reboot does not change it). ext11
-    // init mode (z=1: zero deltas, no session increment; d=1 seeds pS<gs>). Caches f11 for the end.
-    var so = localStorage.getObject("s" + gradeSystem);  // data.json ships s1-s9 as SHORT 5-field shells; fill to full 14-field here so this system's first end is same-size. Safe for returning users: a used system's s<gs> is complete (has mostTriesGrade) -> skip, never wipe real data.
-    if (dirtyF & 4 && (!so || so.mostTriesGrade === undefined)) { try { (f11 = f11 || loadExt(11))([0, 0, 0, 0, 0, 0, 0], projGradeIdx, projSlot, 0, gradeSystem, 1, 1); } catch (e) {} }
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd (defer-to-end)
   }
 };
@@ -480,7 +465,7 @@ var evProjSetup = function(output, eid, dy) {
     if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
     projAll[gradeSystem * 5 + pStep] = projGradeIdx[pStep];
-    dirtyF |= 2;
+    slotsDirty = 1;
     gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
   } else if (eid === 5) {
     setText("#edr", "");
@@ -495,7 +480,6 @@ var evProjSetup = function(output, eid, dy) {
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
-  f10 = null; f11 = null;  // drop any parsed-ext closures from the prior session (held resident otherwise → tips the 3-app start)
   lastSummaryCache = null;
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
@@ -504,8 +488,7 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendRep) repWAL();  // recovery tick: apply the previous session's surviving WAL
-  else if (pendF12) { try { drainF12(); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
@@ -543,7 +526,6 @@ var endAgg = function() {
   }
   var spNm = "";
   if (spAg >= 0) spNm = gradeName(gradeSystem, spAg % 100);
-  routesA = []; routesB = [];  // FREE before anything else in the end window (June-19 rule + judge rider 2): the ext11 parse needs a ~2KB CONTIGUOUS exec:zapp block — maximize headroom first. Safe here: pause no longer calls endAgg, only the END does
   try {
     var tS = sAg, tN = nR, tSp = spAg, tSpC = spcAg, tNm = spNm, tD = durAg, tHrS = hrsAg, tHrC = hrcAg, tH = htAg;
     if (tN > 0) {
@@ -574,26 +556,16 @@ var endRoute = function() {
 // never nested, every LS access a REWRITE of a drain-seeded key. Stats are in LS the moment the
 // activity saves, so the companion sync right after a session is current.
 var finishSession = function(input) {
-  if (pendRep) repWAL();  // instant-end edge: a still-pending WAL replay must land BEFORE this session's own eP arm below would overwrite it
-  if (pendF12) { try { drainF12(); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
+  if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
   if (state === 1) endRoute();
   try { commitDirty(input); } catch (e) {}
-  if (routesA.length === 0 && !dirtyF) return;
+  if (routesA.length === 0 && !psDirty && !slotsDirty && !sysDirty) return;
   try { deLoad(); } catch (e) {}
   f10 = null;
-  var ag = endAgg();  // one allocation-light pass: RAM summary tiles + FREES routesA/routesB first (max contiguous headroom for the parse)
-  var d = dirtyF & 3;
-  // WAL arm at END only (judge verdict: the pool-collapse path exists even without our writes —
-  // p~0.25 background degradation — so a stormed end must not silently lose the session): ONE
-  // eP rewrite, then the direct RMW. ext11's LAST statement clears eP, so the WAL survives iff
-  // the RMW didn't complete — zero double-count window. Recovery replay = ext12 returns the
-  // payload and drainF12 applies it via a MAIN-context ext11 call, one parse per tick, no nesting.
+  var ag = endAgg();  // one allocation-light pass: RAM summary tiles + frees routesA/routesB BEFORE the parse
   try {
-    localStorage.setItem("eP", gradeSystem + ";" + climbMode + ";" + d + ";" + ag.slice(0, 7).join(",") + ";" + projGradeIdx.join(",") + ";" + projSlot.join(","));
+    loadExt(11)(ag, projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));
   } catch (e) {}
-  try {
-    (f11 || loadExt(11))(ag, projGradeIdx, projSlot, climbMode, gradeSystem, d);  // CALL the pause-parsed writer (no evalFile at Disable); fall back to parse-here only if end fired without a preceding pause
-  } catch (e) {}  // parse/RMW failed -> eP stays armed for the staggered next-enable replay
 };
 
 function onExerciseEnd(input, _output) {
@@ -603,7 +575,7 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (!pendRep && pendF12) { try { drainF12(); } catch (e) {} }  // user beat the first tick — bootstrap now, NO auto-skip; never while a WAL replay is pending (evaluate's recovery tick owns that). Caught: an OOM throw out of an event handler is the 'run evt 1' app-death
+  if (pendF12) { try { drainF12(0); } catch (e) {} }  // user beat the first tick — bootstrap now, NO auto-skip; caught: an OOM throw out of an event handler is the 'run evt 1' app-death
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -620,10 +592,7 @@ function onEvent(_input, output, eventId) {
   else if (state === 6) evProjSetup(output, eventId, dy);
 }
 
-function onExercisePause(input, _output) {
-  isPaused = 1; deLoad();  // de-load ONLY for LS: NO aggregation, NO flash write here (the eP-build pause-write froze twice — the mid-session-flash no-go). The summary/RMW still happen at END.
-  if (!f11 && (routesA.length > 0 || dirtyF)) { try { f11 = loadExt(11); } catch (e) {} }  // PRE-PARSE the end writer NOW, on the calm pre-Disable pool (post-deLoad), so the fragile Disable moment does zero evalFile — only a CALL. Parse is a flash READ + compile, not a data.jsn write (no-go-safe). Held resident only pause->end.
-}
+function onExercisePause(input, _output) { isPaused = 1; deLoad(); }  // de-load ONLY — the proven pause. NO aggregation, NO LS, NO flash here: the eP build's pause-window setItem froze the watch twice (mid-session flash-write no-go); the summary is built at END, which always follows
 function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }
 
 function getSummaryOutputs(input, output) {
