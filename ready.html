@@ -14,7 +14,7 @@
 
     <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to non-EDIT states —
          in the EDIT overlay (vState 5) the bottom zone/down-long navigates routes and must NOT lap -->
-    <span><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" default="" /></span>
+    <span><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" /></span>
 
     <!-- READY as its own single-screen template (split out of active.html): mounts ~1/3 of the old
          3-in-1, so idle-time swaps (app-switch, EDIT entry, SETUP) carry a far smaller teardown.
@@ -50,14 +50,14 @@
          actT/S/B trio — 2 subscriptions fewer on the swap transient; bestTime lives in summary/companion.
          In EDIT overlay mode packedAct is -1 (blank) and #edr (setText) shows i/n SEND|FAIL|DEL instead. -->
     <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : M(x/1000) + 'T ' + (x%1000) + 'S'" default="" /></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : M(x/1000) + 'T ' + (x%1000) + 'S'" /></span>
       <span id="edr" class="sp-b-s"></span>
     </div>
 
     <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->
     <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.12)">
       <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" />
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + (-x)" default="#1" />
       </div>
     </div>
 
