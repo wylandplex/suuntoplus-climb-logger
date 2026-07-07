@@ -80,7 +80,8 @@ check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
 console.log("[packedAct] P-mode tries/sends + EDIT steering codes");
 var encActP = function(t, sn) { return Math.min(t, 16700) * 1000 + Math.min(sn, 999); };
 var encActE = function(empty, del, send) { return empty ? -5 : del ? -4 : send ? -2 : -3; };
-var decGlyph = function(x) { return x === -2 ? '\uF200' : x === -3 ? '\uF110' : x < -1 ? '' : '\uF111'; };
+var decGlyph = function(x) { return x === -2 ? '\uF110' : x === -4 ? '\uF200' : x < -1 ? '' : '\uF111'; };
+var decDel   = function(x) { return x === -3 ? 'DEL' : ''; };
 var decWord  = function(x) { return x === -2 ? 'SEND' : x === -3 ? 'FAIL' : x === -4 ? 'DEL' : x < 0 ? '' : Math.floor(x / 1000) + 'T ' + (x % 1000) + 'S'; };
 var tVals = [0, 1, 34, 35, 50, 999, 16700, 99999];
 var snVals = [0, 1, 34, 63, 999, 5000];
@@ -95,20 +96,23 @@ for (var ta = 0; ta < tVals.length; ta++) {
 }
 check(encActP(16700, 999) <= (1 << 24), "packedAct positive max exceeds 2^24");
 console.log("  max packedAct = " + encActP(16700, 999) + " (limit 2^24 = 16777216)");
-// EDIT codes: [empty, delArmed, send] -> code, glyph (NEXT action preview), word (CURRENT result)
+// EDIT codes: [empty, delArmed, send] -> code, pill glyph (NEXT-action preview), DEL-span, word (CURRENT result)
+// The cycle preview: SEND -[flame]-> FAIL -[DEL]-> armed -[trophy]-> SEND.
 var codeCases = [
-  [1, 0, 0, -5, '',       ''],      // empty editor: pill blank, word blank
-  [0, 1, 0, -4, '',       'DEL'],   // DEL armed: pill blank, DEL rides the word span (text font, not f-ico)
-  [0, 0, 1, -2, '\uF200', 'SEND'],  // send -> trophy (CLIMB SEND-button glyph)
-  [0, 0, 0, -3, '\uF110', 'FAIL'],  // fail -> flame (CLIMB FAIL-button glyph)
+  [1, 0, 0, -5, '',       '',    ''],      // empty editor: everything blank
+  [0, 1, 0, -4, '\uF200', '',    'DEL'],   // DEL armed -> press restores SEND (trophy preview)
+  [0, 0, 1, -2, '\uF110', '',    'SEND'],  // send -> press marks FAIL (flame preview)
+  [0, 0, 0, -3, '',       'DEL', 'FAIL'],  // fail -> press arms DEL (text-span preview, icon blank)
 ];
 for (var cc = 0; cc < codeCases.length; cc++) {
   var C = codeCases[cc], code = encActE(C[0], C[1], C[2]), cf = Math.fround(code);
   check(code === C[3], "EDIT code mismatch case " + cc + ": " + code + " != " + C[3]);
   check(f32(code), "EDIT code not float32-exact: " + code);
   check(decGlyph(cf) === C[4], "EDIT glyph case " + cc + ": got " + JSON.stringify(decGlyph(cf)));
-  check(decWord(cf) === C[5], "EDIT word case " + cc + ": got " + JSON.stringify(decWord(cf)));
+  check(decDel(cf) === C[5], "EDIT DEL-span case " + cc + ": got " + JSON.stringify(decDel(cf)));
+  check(decWord(cf) === C[6], "EDIT word case " + cc + ": got " + JSON.stringify(decWord(cf)));
 }
+check(decDel(Math.fround(-1)) === '' && decDel(Math.fround(5000)) === '', "DEL-span must blank outside -3");
 // -1 (hidden everywhere else): word blank, pill keeps the READY mode-toggle glyph
 check(decWord(Math.fround(-1)) === '', "-1 must blank the word");
 check(decGlyph(Math.fround(-1)) === '\uF111', "-1 must keep the F111 mode-toggle pill");
