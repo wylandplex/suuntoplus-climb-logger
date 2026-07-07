@@ -140,7 +140,7 @@ READY (`x ≥ 0` oder `-1`) rendert unveraendert `\uF111`; `-4`/`-5` blanken das
 *Gibt zurueck:* das Kronjuwel — Era-A `#ed-pillIcon`/`#ed-pillDel`-Zyklus-Voranzeige plus `#ed-sendLabel`-Zustandswort ("EDIT 3/12 SEND"); ein scharfes DEL zeigt jetzt Pille + Wort statt 3 winziger Zeichen. Strikt besser als Era A: uebersteht Remounts.
 *Verifikation:* Sim: alle vier Codes durchklicken (eid4-Zyklus, eid6-Nav, DEL scharf/revert/ausfuehren); kompiliertes XML auf `\uF110`/`\uF107` greppen; pruefen dass ALLE drei `packedAct`-Evals feuern.
 
-**Schritt 6 — Volle Header-Woerter `ROUTE n` / `PROJECT n` (+~15 B je Template)**
+**Schritt 6 — Volle Header-Woerter `ROUTE n` / `PROJECT n` — VERWORFEN (User-Entscheid 2026-07-07: das kompakte `#n`/`Pn`-Header-Band "funktioniert aktuell sehr gut", bleibt unveraendert)**
 *Dateien:* `ready.html` L60, `active.html` L91.
 *Mechanismus:* reiner Format-String auf dem existierenden `modeSub`-Binding (null Elemente, null main.js; `modeSub`-WRITES bleiben eingefroren — setup.html-Roh-Indizierung unberuehrt):
 ```html
