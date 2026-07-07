@@ -96,7 +96,7 @@ function getUserInterface() {
   // on 2 — the ext12 parse waits for the first CALM second instead of racing the mount churn
   // (log 2026-07-07d: parse -> relMemCb x2). All pendF12 guards test truthiness, so 2/3 still gate.
   if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
-  if (pendF12) pendF12 = pendF12 === 1 ? 3 : 2;
+  if (pendF12) pendF12 = pendF12 === 1 ? 3 : pendF12 > 3 ? pendF12 : 2;  // re-entry = skip 1; never shorten a pending start-burst skip (>3)
   return { template: currentTemplate };
 }
 
@@ -529,18 +529,20 @@ function onLoad(_input, output) {
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
-// Third churn source (#177): "enable -> START IMMEDIATELY" put the tick-1 ext12 parse in the SAME
-// second as the exercise-start burst (Traininglab/Logger/subscription flood of all apps) — log
-// 2026-07-07e: parse+start at 14:10:14/14:10:37 same-second, JsTotMem 98.6% at 14:10:59. Mark it
-// exactly like a screen re-entry: an armed bootstrap bumps to 2, evaluate skips one tick, the
-// parse lands AFTER the burst. No-op once drained (pendF12=0).
+// Third churn source (#177): "enable -> START IMMEDIATELY" collided the ext12 parse with the
+// exercise-start burst (log 2026-07-07e: same-second, JsTotMem 98.6%). A 1-tick skip was NOT
+// enough — log 2026-07-07f: parse at start+1.3s, marker-SILENT ui HANG in every instant-start
+// cycle (cable to recover), while the burst visibly runs ~3s (analytics/BLE) and a start after
+// +5s never froze. So the start burst gets a 3-TICK skip (pendF12=6: 6->5->4 skip, drain <=3) —
+// the parse lands ~start+4-5s, past the transition. Parses in a RUNNING exercise are proven safe
+// (ext10 fires mid-session in every clean log); it is the start-transition window that kills.
 function onExerciseStart() {
-  if (pendF12) pendF12 = 2;
+  if (pendF12) pendF12 = 6;
 }
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else { try { drainF12(1); } catch (e) {} } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry mounted this second, #177 middle-spam) skips one tick and re-arms as 3; 1/3 parse. try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else if (pendF12 > 3) pendF12--; else { try { drainF12(1); } catch (e) {} } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry, skip 1) re-arms as 3; >3 (exercise-start burst, skip 3: 6->5->4) counts down; 1/3 parse. try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
