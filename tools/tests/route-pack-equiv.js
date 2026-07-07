@@ -5,7 +5,7 @@
 //
 //   A = grade*1e6 + send*1e5 + cm*1e4 + height(0..9999)
 //   B = dur(0..86399)*1000 + hrAvgHz   (Hz kept fractional; the low fractional digits carry tiny float
-//       noise next to a large dur, but hr is only summed/averaged in ext19 and rendered bpm-rounded.)
+//       noise next to a large dur, but hr is only summed/averaged in the end summary and rendered bpm-rounded.)
 // Run: node tools/tests/route-pack-equiv.js
 
 var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, Math.max(0, Math.round(h))); };

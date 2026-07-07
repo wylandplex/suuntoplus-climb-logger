@@ -2,7 +2,7 @@
 // every composite is float32-exact (SuuntoPlus outputs reach template scripts as float32; a value
 // above 2^24 silently loses low digits → wrong grade/count on the watch). See outputs-are-float32.
 //
-// Encoders mirror main.js wGL/wBrk; decoders mirror the active/manage/edit.html outputFormat scripts.
+// Encoders mirror main.js wGL; decoders mirror the active/ready/setup.html outputFormat scripts.
 // If you change a pack, change it in ALL FOUR places and re-run: node tools/tests/output-pack-equiv.js
 
 var f32 = function(x) { return Math.fround(x) === x; };  // exact in float32?
@@ -41,7 +41,30 @@ for (var a = 0; a < gradeFieldVals.length; a++) {
   }
 }
 console.log("  max packedGL = " + encGL(MAXGF, MAXG) + " (limit 2^24 = 16777216)");
-check(encGL(MAXGF, MAXG) <= (1 << 24), "packedGL worst case exceeds 2^24");  // 2^24 is the largest float32-exact integer, so the safe limit is <=, not <
+check(encGL(MAXGF, MAXG) <= (1 << 24), "packedGL worst case exceeds 2^24");
+
+// ---------- packedGL 1e6 LOCK FLAG (T3, #173) ----------
+//   encoder mirrors main.js wGL: lockF*1e6 + gradeV*952 + (lastGradeV+1)
+//   grade decode (ready.html, MASKED): Math.floor(x%1e6/952)
+//   chevron decode (ready.html): x>=1e6 -> '' (blank) else the chevron glyph
+console.log("[packedGL lock flag] 1e6 bit + masked grade decode + chevron gate");
+var encGLF = function(lf, g, lg) { return lf * 1e6 + g * 952 + (lg + 1); };
+var decGM  = function(x) { return Math.floor(x % 1e6 / 952); };
+var decLGM = function(x) { return x % 1e6 % 952 - 1; };
+var decChevUp = function(x) { return x >= 1e6 ? '' : '\uF266'; };
+for (var lf = 0; lf <= 1; lf++) {
+  for (var ga = 0; ga < gradeFieldVals.length; ga += 7) {          // stride: full domain x2 flags is slow
+    for (var lb = 0; lb < lgVals.length; lb += 7) {
+      var gg = gradeFieldVals[ga], lgg = lgVals[lb], xx = encGLF(lf, gg, lgg), xxf = Math.fround(xx);
+      check(f32(xx), "flagged packedGL not float32-exact: lf=" + lf + " g=" + gg + " lg=" + lgg);
+      check(decGM(xxf) === gg, "masked grade round-trip lf=" + lf + " g=" + gg + " -> " + decGM(xxf));
+      check(decLGM(xxf) === lgg, "masked lastGrade round-trip lf=" + lf + " lg=" + lgg + " -> " + decLGM(xxf));
+      check(decChevUp(xxf) === (lf ? '' : '\uF266'), "chevron gate lf=" + lf);
+    }
+  }
+}
+console.log("  max flagged packedGL = " + encGLF(1, MAXGF, MAXG) + " (limit 2^24 = 16777216)");
+check(encGLF(1, MAXGF, MAXG) <= (1 << 24), "flagged packedGL worst case exceeds 2^24");  // 2^24 is the largest float32-exact integer, so the safe limit is <=, not <
 
 // ---------- packedBreak = (bse+1)*4096 + sat(brkSends)*64 + sat(brkRoutes) ----------
 //   bestSend decode:  Math.floor(x/4096) - 1   (bse -1 = none)
@@ -72,6 +95,50 @@ check(decBR(encBrk(MAXG, 0, 999)) === 63, "brkRoutes>63 must saturate to 63");
 check(decBse(encBrk(MAXG, 999, 999)) === MAXG, "bestSend must survive saturated counts");
 console.log("  max packedBreak = " + encBrk(MAXG, 63, 63) + " (limit 2^24 = 16777216)");
 check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
+
+// ---------- packedAct: READY P-mode tries*1000+sends (>=0) | -1 hidden | EDIT codes -2..-5 ----------
+//   encoder mirrors main.js setOutputs: state 0 P-mode = min(tries,16700)*1000 + min(sends,999);
+//   state 5 EDIT = empty ? -5 : delArmed ? -4 : send ? -2 : -3; everywhere else -1.
+//   decoders mirror ready.html: mid-pill GLYPH eval + 78%-line WORD eval (change in lockstep!).
+console.log("[packedAct] P-mode tries/sends + EDIT steering codes");
+var encActP = function(t, sn) { return Math.min(t, 16700) * 1000 + Math.min(sn, 999); };
+var encActE = function(empty, del, send) { return empty ? -5 : del ? -4 : send ? -2 : -3; };
+var decGlyph = function(x) { return x === -2 ? '\uF110' : x === -4 ? '\uF200' : x < -1 ? '' : '\uF111'; };
+var decDel   = function(x) { return x === -3 ? 'DEL' : ''; };
+var decWord  = function(x) { return x === -2 ? 'SEND' : x === -3 ? 'FAIL' : x === -4 ? 'DEL' : x < 0 ? '' : Math.floor(x / 1000) + 'T ' + (x % 1000) + 'S'; };
+var tVals = [0, 1, 34, 35, 50, 999, 16700, 99999];
+var snVals = [0, 1, 34, 63, 999, 5000];
+for (var ta = 0; ta < tVals.length; ta++) {
+  for (var sb = 0; sb < snVals.length; sb++) {
+    var tv = tVals[ta], sv = snVals[sb], px = encActP(tv, sv), pxf = Math.fround(px);
+    check(f32(px), "packedAct not float32-exact: t=" + tv + " s=" + sv + " -> " + px);
+    check(decWord(pxf) === Math.min(tv, 16700) + "T " + Math.min(sv, 999) + "S",
+      "P-mode word round-trip t=" + tv + " s=" + sv + " -> " + decWord(pxf));
+    check(decGlyph(pxf) === '\uF111', "P-mode glyph must stay F111 (mode-toggle) for x>=0");
+  }
+}
+check(encActP(16700, 999) <= (1 << 24), "packedAct positive max exceeds 2^24");
+console.log("  max packedAct = " + encActP(16700, 999) + " (limit 2^24 = 16777216)");
+// EDIT codes: [empty, delArmed, send] -> code, pill glyph (NEXT-action preview), DEL-span, word (CURRENT result)
+// The cycle preview: SEND -[flame]-> FAIL -[DEL]-> armed -[trophy]-> SEND.
+var codeCases = [
+  [1, 0, 0, -5, '',       '',    ''],      // empty editor: everything blank
+  [0, 1, 0, -4, '\uF200', '',    'DEL'],   // DEL armed -> press restores SEND (trophy preview)
+  [0, 0, 1, -2, '\uF110', '',    'SEND'],  // send -> press marks FAIL (flame preview)
+  [0, 0, 0, -3, '',       'DEL', 'FAIL'],  // fail -> press arms DEL (text-span preview, icon blank)
+];
+for (var cc = 0; cc < codeCases.length; cc++) {
+  var C = codeCases[cc], code = encActE(C[0], C[1], C[2]), cf = Math.fround(code);
+  check(code === C[3], "EDIT code mismatch case " + cc + ": " + code + " != " + C[3]);
+  check(f32(code), "EDIT code not float32-exact: " + code);
+  check(decGlyph(cf) === C[4], "EDIT glyph case " + cc + ": got " + JSON.stringify(decGlyph(cf)));
+  check(decDel(cf) === C[5], "EDIT DEL-span case " + cc + ": got " + JSON.stringify(decDel(cf)));
+  check(decWord(cf) === C[6], "EDIT word case " + cc + ": got " + JSON.stringify(decWord(cf)));
+}
+check(decDel(Math.fround(-1)) === '' && decDel(Math.fround(5000)) === '', "DEL-span must blank outside -3");
+// -1 (hidden everywhere else): word blank, pill keeps the READY mode-toggle glyph
+check(decWord(Math.fround(-1)) === '', "-1 must blank the word");
+check(decGlyph(Math.fround(-1)) === '\uF111', "-1 must keep the F111 mode-toggle pill");
 
 // packedPk (1'/3' peak HR) removed — the 1'/3' rolling-peak feature was cut for the heap diet.
 

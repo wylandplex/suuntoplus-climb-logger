@@ -10,21 +10,21 @@ A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes 
 
 ## Screen Flow
 
-The UI is split into two template clusters, loaded on demand (only the active cluster's
-Watch-Bridge bindings are subscribed — see [ADR-002](docs/adr/ADR-002-binding-architecture.md)):
+Four small templates; the idle screens are separate so no swap ever carries more than one screen's
+DOM. EDIT and PROJSETUP are **overlays on the ready template** (states 5/6 map to `ready.html`) —
+entering or leaving them swaps nothing:
 
-- **`active.html`** — READY · CLIMB · BREAK · LIMIT (states 0/1/2/3)
-- **`manage.html`** — SETUP · EDIT · PROJSETUP (states 4/5/6)
+- **`setup.html`** — SETUP (state 4, every app start)
+- **`ready.html`** — READY (state 0) + EDIT overlay (state 5) + PROJSETUP overlay (state 6)
+- **`active.html`** — CLIMB · BREAK (states 1/2, the hot pair — zero per-lap swaps via applyVis)
+- **`saving.html`** — near-empty pause/end de-load screen
 
 ```
-  manage.html                         active.html
-  ───────────                         ───────────
-  SETUP ──save──►  READY  ──START──►  CLIMB  ──SEND/FAIL──►  BREAK
-  (first run)      ▲   │                                       │
-                   │   └──────────────── NEXT ─────────────────┘
-  EDIT  ◄─up-long──┤
-  PROJSETUP ◄──────┘   READY ──START @ 35 routes──► LIMIT ──any──► READY
-  (──save──► READY)                                  (save & restart to log more)
+  SETUP ──confirm──►  READY  ──START──►  CLIMB  ──SEND/FAIL──►  BREAK
+  (every start)       ▲ │  ▲                                      │
+                      │ │  └────────────────── NEXT ──────────────┘
+   EDIT overlay ◄─up-long (free mode)
+   PROJSETUP overlay ◄─up-long (project mode)
 ```
 
 ### Per-screen button matrix
@@ -36,11 +36,15 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 |-----------|---------------------|---------------------|----------------------|-----------------------------|----------------------|
 | READY     | grade / project cycle | grade / project cycle | toggle free/project | → EDIT (free) / PROJSETUP (project) | START          |
 | CLIMB     | — *(locked)*        | — *(locked)*        | — *(locked)*         | FAIL ✗                      | SEND ✓               |
-| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | —                           | NEXT                 |
-| LIMIT     | → READY             | → READY             | → READY              | → READY                     | → READY              |
-| SETUP     | grade system +      | grade system −      | —                    | —                           | save & → READY       |
+| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | toggle last SEND↔FAIL       | NEXT                 |
+| SETUP     | grade system +      | grade system −      | —                    | —                           | confirm & → READY    |
 | EDIT      | route grade +       | route grade −       | cycle SEND/FAIL/DEL  | → READY                     | prev route / → READY |
-| PROJSETUP | slot grade +        | slot grade −        | —                    | save & → READY              | save & next slot     |
+| PROJSETUP | slot grade +        | slot grade −        | —                    | done & → READY              | next slot            |
+
+The EDIT/PROJSETUP overlays render through the READY bindings: big grade = selected route / slot
+grade, header `#N` / `P1..P5` (negative `modeSub`), plus a setText status line (`EDIT i/n SEND` /
+`SLOT n/5`). `ready.html` gates its firmware `lap()` on `vState !== 5` so EDIT route-navigation
+never records a lap.
 
 **Universal rules:**
 - `mid-short` is OS-reserved (scrolls Suunto's native activity screens).
@@ -48,8 +52,8 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 - Touch tap-zones mirror the long-press action on their respective button pills.
 - Flicks fire the short-press grade step ×3; in project mode (READY/BREAK) flicks are a no-op
   (project cycling is single-step only).
-- At 35 logged routes (`ROUTE_LIMIT`), START is blocked → LIMIT screen → save & restart. This
-  caps per-session resource accumulation (see [CHANGELOG](CHANGELOG.md) / issue #121).
+- At 35 logged routes (`ROUTE_LIMIT`), START is silently refused (the dedicated LIMIT screen was
+  cut in the resident diet) — save & restart to log more.
 
 ---
 
@@ -57,30 +61,43 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 
 | File                | Role                                                       | Loaded         |
 |---------------------|------------------------------------------------------------|----------------|
-| `main.js`           | State machine, event dispatcher, HR buffer, save logic    | App start      |
-| `active.html`       | READY / CLIMB / BREAK / LIMIT cluster (states 0/1/2/3)     | Workout        |
-| `manage.html`       | SETUP / EDIT / PROJSETUP cluster (states 4/5/6)            | Config         |
-| `ext9.js`           | Summary viewer — serves cached `lastSummary`, resolves grade names | On summary view |
+| `main.js`           | State machine, event dispatcher, HR aggregation, save logic | App start      |
+| `ready.html`        | READY plus EDIT / project-slot overlays                    | Idle / editing |
+| `active.html`       | CLIMB / BREAK cluster                                      | Workout        |
+| `setup.html`        | Grade-system setup                                         | Config         |
+| `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
 | `ext10.js`          | Route end — build route record + update project stats      | On SEND/FAIL   |
-| `ext11.js`          | Persist all-time / per-system stats (writeStats)           | On workout end |
-| `ext12.js`          | Load stats + one-time migration                            | App start      |
+| `ext11.js`          | Stats RMW writer (at END; via ext12 replay on recovery)    | Workout end    |
+| `ext12.js`          | Bootstrap loader + eP write-ahead-log replay               | First tick     |
 | `ext14.js`          | Save current route as a project slot                       | On save-project |
-| `ext17.js`          | Grade-system snapshot swap                                 | On system change |
-| `ext19.js`          | Build workout summary tiles (emits grade indices)          | On workout end |
+| `ext18.js`          | Grade-name slice provider (legacy)                         | Not in runtime |
 | `manifest.json`     | Outputs, variables, settings, templates                    | App config     |
 | `data.json`         | Companion app defaults                                     | First install  |
 
-The two-cluster split keeps live WB `<eval>` bindings ~25 during a workout (vs ~43 if all
-screens were one template) — the mitigation for the multi-app path-param ceiling.
+The runtime path is a flight-recorder: no localStorage and no stats-maintenance evals while the
+workout is active (the log showed `data.jsn` reads and enable-window parses pushing `exec:zapp`
+over the limit with other zapps enabled). Persistence = the eP write-ahead log: one `setItem` at
+pause/end, the RMW applied at END (companion-ready), replayed by ext12 at the next enable only if
+the end ever failed.
 
 ### Data model (localStorage)
 
-- **`watchSetup`**: `{sys, proj}` — current grade system + per-system project-slot cache.
+- **Runtime state**: current grade system, routes, project slots, and summary are held in RAM only.
 - **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
-  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror.
-- **`climbProjStats`**: `{"sys_slot": {attempts, sends, bestTime, g}}` — per-slot stats.
-- **`s<sys>`**: per-grade-system snapshot of `stats` (swapped in by `ext17` on system change).
-- **`lastSummary`**: cached session-summary tiles, served by `ext9` on the post-activity view.
+  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror — maintained by
+  the **`eP` write-ahead persistence**: the workout path never touches localStorage; PAUSE and END
+  persist the session as ONE string `eP = "gs;cm;dirty;ag7;pgi5;pSlot20"`; the END then applies the
+  RMW immediately (`ext11` against the `s<sys>` snapshot — stats are current when the companion
+  syncs) and clears the WAL. If the end window ever dies mid-RMW, `ext12` replays the surviving
+  `eP` at the next enable's calm drain — nothing lost, nothing double-counted. Dirty bits gate the
+  writes: bit 0 = `pS<sys>`, bit 1 = slot config (unset ⇒ Companion slot edits made between
+  sessions survive). A returning user auto-skips SETUP → READY one tick after the drain.
+- **`pS<sys>`**: compact 20-number project-stat vector for one grade system
+  (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
+- **`climbProjStats`**: legacy object-form project stats; imported lazily into `pS<sys>`,
+  not used for normal end writes.
+- **`s<sys>`**: per-grade-system snapshot of `stats`; retained for maintenance tooling.
+- **Summary**: cached in RAM and served directly by `getSummaryOutputs`.
 
 *(In-session `routes[]` is in-memory only — capped at the route limit; persisted route history
 was removed as it was never read back.)*
@@ -95,17 +112,18 @@ matching the system's noise filtering and counting re-ascents on up-down-up prof
 
 The physical lap button (and auto-lap, if enabled) is detected via the `onLap` callback. On the
 BREAK screen an external lap starts the next route directly (skipping READY) — handy for fast
-multi-route sessions; if the route limit is reached it routes to the LIMIT screen instead. In
-CLIMB/READY, external laps are ignored (the app's own SEND/FAIL/START manage laps there).
+multi-route sessions; at the route limit the start is silently refused. In CLIMB, an external lap
+finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
 
-### Work split: route-end vs session-end
+### Work split: route-end / pause / end
 
-- **Route-end** (`commitDirty` → `ext10`, per SEND/FAIL): build the route record, increment
-  per-project attempts/sends/best-time, update running HR aggregates and totals — all in memory.
-- **Session-end** (`onExerciseEnd`): persist stats (`ext11`/writeStats, incl. peak-grade and the
-  per-system snapshot via `ext17`) and build the summary tiles (`ext19`).
-- **Summary view** (`getSummaryOutputs` → `ext9`): serve the cached `lastSummary` and resolve
-  grade-index → name. localStorage writes are kept at session end to avoid mid-session flash-GC stalls.
+- **Route-end** (`commitDirty` → `ext10`, per SEND/FAIL): build the route record and update
+  the flat in-memory project-stat vector.
+- **Pause** (`onExercisePause`): de-load the active template and aggregate committed routes into
+  the in-memory summary cache.
+- **End** (`onExerciseEnd`): close any open route, aggregate, free route arrays, and return. No
+  localStorage and no evalFile.
+- **Summary view** (`getSummaryOutputs`): serve the RAM summary cache.
 
 ---
 
@@ -128,12 +146,14 @@ Suunto watches have a startup parser budget that limits `main.js` size. The mini
 - Terser (`toplevel=true`, `reserved=["_e","_","_d"]`) for initial mangling.
 - SuuntoPlus property-to-array-index transform (outputs become `_[N]`).
 
-Each manifest output costs ~36 B of startup budget. Template files (`active.html`, `manage.html`,
-`ext*.js`) are lazy-loaded and don't count against the startup budget.
+Each manifest output costs ~36 B of startup budget. Template files and `ext*.js` are lazy-loaded
+and don't count against the startup budget — but `main.js` bytecode is RESIDENT on the shared
+~133 KB three-app JS heap, and that residency is what decides whether the pool sits at a
+99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
-Current v3.0 footprint:
-- `main.js` minified: ~6 KB
-- `.fea` (q-display): ~70 KB
+Current footprint (built, q-display):
+- `main.js` minified: 7 088 B (merged lifecycle dispatcher 860 B, cliff ~1 874 B)
+- runtime ext parses: `ext10` 229 B (per route), `ext14` 217 B (per save-project)
 
 ### Backlog
 

@@ -21,16 +21,16 @@ var path = require('path');
 var MAIN = path.join(__dirname, '..', '..', 'main.js');
 
 // ---- ext stubs (only the ones the driven paths touch) ----------------------
-// ext12 onLoad bootstrap: [gradeSystem, projGradeIdx, projStats, allProjects]
-// ext10 commitDirty route builder: returns [bse, 0, routeTuple, sk, np]
+// ext12 bootstrap: [gradeSystem, projGradeIdx, projSlot, sessions, projAll]
+// ext10 commitDirty route builder: returns [bse, 0, routeTuple]
 // ext11 writeStats: no-op
 function extStub(n) {
-  if (n === 12) return function (ats) { return [0, [-1, -1, -1, -1, -1], {}, {}]; };
+  if (n === 12) return function () { return [0, [-1, -1, -1, -1, -1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1], 0, []]; };
   if (n === 11) return function () {};
-  if (n === 10) return function (lgi, gs, ld, lha, lmh, isSend, cm, bse, ps, ats, h) {  // 11-param sig: lp1/lp3 (1'/3' peaks) removed
+  if (n === 10) return function (lgi, gs, ld, lha, lmh, isSend, cm, bse, P, ses, h) {
     if (isSend && lgi > bse) bse = lgi;
     // route tuple shape rr[0..5] = [grade, send, climbMode, height, dur, hrAvg]
-    return [bse, 0, [lgi, isSend ? 1 : 0, cm, h || 0, ld, lha], null, null];
+    return [bse, 0, [lgi, isSend ? 1 : 0, cm, h || 0, ld, lha]];
   };
   if (n === 9) return function () { return {}; };
   if (n === 14) return function () { return null; };
@@ -72,6 +72,7 @@ function makeApp() {
     'getState:function(){return state},' +
     // routes are packed into routesA/routesB now — reconstruct the boxed [grade,send,cm,height,dur,hrAvg] tuples so existing assertions still read .length and [i][k].
     'getRoutes:function(){var _o=[];for(var _i=0;_i<routesA.length;_i++)_o.push([Math.floor(routesA[_i]/1e6),Math.floor(routesA[_i]/1e5)%10,Math.floor(routesA[_i]/1e4)%10,routesA[_i]%1e4,Math.floor(routesB[_i]/1000),routesB[_i]%1000]);return _o},' +
+    'getLastSummary:function(){return lastSummaryCache},' +
     'getFrDirty:function(){return frDirty},' +
     'getLimit:function(){return ROUTE_LIMIT},' +
     'getExtLapPending:function(){return typeof extLapPending==="undefined"?undefined:extLapPending}};';
@@ -91,6 +92,11 @@ function freshReady() {
   // So drive: app starts state 4 (no watchSetup) -> press eid6 in SETUP to goto
   // READY (state 0), which is the legit way a first-run user enters active.
   api.onLoad({}, {});
+  // tick-1 bootstrap drain FIRST: the startup guard (#177) makes onEvent/onLap inert until the
+  // staggered drain has run (real watch: evaluate ticks from enable — only sub-second button spam
+  // ever beat tick 1, and that is now dropped by design; the event-path ext12 parse stormed
+  // exec:zapp, log 2026-07-07d).
+  tick(api);
   if (api.getState() !== 0) {
     // first-run: SETUP screen (state 4). Confirm grade system, go to READY.
     api.onEvent({}, {}, 6); // evSetup eid6 -> goState(0)
@@ -228,17 +234,15 @@ console.log('\n[7] onExerciseEnd honors a just-armed ext-lap finish as SEND');
   var api = freshReady();
   appStart(api);
   tick(api, 100);
-  var before = api.getRoutes().length;
   externalLap(api);              // arms extLapPending in CLIMB
   // session ends before evaluate drains it
   api.onExerciseEnd({}, {});
-  check('dangling climb committed at end', api.getRoutes().length === before + 1,
-    'routes=' + api.getRoutes().length);
-  var rr = api.getRoutes()[api.getRoutes().length - 1];
-  check('committed as SEND (ext-lap finish)', rr && rr[1] === 1, 'rr=' + JSON.stringify(rr));
+  var sr = (api.getLastSummary() || [])[0];
+  check('dangling climb summarized at end', sr && sr.value === 1 && sr.postfix === '/ 1',
+    'summary=' + JSON.stringify(api.getLastSummary()));
 })();
 
-console.log('\n[8] START at the route cap shows the LIMIT screen (state 3), not a flash back to READY');
+console.log('\n[8] START at the route cap is refused without leaving READY');
 (function () {
   var api = freshReady();
   var lim = api.getLimit();
@@ -248,12 +252,9 @@ console.log('\n[8] START at the route cap shows the LIMIT screen (state 3), not 
   }
   check('at the route cap, back in READY', api.getRoutes().length === lim && api.getState() === 0,
     'routes=' + api.getRoutes().length + ' state=' + api.getState());
-  appStart(api);                             // START press at the cap (onLap shows LIMIT, onEvent(6) must NOT dismiss)
-  check('LIMIT screen stays (state 3), not flashed back to READY', api.getState() === 3,
+  appStart(api);                             // LIMIT template was removed in the slim line; cap is a silent refusal.
+  check('route cap keeps READY', api.getState() === 0,
     'state=' + api.getState());
-  tick(api, 100);                            // dwell cleared
-  api.onEvent({}, {}, 6);                    // a deliberate press now dismisses
-  check('a deliberate press dismisses LIMIT -> READY', api.getState() === 0, 'state=' + api.getState());
 })();
 
 console.log('\n=== summary ===');

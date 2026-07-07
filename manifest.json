@@ -13,11 +13,6 @@
       "type": "subscribe"
     },
     {
-      "name": "M",
-      "source": "Activity/Lap/-2/HeartRate/Max",
-      "type": "subscribe"
-    },
-    {
       "name": "Asc",
       "source": "Fusion/Altitude/Ascent",
       "type": "subscribe"
@@ -37,76 +32,27 @@
       "name": "vState"
     },
     {
-      "name": "actT"
-    },
-    {
-      "name": "actS"
-    },
-    {
-      "name": "actB"
-    },
-    {
       "name": "hdrGrade"
     },
     {
       "name": "hdrRes"
+    },
+    {
+      "name": "packedAct"
     }
   ],
   "template": [
     {
-      "name": "active.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "ready.html"
     },
     {
-      "name": "limit.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "active.html"
     },
     {
-      "name": "saving.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "setup.html"
     },
     {
-      "name": "manage.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
-    },
-    {
-      "name": "edit.html",
-      "displays": [
-        "l",
-        "m",
-        "n",
-        "o",
-        "q",
-        "s"
-      ]
+      "name": "saving.html"
     }
   ],
   "variables": [

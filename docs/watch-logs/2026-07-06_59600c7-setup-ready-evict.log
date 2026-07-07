@@ -1,0 +1,1989 @@
+#1213318 06.07.2026 14:47:10 : EVT PMIC : PMIC Fast-charge constant cur
+#1213319 06.07.2026 14:47:10 : EVT PMIC : PMIC Fast-charge constant cur
+#1213320 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213321 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213322 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213323 06.07.2026 14:47:11 : EVT PMIC : PMIC Precharge
+#1213324 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213325 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213326 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213327 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213328 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213329 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213330 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213331 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213332 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213333 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213334 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213335 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213336 06.07.2026 14:47:11 : EVT ANALYTICS : Sync start
+#1213337 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213338 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213339 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213340 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213341 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213342 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213343 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213344 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213345 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213346 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213347 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213348 06.07.2026 14:47:11 : EVT PMIC : PMIC Precharge
+#1213349 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213350 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213351 06.07.2026 14:47:11 : EVT PMIC : PMIC Precharge
+#1213352 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213353 06.07.2026 14:47:11 : EVT PMIC : PMIC Precharge
+#1213354 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213355 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213356 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213357 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213358 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213359 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213360 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213361 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213362 06.07.2026 14:47:11 : EVT PMIC : PMIC Precharge
+#1213363 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213364 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213365 06.07.2026 14:47:11 : EVT PMIC : PMIC Fast-charge constant cur
+#1213366 06.07.2026 14:47:12 : EVT PMIC : PMIC Maintain charge
+#1213367 06.07.2026 14:47:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1213368 06.07.2026 14:47:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1213369 06.07.2026 14:47:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1213370 06.07.2026 14:47:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1213371 06.07.2026 14:47:14 : TRC APPLICATION : Zapp climbl01 uninstalled
+#1213372 06.07.2026 14:47:14 : EVT PMIC : PMIC Precharge
+#1213373 06.07.2026 14:47:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1213374 06.07.2026 14:47:15 : EVT PMIC : PMIC Maintain charge
+#1213375 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213376 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213377 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213378 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213379 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213380 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213381 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213382 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213383 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213384 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213385 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213386 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213387 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213388 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213389 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213390 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213391 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213392 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213393 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213394 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213395 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213396 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213397 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213398 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213399 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213400 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213401 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213402 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213403 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213404 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213405 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213406 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213407 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213408 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213409 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213410 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213411 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213412 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213413 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213414 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213415 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213416 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213417 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213418 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213419 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213420 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213421 06.07.2026 14:47:15 : EVT PMIC : PMIC Maintain charge
+#1213422 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213423 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213424 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213425 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213426 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213427 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213428 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213429 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213430 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213431 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213432 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213433 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213434 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213435 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213436 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213437 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213438 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213439 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213440 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213441 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213442 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213443 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213444 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213445 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213446 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213447 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213448 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213449 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213450 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213451 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213452 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213453 06.07.2026 14:47:15 : EVT PMIC : PMIC Precharge
+#1213454 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213455 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213456 06.07.2026 14:47:15 : EVT PMIC : PMIC Fast-charge constant cur
+#1213457 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213458 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213459 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213460 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213461 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213462 06.07.2026 14:47:16 : EVT PMIC : PMIC Precharge
+#1213463 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213464 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213465 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213466 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213467 06.07.2026 14:47:16 : EVT PMIC : PMIC Precharge
+#1213468 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213469 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213470 06.07.2026 14:47:16 : EVT PMIC : PMIC Precharge
+#1213471 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213472 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213473 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213474 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213475 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213476 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213477 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213478 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213479 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213480 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213481 06.07.2026 14:47:16 : EVT PMIC : PMIC Precharge
+#1213482 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213483 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213484 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213485 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213486 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213487 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213488 06.07.2026 14:47:16 : ERR WBMAIN : *0: app 1852 Event 36 80005310
+#1213489 06.07.2026 14:47:16 : ERR WBMAIN : 1: mea 39 Wait 0 00000000
+#1213490 06.07.2026 14:47:16 : ERR WBMAIN : 2: ui 788 Wait 0 00000000
+#1213491 06.07.2026 14:47:16 : EVT WBSTORAGE : CACHE_DEFRAG (512->600, 24->24, 25)
+#1213492 06.07.2026 14:47:16 : EVT <Unknown> : DL Region List
+#1213493 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213494 06.07.2026 14:47:16 : EVT WIFI : Pwr up
+#1213495 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213496 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213497 06.07.2026 14:47:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1213498 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213499 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213500 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213501 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213502 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213503 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213504 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213505 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213506 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213507 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213508 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213509 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213510 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213511 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213512 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213513 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213514 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213515 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213516 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213517 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213518 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213519 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213520 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213521 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213522 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213523 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213524 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213525 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213526 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213527 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213528 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213529 06.07.2026 14:47:17 : ERR WBMAIN : *0: app 685 Event 36 80005310
+#1213530 06.07.2026 14:47:17 : ERR WBMAIN : 1: mea 29 Wait 0 00000000
+#1213531 06.07.2026 14:47:17 : ERR WBMAIN : 2: ui 542 Wait 0 00000000
+#1213532 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213533 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213534 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213535 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213536 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213537 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213538 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213539 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213540 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213541 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213542 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213543 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213544 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213545 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213546 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213547 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213548 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213549 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213550 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213551 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213552 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213553 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213554 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213555 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213556 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213557 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213558 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213559 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213560 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213561 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213562 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213563 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213564 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213565 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213566 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213567 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213568 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213569 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213570 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213571 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213572 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213573 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213574 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213575 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213576 06.07.2026 14:47:17 : EVT PMIC : PMIC Precharge
+#1213577 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213578 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213579 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213580 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213581 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213582 06.07.2026 14:47:17 : EVT PMIC : PMIC Fast-charge constant cur
+#1213583 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213584 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213585 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213586 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213587 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213588 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213589 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213590 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213591 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213592 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213593 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213594 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213595 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213596 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213597 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213598 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213599 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213600 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213601 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213602 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213603 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213604 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213605 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213606 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213607 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213608 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213609 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213610 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213611 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213612 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213613 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213614 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213615 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213616 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213617 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213618 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213619 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213620 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213621 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213622 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213623 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213624 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213625 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213626 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213627 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213628 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213629 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213630 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213631 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213632 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213633 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213634 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213635 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213636 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213637 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213638 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213639 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213640 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213641 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213642 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213643 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213644 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213645 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213646 06.07.2026 14:47:18 : EVT ANALYTICS : Sync start
+#1213647 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213648 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213649 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213650 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213651 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213652 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213653 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213654 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213655 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213656 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213657 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213658 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213659 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213660 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213661 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213662 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213663 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213664 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213665 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213666 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213667 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213668 06.07.2026 14:47:18 : EVT PMIC : PMIC Precharge
+#1213669 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213670 06.07.2026 14:47:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1213671 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213672 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213673 06.07.2026 14:47:19 : EVT ANALYTICS : Sync start
+#1213674 06.07.2026 14:47:19 : EVT PMIC : PMIC Precharge
+#1213675 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213676 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213677 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213678 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213679 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213680 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213681 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213682 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213683 06.07.2026 14:47:19 : EVT PMIC : PMIC Precharge
+#1213684 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213685 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213686 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213687 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213688 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213689 06.07.2026 14:47:19 : EVT PMIC : PMIC Precharge
+#1213690 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213691 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213692 06.07.2026 14:47:19 : EVT PMIC : PMIC Precharge
+#1213693 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213694 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213695 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213696 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213697 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213698 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213699 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213700 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213701 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213702 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213703 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213704 06.07.2026 14:47:19 : EVT PMIC : PMIC Precharge
+#1213705 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213706 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213707 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213708 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213709 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213710 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213711 06.07.2026 14:47:19 : EVT PMIC : PMIC Fast-charge constant cur
+#1213712 06.07.2026 14:47:23 : EVT WIFI : pwr up
+#1213713 06.07.2026 14:47:23 : EVT WIFI : SDK Ver(3.2.8.1)
+#1213714 06.07.2026 14:47:23 : EVT WIFI : Cur bootmode:0
+#1213715 06.07.2026 14:47:23 : EVT WIFI : Cur MAC addr:0C:8C:DC:B1:E4:BA
+#1213716 06.07.2026 14:47:23 : EVT WIFI : Cur cc:CH
+#1213717 06.07.2026 14:47:23 : EVT WIFI : Scann APs (1/3)
+#1213718 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213719 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213720 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213721 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213722 06.07.2026 14:47:23 : EVT PMIC : PMIC Precharge
+#1213723 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213724 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213725 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213726 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213727 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213728 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213729 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213730 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213731 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213732 06.07.2026 14:47:23 : EVT PMIC : PMIC Fast-charge constant cur
+#1213733 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213734 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213735 06.07.2026 14:47:24 : EVT WIFI : APs scanned:13
+#1213736 06.07.2026 14:47:24 : WRN WIFI : No APs matched to connect
+#1213737 06.07.2026 14:47:24 : EVT WIFI : Scann APs (2/3)
+#1213738 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213739 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213740 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213741 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213742 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213743 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213744 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213745 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213746 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213747 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213748 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213749 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213750 06.07.2026 14:47:24 : EVT PMIC : PMIC Maintain charge
+#1213751 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213752 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213753 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213754 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213755 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213756 06.07.2026 14:47:24 : EVT PMIC : PMIC Fast-charge constant cur
+#1213757 06.07.2026 14:47:25 : EVT WIFI : APs scanned:15
+#1213758 06.07.2026 14:47:25 : WRN WIFI : No APs matched to connect
+#1213759 06.07.2026 14:47:25 : EVT WIFI : Scann APs (3/3)
+#1213760 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213761 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213762 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213763 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213764 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213765 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213766 06.07.2026 14:47:25 : EVT PMIC : PMIC Maintain charge
+#1213767 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213768 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213769 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213770 06.07.2026 14:47:25 : EVT PMIC : PMIC Precharge
+#1213771 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213772 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213773 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213774 06.07.2026 14:47:25 : EVT PMIC : PMIC Fast-charge constant cur
+#1213775 06.07.2026 14:47:25 : EVT WIFI : APs scanned:11
+#1213776 06.07.2026 14:47:25 : WRN WIFI : No APs matched to connect
+#1213777 06.07.2026 14:47:25 : EVT WIFI : Internal connect ret:103
+#1213778 06.07.2026 14:47:25 : ERR <Unknown> : DL GET resultCode=500
+#1213779 06.07.2026 14:47:25 : EVT <Unknown> : DL try retry after 5000 ms
+#1213780 06.07.2026 14:47:30 : EVT <Unknown> : DL Region List
+#1213781 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213782 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213783 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213784 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213785 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213786 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213787 06.07.2026 14:47:30 : EVT PMIC : PMIC Precharge
+#1213788 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213789 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213790 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213791 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213792 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213793 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213794 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213795 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213796 06.07.2026 14:47:30 : WRN WIFI : No APs matched to connect
+#1213797 06.07.2026 14:47:30 : EVT WIFI : Scann APs (1/3)
+#1213798 06.07.2026 14:47:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1213799 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213800 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213801 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213802 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213803 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213804 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213805 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213806 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213807 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213808 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213809 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213810 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213811 06.07.2026 14:47:31 : EVT WIFI : APs scanned:15
+#1213812 06.07.2026 14:47:31 : WRN WIFI : No APs matched to connect
+#1213813 06.07.2026 14:47:31 : EVT WIFI : Scann APs (2/3)
+#1213814 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213815 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213816 06.07.2026 14:47:31 : EVT PMIC : PMIC Maintain charge
+#1213817 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213818 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213819 06.07.2026 14:47:31 : EVT PMIC : PMIC Precharge
+#1213820 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213821 06.07.2026 14:47:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1213822 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213823 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213824 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213825 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213826 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213827 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213828 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213829 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213830 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213831 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213832 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213833 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213834 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213835 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213836 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213837 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213838 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213839 06.07.2026 14:47:32 : EVT WIFI : APs scanned:7
+#1213840 06.07.2026 14:47:32 : WRN WIFI : No APs matched to connect
+#1213841 06.07.2026 14:47:32 : EVT WIFI : Scann APs (3/3)
+#1213842 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213843 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213844 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213845 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213846 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213847 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213848 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213849 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213850 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213851 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213852 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213853 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213854 06.07.2026 14:47:32 : EVT PMIC : PMIC Fast-charge constant cur
+#1213855 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213856 06.07.2026 14:47:33 : EVT PMIC : PMIC Precharge
+#1213857 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213858 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213859 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213860 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213861 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213862 06.07.2026 14:47:33 : EVT PMIC : PMIC Maintain charge
+#1213863 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213864 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213865 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213866 06.07.2026 14:47:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1213867 06.07.2026 14:47:33 : EVT WIFI : APs scanned:11
+#1213868 06.07.2026 14:47:33 : WRN WIFI : No APs matched to connect
+#1213869 06.07.2026 14:47:33 : EVT WIFI : Internal connect ret:103
+#1213870 06.07.2026 14:47:33 : ERR <Unknown> : DL GET resultCode=500
+#1213871 06.07.2026 14:47:33 : EVT <Unknown> : DL try retry after 10000 ms
+#1213872 06.07.2026 14:47:33 : EVT ACCELEROMETER : Gyro bias:-0.251300 -0.049700 -0.126000
+#1213873 06.07.2026 14:47:37 : EVT PMIC : PMIC Maintain charge
+#1213874 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213875 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213876 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213877 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213878 06.07.2026 14:47:37 : EVT PMIC : PMIC Precharge
+#1213879 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213880 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213881 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213882 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213883 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213884 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213885 06.07.2026 14:47:37 : EVT PMIC : PMIC Maintain charge
+#1213886 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213887 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213888 06.07.2026 14:47:37 : EVT PMIC : PMIC Precharge
+#1213889 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213890 06.07.2026 14:47:37 : EVT PMIC : PMIC Precharge
+#1213891 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213892 06.07.2026 14:47:37 : EVT PMIC : PMIC Precharge
+#1213893 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213894 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213895 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213896 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213897 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213898 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213899 06.07.2026 14:47:37 : EVT PMIC : PMIC Precharge
+#1213900 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213901 06.07.2026 14:47:37 : EVT PMIC : PMIC Precharge
+#1213902 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213903 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213904 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213905 06.07.2026 14:47:37 : EVT PMIC : PMIC Fast-charge constant cur
+#1213906 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213907 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213908 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213909 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213910 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213911 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213912 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213913 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213914 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213915 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213916 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213917 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213918 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213919 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213920 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213921 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213922 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213923 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213924 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213925 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213926 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213927 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213928 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213929 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213930 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213931 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213932 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213933 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213934 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213935 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213936 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213937 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213938 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213939 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213940 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213941 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213942 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213943 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213944 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213945 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213946 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213947 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213948 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213949 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213950 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213951 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213952 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213953 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213954 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213955 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213956 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213957 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213958 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213959 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213960 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213961 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213962 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213963 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213964 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213965 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213966 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213967 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213968 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213969 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213970 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213971 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213972 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213973 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213974 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213975 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213976 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213977 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213978 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213979 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213980 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213981 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213982 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213983 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213984 06.07.2026 14:47:38 : EVT APPLICATION : Plugin climbl01.zip as type:[2]
+#1213985 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213986 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213987 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213988 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213989 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213990 06.07.2026 14:47:38 : EVT PMIC : PMIC Precharge
+#1213991 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213992 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213993 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213994 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213995 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213996 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213997 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213998 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1213999 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214000 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214001 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214002 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214003 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214004 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214005 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214006 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214007 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214008 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214009 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214010 06.07.2026 14:47:38 : EVT PMIC : PMIC Fast-charge constant cur
+#1214011 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214012 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214013 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214014 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214015 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214016 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214017 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214018 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214019 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214020 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214021 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214022 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214023 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214024 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214025 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214026 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214027 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214028 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214029 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214030 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214031 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214032 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214033 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214034 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214035 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214036 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214037 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214038 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214039 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214040 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214041 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214042 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214043 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214044 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214045 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214046 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214047 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214048 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214049 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214050 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214051 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214052 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214053 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214054 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214055 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214056 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214057 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214058 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214059 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214060 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214061 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214062 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214063 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214064 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214065 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214066 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214067 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214068 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214069 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214070 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214071 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214072 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214073 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214074 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214075 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214076 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214077 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214078 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214079 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214080 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214081 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214082 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214083 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214084 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214085 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214086 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214087 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214088 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214089 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214090 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214091 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214092 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214093 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214094 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214095 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214096 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214097 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214098 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214099 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214100 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214101 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214102 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214103 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214104 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214105 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214106 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214107 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214108 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214109 06.07.2026 14:47:39 : EVT PMIC : PMIC Precharge
+#1214110 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214111 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214112 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214113 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214114 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214115 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214116 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214117 06.07.2026 14:47:39 : EVT PMIC : PMIC Fast-charge constant cur
+#1214118 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214119 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214120 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214121 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214122 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214123 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214124 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214125 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214126 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214127 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214128 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214129 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214130 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214131 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214132 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214133 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214134 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214135 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214136 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214137 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214138 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214139 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214140 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214141 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214142 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214143 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214144 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214145 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214146 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214147 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214148 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214149 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214150 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214151 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214152 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214153 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214154 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214155 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214156 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214157 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214158 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214159 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214160 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214161 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214162 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214163 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214164 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214165 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214166 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214167 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214168 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214169 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214170 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214171 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214172 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214173 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214174 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214175 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214176 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214177 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214178 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214179 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214180 06.07.2026 14:47:40 : ERR WBMAIN : *0: app 1973 Event 36 80005310
+#1214181 06.07.2026 14:47:40 : ERR WBMAIN : 1: mea 3 Wait 0 00000000
+#1214182 06.07.2026 14:47:40 : ERR WBMAIN : 2: ui 802 Wait 0 00000000
+#1214183 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214184 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214185 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214186 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214187 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214188 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214189 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214190 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214191 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214192 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214193 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214194 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214195 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214196 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214197 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214198 06.07.2026 14:47:40 : EVT PMIC : PMIC Precharge
+#1214199 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214200 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214201 06.07.2026 14:47:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1214202 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214203 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214204 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214205 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214206 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214207 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214208 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214209 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214210 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214211 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214212 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214213 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214214 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214215 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214216 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214217 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214218 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214219 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214220 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214221 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214222 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214223 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214224 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214225 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214226 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214227 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214228 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214229 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214230 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214231 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214232 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214233 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214234 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214235 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214236 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214237 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214238 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214239 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214240 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214241 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214242 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214243 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214244 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214245 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214246 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214247 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214248 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214249 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214250 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214251 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214252 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214253 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214254 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214255 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214256 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214257 06.07.2026 14:47:41 : ERR WBMAIN : *0: app 830 Event 36 80005310
+#1214258 06.07.2026 14:47:41 : ERR WBMAIN : 1: mea 12 Wait 0 00000000
+#1214259 06.07.2026 14:47:41 : ERR WBMAIN : 2: ui 639 Wait 0 00000000
+#1214260 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214261 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214262 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214263 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214264 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214265 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214266 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214267 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214268 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214269 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214270 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214271 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214272 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214273 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214274 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214275 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214276 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214277 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214278 06.07.2026 14:47:41 : EVT PMIC : PMIC Precharge
+#1214279 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214280 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214281 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214282 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214283 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214284 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214285 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214286 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214287 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214288 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214289 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214290 06.07.2026 14:47:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1214291 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214292 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214293 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214294 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214295 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214296 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214297 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214298 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214299 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214300 06.07.2026 14:47:42 : EVT PMIC : PMIC Precharge
+#1214301 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214302 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214303 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214304 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214305 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214306 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214307 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214308 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214309 06.07.2026 14:47:42 : EVT PMIC : PMIC Precharge
+#1214310 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214311 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214312 06.07.2026 14:47:42 : EVT PMIC : PMIC Precharge
+#1214313 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214314 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214315 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214316 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214317 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214318 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214319 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214320 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214321 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214322 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214323 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214324 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214325 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214326 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214327 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214328 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214329 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214330 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214331 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214332 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214333 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214334 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214335 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214336 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214337 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214338 06.07.2026 14:47:42 : EVT ANALYTICS : Sync start
+#1214339 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214340 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214341 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214342 06.07.2026 14:47:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1214343 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214344 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214345 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214346 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214347 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214348 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214349 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214350 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214351 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214352 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214353 06.07.2026 14:47:43 : EVT PMIC : PMIC Precharge
+#1214354 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214355 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214356 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214357 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214358 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214359 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214360 06.07.2026 14:47:43 : EVT PMIC : PMIC Precharge
+#1214361 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214362 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214363 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214364 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214365 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214366 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214367 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214368 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214369 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214370 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214371 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214372 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214373 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214374 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214375 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214376 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214377 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214378 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214379 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214380 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214381 06.07.2026 14:47:43 : EVT PMIC : PMIC Precharge
+#1214382 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214383 06.07.2026 14:47:43 : EVT ANALYTICS : Sync start
+#1214384 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214385 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214386 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214387 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214388 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214389 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214390 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214391 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214392 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214393 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214394 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214395 06.07.2026 14:47:43 : EVT <Unknown> : DL Region List
+#1214396 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214397 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214398 06.07.2026 14:47:43 : WRN WIFI : No APs matched to connect
+#1214399 06.07.2026 14:47:43 : EVT WIFI : Scann APs (1/3)
+#1214400 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214401 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214402 06.07.2026 14:47:43 : EVT PMIC : PMIC Precharge
+#1214403 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214404 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214405 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214406 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214407 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214408 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214409 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214410 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214411 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214412 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214413 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214414 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214415 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214416 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214417 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214418 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214419 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214420 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214421 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214422 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214423 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214424 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214425 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214426 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214427 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214428 06.07.2026 14:47:43 : EVT PMIC : PMIC Precharge
+#1214429 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214430 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214431 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214432 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214433 06.07.2026 14:47:43 : EVT PMIC : PMIC Precharge
+#1214434 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214435 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214436 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214437 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214438 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214439 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214440 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214441 06.07.2026 14:47:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214442 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214443 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214444 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214445 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214446 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214447 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214448 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214449 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214450 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214451 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214452 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214453 06.07.2026 14:47:44 : EVT WIFI : APs scanned:15
+#1214454 06.07.2026 14:47:44 : WRN WIFI : No APs matched to connect
+#1214455 06.07.2026 14:47:44 : EVT WIFI : Scann APs (2/3)
+#1214456 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214457 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214458 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214459 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214460 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214461 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214462 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214463 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214464 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214465 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214466 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214467 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214468 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214469 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214470 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214471 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214472 06.07.2026 14:47:44 : EVT PMIC : PMIC Fast-charge constant cur
+#1214473 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214474 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214475 06.07.2026 14:47:45 : EVT WIFI : APs scanned:16
+#1214476 06.07.2026 14:47:45 : WRN WIFI : No APs matched to connect
+#1214477 06.07.2026 14:47:45 : EVT WIFI : Scann APs (3/3)
+#1214478 06.07.2026 14:47:45 : EVT PMIC : PMIC Precharge
+#1214479 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214480 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214481 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214482 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214483 06.07.2026 14:47:45 : EVT PMIC : PMIC Precharge
+#1214484 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214485 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214486 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214487 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214488 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214489 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214490 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214491 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214492 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214493 06.07.2026 14:47:45 : EVT PMIC : PMIC Fast-charge constant cur
+#1214494 06.07.2026 14:47:45 : EVT WIFI : APs scanned:12
+#1214495 06.07.2026 14:47:45 : WRN WIFI : No APs matched to connect
+#1214496 06.07.2026 14:47:45 : EVT WIFI : Internal connect ret:103
+#1214497 06.07.2026 14:47:45 : ERR <Unknown> : DL GET resultCode=500
+#1214498 06.07.2026 14:47:45 : EVT <Unknown> : DL try retry after 20000 ms
+#1214499 06.07.2026 14:47:49 : EVT PMIC : PMIC Maintain charge
+#1214500 06.07.2026 14:47:58 : EVT WIFI : Pwr down idle wifi (TO:13se)
+#1214501 06.07.2026 14:47:58 : EVT WIFI : pwr down OK
+#1214502 06.07.2026 14:48:05 : EVT <Unknown> : DL Region List
+#1214503 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214504 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214505 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214506 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214507 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214508 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214509 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214510 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214511 06.07.2026 14:48:05 : EVT PMIC : PMIC Fast-charge constant cur
+#1214512 06.07.2026 14:48:05 : EVT WIFI : Pwr up
+#1214513 06.07.2026 14:48:06 : EVT PMIC : PMIC Fast-charge constant cur
+#1214514 06.07.2026 14:48:06 : EVT PMIC : PMIC Fast-charge constant cur
+#1214515 06.07.2026 14:48:06 : EVT PMIC : PMIC Fast-charge constant cur
+#1214516 06.07.2026 14:48:07 : EVT PMIC : PMIC Maintain charge
+#1214517 06.07.2026 14:48:12 : EVT WIFI : pwr up
+#1214518 06.07.2026 14:48:12 : EVT WIFI : SDK Ver(3.2.8.1)
+#1214519 06.07.2026 14:48:12 : WRN WIFI : No APs matched to connect
+#1214520 06.07.2026 14:48:12 : EVT WIFI : Scann APs (1/3)
+#1214521 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214522 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214523 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214524 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214525 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214526 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214527 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214528 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214529 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214530 06.07.2026 14:48:12 : EVT PMIC : PMIC Precharge
+#1214531 06.07.2026 14:48:12 : EVT PMIC : PMIC Fast-charge constant cur
+#1214532 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214533 06.07.2026 14:48:13 : EVT PMIC : PMIC Maintain charge
+#1214534 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214535 06.07.2026 14:48:13 : EVT WIFI : APs scanned:12
+#1214536 06.07.2026 14:48:13 : WRN WIFI : No APs matched to connect
+#1214537 06.07.2026 14:48:13 : EVT WIFI : Scann APs (2/3)
+#1214538 06.07.2026 14:48:13 : EVT PMIC : PMIC Precharge
+#1214539 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214540 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214541 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214542 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214543 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214544 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214545 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214546 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214547 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214548 06.07.2026 14:48:13 : EVT PMIC : PMIC Precharge
+#1214549 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214550 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214551 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214552 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214553 06.07.2026 14:48:13 : EVT PMIC : PMIC Precharge
+#1214554 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214555 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214556 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214557 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214558 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214559 06.07.2026 14:48:13 : EVT PMIC : PMIC Precharge
+#1214560 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214561 06.07.2026 14:48:13 : EVT PMIC : PMIC Precharge
+#1214562 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214563 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214564 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214565 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214566 06.07.2026 14:48:13 : EVT PMIC : PMIC Precharge
+#1214567 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214568 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214569 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214570 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214571 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214572 06.07.2026 14:48:13 : EVT PMIC : PMIC Fast-charge constant cur
+#1214573 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214574 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214575 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214576 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214577 06.07.2026 14:48:14 : EVT PMIC : PMIC Precharge
+#1214578 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214579 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214580 06.07.2026 14:48:14 : EVT WIFI : APs scanned:10
+#1214581 06.07.2026 14:48:14 : WRN WIFI : No APs matched to connect
+#1214582 06.07.2026 14:48:14 : EVT WIFI : Scann APs (3/3)
+#1214583 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214584 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214585 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214586 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214587 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214588 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214589 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214590 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214591 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214592 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214593 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214594 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214595 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214596 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214597 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214598 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214599 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214600 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214601 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214602 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214603 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214604 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214605 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214606 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214607 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214608 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214609 06.07.2026 14:48:14 : EVT PMIC : PMIC Precharge
+#1214610 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214611 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214612 06.07.2026 14:48:14 : EVT PMIC : PMIC Fast-charge constant cur
+#1214613 06.07.2026 14:48:14 : EVT WIFI : APs scanned:10
+#1214614 06.07.2026 14:48:14 : WRN WIFI : No APs matched to connect
+#1214615 06.07.2026 14:48:14 : EVT WIFI : Internal connect ret:103
+#1214616 06.07.2026 14:48:14 : ERR <Unknown> : DL GET resultCode=500
+#1214617 06.07.2026 14:48:14 : EVT <Unknown> : DL try retry after 40000 ms
+#1214618 06.07.2026 14:48:15 : EVT PMIC : PMIC temp zone:0x7
+#1214619 06.07.2026 14:48:15 : EVT PMIC : VBUS state is OFF
+#1214620 06.07.2026 14:48:15 : EVT PMIC : Turn charge OFF since VBUS->OFF
+#1214621 06.07.2026 14:48:15 : EVT WBCOMM : Route lost: ECSD00000000
+#1214622 06.07.2026 14:48:15 : TRC FUEL_GAUGE : Chg->0,B:5,C:15.7,V:4440,U:0,bF:100%,bC:100%
+#1214623 06.07.2026 14:48:15 : EVT OHR : VBUS off
+#1214624 06.07.2026 14:48:15 : EVT OHR : S:ON 0->1
+#1214625 06.07.2026 14:48:16 : EVT ANALYTICS : Battery-> 1 soc:100
+#1214626 06.07.2026 14:48:16 : EVT OHR : APPINIT:caps 0x1f4, 6b738616
+#1214627 06.07.2026 14:48:16 : EVT <Unknown> : 1783342096235:AI@1783342096210, tz120
+#1214628 06.07.2026 14:48:16 : EVT OHR : S:start 0x2123
+#1214629 06.07.2026 14:48:16 : EVT <Unknown> : 1783342096241:Meas start 0x2123
+#1214630 06.07.2026 14:48:16 : EVT <Unknown> : 1783342096255:PD1464, 0
+#1214631 06.07.2026 14:48:16 : EVT <Unknown> : 1783342096319:GMV 20251126/1/4/0/395/46
+#1214632 06.07.2026 14:48:16 : EVT <Unknown> : 1783342096572:Mi1.6.10, auth 0, hr_mode 0
+#1214633 06.07.2026 14:48:17 : EVT <Unknown> : 1783342097119:On Skin Set.
+#1214634 06.07.2026 14:48:21 : EVT WBSTORAGE : CACHE_DEFRAG (552->808, 24->24, 25)
+#1214635 06.07.2026 14:48:21 : EVT WBSTORAGE : CACHE_DEFRAG (784->792, 24->24, 25)
+#1214636 06.07.2026 14:48:21 : EVT WBSTORAGE : CACHE_DEFRAG (776->848, 24->24, 25)
+#1214637 06.07.2026 14:48:21 : TRC NAVIGATION : CG: no climb WP
+#1214638 06.07.2026 14:48:21 : TRC NAVIGATION : CG:init ZoomType=0
+#1214639 06.07.2026 14:48:21 : EVT NAVIGATION : initSeg Idx=0 D=1 T=0 3-0-4
+#1214640 06.07.2026 14:48:21 : EVT WBSTORAGE : CACHE_DEFRAG (768->968, 24->24, 25)
+#1214641 06.07.2026 14:48:21 : EVT ALTIFUSION : AltiBaroMode:0
+#1214642 06.07.2026 14:48:21 : EVT APPLICATION : Zapp zwc05901:Disable
+#1214643 06.07.2026 14:48:21 : EVT ANALYTICS : Zapp disabled i:3 h:ddb248f2 n:Vector classic
+#1214644 06.07.2026 14:48:21 : EVT ANALYTICS : SleepQ:Tracking:On
+#1214645 06.07.2026 14:48:21 : ERR <Unknown> : 1783342101133:Mi invalid call:100,code:0.
+#1214646 06.07.2026 14:48:21 : EVT ALTIFUSION : AltiBaroMode:0
+#1214647 06.07.2026 14:48:21 : EVT WBSTORAGE : CACHE_DEFRAG (944->952, 24->24, 25)
+#1214648 06.07.2026 14:48:21 : EVT UI_FRAMEWORK : JS nsto enable zapp: zzwethen
+#1214649 06.07.2026 14:48:21 : EVT UI_FRAMEWORK : JS nsto enable zapp: zzmoveen
+#1214650 06.07.2026 14:48:21 : EVT UI_FRAMEWORK : JS nsto enable zapp: climbl01
+#1214651 06.07.2026 14:48:21 : EVT APPLICATION : Zapp zzwethen:Load script
+#1214652 06.07.2026 14:48:21 : EVT APPLICATION : Zapp zzwethen:Enable
+#1214653 06.07.2026 14:48:21 : EVT ANALYTICS : Zapp enabled i:8 h:3f77f8ec n:zzwethen v:ade
+#1214654 06.07.2026 14:48:21 : EVT APPLICATION : Zapp clid:32878
+#1214655 06.07.2026 14:48:21 : EVT APPLICATION : Zapp zzmoveen:Load script
+#1214656 06.07.2026 14:48:21 : EVT APPLICATION : Zapp zzmoveen:Enable
+#1214657 06.07.2026 14:48:21 : EVT ANALYTICS : Zapp enabled i:6 h:7aac0887 n:zzmoveen v:8e0
+#1214658 06.07.2026 14:48:21 : EVT UI_FRAMEWORK : evalFile: b:/zapp/zzmoveen.fea/ext1.js from ui
+#1214659 06.07.2026 14:48:21 : EVT APPLICATION : Zapp clid:32879
+#1214660 06.07.2026 14:48:22 : EVT APPLICATION : Zapp climbl01:Load script
+#1214661 06.07.2026 14:48:22 : EVT APPLICATION : Zapp climbl01:Enable
+#1214662 06.07.2026 14:48:22 : EVT ANALYTICS : Zapp enabled i:5 h:a5e7afa5 n:climbl01 v:3.0
+#1214663 06.07.2026 14:48:22 : EVT APPLICATION : Zapp clid:32880
+#1214664 06.07.2026 14:48:22 : EVT UI_FRAMEWORK : JS nsto all zapps enabled.
+#1214665 06.07.2026 14:48:22 : ERR WBMAIN : *0: app 600 Event 37 80995318
+#1214666 06.07.2026 14:48:22 : ERR WBMAIN : 1: mea 5 Wait 0 00000000
+#1214667 06.07.2026 14:48:22 : ERR WBMAIN : 2: ui 26 Wait 0 00000000
+#1214668 06.07.2026 14:48:22 : EVT UI_FRAMEWORK : JS Prestart Activity Id: 16.000
+#1214669 06.07.2026 14:48:22 : EVT GOMORE : GoMore Update User Info
+#1214670 06.07.2026 14:48:22 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214671 06.07.2026 14:48:22 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214672 06.07.2026 14:48:22 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214673 06.07.2026 14:48:22 : EVT WBSTORAGE : CACHE_DEFRAG (904->912, 24->24, 25)
+#1214674 06.07.2026 14:48:22 : EVT WBSTORAGE : CACHE_DEFRAG (840->848, 24->24, 25)
+#1214675 06.07.2026 14:48:22 : EVT WBSTORAGE : CACHE_DEFRAG (776->784, 24->24, 25)
+#1214676 06.07.2026 14:48:22 : EVT BLE : BLE Sensor Link 4800180D Conn (--E-:00:1)
+#1214677 06.07.2026 14:48:22 : WRN BLE : sendConnect 6157
+#1214678 06.07.2026 14:48:23 : EVT GPS : LocationProviderImpl:sub Best
+#1214679 06.07.2026 14:48:23 : TRC GPS : Full GNSS data subd l:15 c:80160010
+#1214680 06.07.2026 14:48:23 : WRN WBAPI : eID-691468(277): /Dive/TankPressure/Alarm/Count 404
+#1214681 06.07.2026 14:48:23 : EVT SPEEDFUSION : INFO # start speed fusion
+#1214682 06.07.2026 14:48:23 : EVT SPEEDFUSION : Act:16,Acc:0,BPod:0,FPod:0,PPod:0,BeltPod:1
+#1214683 06.07.2026 14:48:23 : EVT SPEEDFUSION : INFO # Start algo without wrist acc
+#1214684 06.07.2026 14:48:23 : EVT <Unknown> : Update pres sampl intrvl:1
+#1214685 06.07.2026 14:48:23 : EVT OHR : S:start 0x21a3
+#1214686 06.07.2026 14:48:23 : EVT UI_FRAMEWORK : evalFile: b:/zapp/climbl01.fea/ext12.js from ui
+#1214687 06.07.2026 14:48:23 : WRN UI_FRAMEWORK : JsTotMem 128508/133120
+#1214688 06.07.2026 14:48:24 : ERR WBMAIN : *0: app 575 Event 24 806f8c00
+#1214689 06.07.2026 14:48:24 : EVT <Unknown> : 1783342103624:Meas start 0x21a3
+#1214690 06.07.2026 14:48:24 : ERR WBMAIN : 1: mea 76 Wait 0 00000000
+#1214691 06.07.2026 14:48:24 : ERR WBMAIN : 2: ui 1 Proc 0 00000000
+#1214692 06.07.2026 14:48:26 : EVT GPS : LocationProviderImpl:sub Passive
+#1214693 06.07.2026 14:48:26 : TRC GPS : Full GNSS data subd l:0 c:80160010
+#1214694 06.07.2026 14:48:26 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214695 06.07.2026 14:48:26 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214696 06.07.2026 14:48:26 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214697 06.07.2026 14:48:26 : EVT TRAININGLAB : TLab:~Mode T 14747 + 31 A 3900 + 0
+#1214698 06.07.2026 14:48:26 : EVT TRAININGLAB : TLab:Change mode 2->3
+#1214699 06.07.2026 14:48:26 : EVT TRAININGLAB : TLab:Mode::userInfo 60, 200, 1, 37, 182, 950, 1990
+#1214700 06.07.2026 14:48:27 : EVT LOGGER : Log space:30792119 bytes free
+#1214701 06.07.2026 14:48:27 : EVT TRAININGLAB : ModeUnsub:2800
+#1214702 06.07.2026 14:48:27 : EVT TRAININGLAB : ModeSub:9004
+#1214703 06.07.2026 14:48:27 : EVT TRAININGLAB : TLab:Select input 0
+#1214704 06.07.2026 14:48:27 : EVT TRAININGLAB : TLab:Active input 0
+#1214705 06.07.2026 14:48:27 : EVT LOGGER : Exercise started
+#1214706 06.07.2026 14:48:27 : EVT BLE : HR RR on (128744541)
+#1214707 06.07.2026 14:48:27 : TRC GPS : Full GNSS data subd l:0 c:802b0000
+#1214708 06.07.2026 14:48:27 : ERR WBMAIN : *0: app 543 Event 37 8099031a
+#1214709 06.07.2026 14:48:27 : ERR WBMAIN : 1: mea 1 Wait 0 00000000
+#1214710 06.07.2026 14:48:27 : ERR WBMAIN : 2: ui 2 Proc 0 00000000
+#1214711 06.07.2026 14:48:27 : EVT WIFI : Pwr down idle wifi (TO:13se)
+#1214712 06.07.2026 14:48:27 : EVT WIFI : pwr down OK
+#1214713 06.07.2026 14:48:27 : EVT OHR : No HR update, invalidate by timer
+#1214714 06.07.2026 14:48:28 : EVT ANALYTICS : Battery-> 3 soc:100
+#1214715 06.07.2026 14:48:28 : EVT ANALYTICS : #FusHr src:0 time:0
+#1214716 06.07.2026 14:48:28 : EVT ANALYTICS : #Act id:16
+#1214717 06.07.2026 14:48:28 : EVT ANALYTICS : #powersave mode:p temp:28.6
+#1214718 06.07.2026 14:48:28 : EVT ANALYTICS : GPSMODE:NOTUSED
+#1214719 06.07.2026 14:48:28 : EVT ANALYTICS : #gnss d:2026-07-06T00:00:00Z
+#1214720 06.07.2026 14:48:29 : EVT ANALYTICS : #zapp n:Weather e:1
+#1214721 06.07.2026 14:48:29 : EVT ANALYTICS : #zapp n:Movement e:1
+#1214722 06.07.2026 14:48:29 : EVT ANALYTICS : #zapp n:Climb Log e:1
+#1214723 06.07.2026 14:48:29 : WRN UI_FRAMEWORK : JsTotMem 132380/133120
+#1214724 06.07.2026 14:48:32 : EVT OHR : new HR update
+#1214725 06.07.2026 14:48:33 : EVT BLE : lt,scan 1
+#1214726 06.07.2026 14:48:33 : WRN BLE : sendDisconnect 6157
+#1214727 06.07.2026 14:48:33 : ERR BLE : [AURA]No filters left, stopping scan
+#1214728 06.07.2026 14:48:33 : ERR BLE : [AURA]Filter with handle 72 not found
+#1214729 06.07.2026 14:48:33 : EVT BLE : packet 0 sensor found count 1
+#1214730 06.07.2026 14:48:33 : EVT BLE : packet 0 sensor found count 2
+#1214731 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:relMemCb (exec:zapp)
+#1214732 06.07.2026 14:48:34 : EVT APPLICATION : Zapp zzwethen:Disable
+#1214733 06.07.2026 14:48:34 : EVT ANALYTICS : Zapp disabled i:8 h:3f77f8ec n:Weather
+#1214734 06.07.2026 14:48:34 : ERR APPLICATION : Zapp 3:RelMem->unload
+#1214735 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:relMemCb (exec:zapp)
+#1214736 06.07.2026 14:48:34 : EVT APPLICATION : Zapp zzmoveen:Disable
+#1214737 06.07.2026 14:48:34 : EVT ANALYTICS : Zapp disabled i:6 h:7aac0887 n:Movement
+#1214738 06.07.2026 14:48:34 : ERR APPLICATION : Zapp 3:RelMem->unload
+#1214739 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:relMemCb (exec:zapp)
+#1214740 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:RelMem->None avail
+#1214741 06.07.2026 14:48:34 : ERR DUKTAPE : JSalloc:2148
+#1214742 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:relMemCb (exec:zapp)
+#1214743 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:RelMem->None avail
+#1214744 06.07.2026 14:48:34 : ERR DUKTAPE : JSalloc:2148
+#1214745 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:relMemCb (exec:zapp)
+#1214746 06.07.2026 14:48:34 : ERR APPLICATION : Zapp:RelMem->None avail
+#1214747 06.07.2026 14:48:34 : ERR DUKTAPE : JSalloc:2148
+#1214748 06.07.2026 14:48:35 : EVT ANALYTICS : #ws AID:16 BM:1 NS:1 SP:1 ZN:0 TG:0 BL:0 GPS:0
+#1214749 06.07.2026 14:48:35 : EVT ANALYTICS : #2ws AID:16 WHR:1 INT:0 AL:0 AP:0 FE:1 MC:1 TH:0
+#1214750 06.07.2026 14:48:37 : EVT ANALYTICS : #FusHr src:2 time:10388
+#1214751 06.07.2026 14:48:37 : EVT TRAININGLAB : Tlab:HR src is 2
+#1214752 06.07.2026 14:48:37 : EVT ANALYTICS : #FusHr src:2 time:0
+#1214753 06.07.2026 14:48:37 : EVT TRAININGLAB : TLab:Active input 1
+#1214754 06.07.2026 14:48:41 : EVT <Unknown> : 1783342120901:Off Skin Set.
+#1214755 06.07.2026 14:48:43 : EVT PMIC : VBUS state is ON
+#1214756 06.07.2026 14:48:43 : EVT PMIC : chgCntl1:0x70
+#1214757 06.07.2026 14:48:43 : EVT PMIC : check chgCntl1:0x74
+#1214758 06.07.2026 14:48:43 : EVT PMIC : Turn charge ON since VBUS->ON
+#1214759 06.07.2026 14:48:43 : EVT PMIC : PMIC temp zone:0x2
+#1214760 06.07.2026 14:48:43 : EVT PMIC : PMIC Fast-charge constant cur
+#1214761 06.07.2026 14:48:43 : EVT OHR : VBUS on
+#1214762 06.07.2026 14:48:43 : EVT OHR : S:stop a3
+#1214763 06.07.2026 14:48:43 : EVT <Unknown> : 1783342123094:Meas stop 0x21a3
+#1214764 06.07.2026 14:48:43 : WRN <Unknown> : 1783342123095:FSM EVT STOP.
+#1214765 06.07.2026 14:48:43 : EVT OHR : S:OFF 1->0
+#1214766 06.07.2026 14:48:43 : EVT PMIC : VBUS state is ON
+#1214767 06.07.2026 14:48:44 : EVT PMIC : PMIC temp zone:0x7
+#1214768 06.07.2026 14:48:44 : EVT PMIC : VBUS state is OFF
+#1214769 06.07.2026 14:48:44 : EVT PMIC : Turn charge OFF since VBUS->OFF
+#1214770 06.07.2026 14:48:44 : EVT OHR : VBUS off
+#1214771 06.07.2026 14:48:44 : EVT OHR : S:ON 0->1
+#1214772 06.07.2026 14:48:44 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214773 06.07.2026 14:48:44 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214774 06.07.2026 14:48:44 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214775 06.07.2026 14:48:44 : EVT OHR : APPINIT:caps 0x1f4, 6b738616
+#1214776 06.07.2026 14:48:44 : EVT <Unknown> : 1783342124804:AI@1783342124780, tz120
+#1214777 06.07.2026 14:48:44 : EVT OHR : S:start 0x21a3
+#1214778 06.07.2026 14:48:44 : EVT <Unknown> : 1783342124809:Meas start 0x21a3
+#1214779 06.07.2026 14:48:45 : EVT <Unknown> : 1783342124823:PD1464, 0
+#1214780 06.07.2026 14:48:45 : EVT <Unknown> : 1783342124882:GMV 20251126/1/4/0/395/46
+#1214781 06.07.2026 14:48:45 : EVT <Unknown> : 1783342125401:Mi1.6.10, auth 0, hr_mode 0
+#1214782 06.07.2026 14:48:45 : EVT OHR : No HR update, invalidate by timer
+#1214783 06.07.2026 14:48:46 : EVT <Unknown> : 1783342125938:On Skin Set.
+#1214784 06.07.2026 14:48:48 : EVT LOGGER : LGR 934, 80
+#1214785 06.07.2026 14:48:48 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214786 06.07.2026 14:48:48 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214787 06.07.2026 14:48:48 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214788 06.07.2026 14:48:50 : EVT LOGGER : LGR 934, 80
+#1214789 06.07.2026 14:48:50 : ERR <Unknown> : 1783342129951:Mi invalid call:100,code:0.
+#1214790 06.07.2026 14:48:50 : EVT UI_FRAMEWORK : evalFile: b:/zapp/climbl01.fea/ext10.js from ui
+#1214791 06.07.2026 14:48:50 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214792 06.07.2026 14:48:50 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214793 06.07.2026 14:48:50 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214794 06.07.2026 14:48:51 : EVT LOGGER : LGR 934, 80
+#1214795 06.07.2026 14:48:51 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214796 06.07.2026 14:48:51 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214797 06.07.2026 14:48:51 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214798 06.07.2026 14:48:52 : EVT LOGGER : LGR 934, 80
+#1214799 06.07.2026 14:48:53 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214800 06.07.2026 14:48:53 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214801 06.07.2026 14:48:53 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214802 06.07.2026 14:48:55 : EVT LOGGER : Exercise paused
+#1214803 06.07.2026 14:48:55 : WRN WBAPI : eID-691468(277): /Dive/Alarms/Acknowledge 404
+#1214804 06.07.2026 14:48:55 : WRN WBAPI : eID-691468(277): /Dive/DiveGases 404
+#1214805 06.07.2026 14:48:55 : WRN WBAPI : eID-691468(277): /Dive/Gauge/Next 404
+#1214806 06.07.2026 14:48:58 : EVT APPLICATION : Zapp climbl01:Disable
+#1214807 06.07.2026 14:48:58 : EVT UI_FRAMEWORK : evalFile: b:/zapp/climbl01.fea/ext11.js from ui
+#1214808 06.07.2026 14:48:58 : EVT ANALYTICS : Zapp disabled i:5 h:a5e7afa5 n:Climb Log
+#1214809 06.07.2026 14:48:59 : EVT UI_FRAMEWORK : JS discard disable zapps
+#1214810 06.07.2026 14:48:59 : EVT UI_FRAMEWORK : JS will discard
+#1214811 06.07.2026 14:48:59 : EVT SPEEDFUSION : INFO # stop speed fusion
+#1214812 06.07.2026 14:48:59 : EVT <Unknown> : Update pres sampl intrvl:5
+#1214813 06.07.2026 14:48:59 : WRN APPLICATION : discard hrr meas l:3 d:0 sh:0 mh:0 v:0
+#1214814 06.07.2026 14:48:59 : WRN WBAPI : eID-698eec(583/65535): 404
+#1214815 06.07.2026 14:48:59 : EVT GPS : LocationProviderImpl:sub Best
+#1214816 06.07.2026 14:48:59 : TRC GPS : Full GNSS data subd l:15 c:80160010
+#1214817 06.07.2026 14:48:59 : EVT TRAININGZONE : User Define Mode:5
+#1214818 06.07.2026 14:48:59 : EVT TRAININGZONE : Tss HR:0.17
+#1214819 06.07.2026 14:48:59 : EVT TRAININGZONE : A:16,Tss:[-200.00,-200.00,-200.00,0.17]
+#1214820 06.07.2026 14:48:59 : EVT TRAININGLAB : AppFeature Vo2Max 0.000000
+#1214821 06.07.2026 14:48:59 : EVT TRAININGLAB : TLab:~Mode T 14778 + 17 A 3900 + 10
+#1214822 06.07.2026 14:48:59 : EVT TRAININGLAB : TLab:Change mode 3->2
+#1214823 06.07.2026 14:48:59 : EVT TRAININGLAB : TLab:Mode::userInfo 60, 200, 1, 37, 182, 950, 1990
+#1214824 06.07.2026 14:48:59 : EVT LOGGER : LGR 934, 80
+#1214825 06.07.2026 14:48:59 : EVT TRAININGLAB : ModeUnsub:9145
+#1214826 06.07.2026 14:48:59 : EVT OHR : S:start 0x2123
+#1214827 06.07.2026 14:48:59 : EVT TRAININGLAB : ModeSub:0400
+#1214828 06.07.2026 14:48:59 : EVT ANALYTICS : WAOae:Activity WAOae:16
+#1214829 06.07.2026 14:48:59 : EVT ANALYTICS : WAOae:TotalAcc WAOae:0,0,0
+#1214830 06.07.2026 14:48:59 : EVT ANALYTICS : WAOae:AccCount WAOae:0,0,0
+#1214831 06.07.2026 14:48:59 : EVT ANALYTICS : WAOae:Distance WAOae:0,0,0
+#1214832 06.07.2026 14:48:59 : EVT ANALYTICS : WAOae:Duration WAOae:0,0,0
+#1214833 06.07.2026 14:48:59 : EVT ANALYTICS : WAOae:Coeff WAOae:0,40,122,272,773,7524,7624
+#1214834 06.07.2026 14:48:59 : EVT LOGGER : Exercise stopped
+#1214835 06.07.2026 14:48:59 : EVT BLE : HR RR off (128776468, 31927 ms missing)
+#1214836 06.07.2026 14:48:59 : EVT BLE : HR RR done
+#1214837 06.07.2026 14:48:59 : EVT LOGGER : HrIbiLogger stop, off (0 ms)
+#1214838 06.07.2026 14:48:59 : EVT LOGGER : HrIbiLogger stopped (0 ms)
+#1214839 06.07.2026 14:48:59 : TRC GPS : Unsubd c:802b0000
+#1214840 06.07.2026 14:48:59 : EVT LOGGER : LGR 934, 80
+#1214841 06.07.2026 14:48:59 : EVT LOGGER : LGR 934, 80
+#1214842 06.07.2026 14:48:59 : EVT ANALYTICS : SleepQ:Tracking:On
+#1214843 06.07.2026 14:48:59 : EVT LOGGER : Wr dpc on
+#1214844 06.07.2026 14:48:59 : EVT LOGGER : LGR 20993, 56
+#1214845 06.07.2026 14:48:59 : EVT <Unknown> : 1783342139092:Meas start 0x2123
+#1214846 06.07.2026 14:49:00 : EVT UI_FRAMEWORK : JS feeling vs idle 1
+#1214847 06.07.2026 14:49:00 : EVT UI_FRAMEWORK : JS feeling open ex-saving
+#1214848 06.07.2026 14:49:00 : EVT OHR : No HR update, invalidate by timer
+#1214849 06.07.2026 14:49:00 : EVT WBSTORAGE : CACHE_DEFRAG (696->856, 24->24, 25)
+#1214850 06.07.2026 14:49:00 : TRC NAVIGATION : CG: no climb WP
+#1214851 06.07.2026 14:49:00 : TRC NAVIGATION : CG:init ZoomType=0
+#1214852 06.07.2026 14:49:00 : EVT NAVIGATION : initSeg Idx=0 D=1 T=0 3-0-4
+#1214853 06.07.2026 14:49:00 : EVT WBSTORAGE : CACHE_DEFRAG (840->1048, 24->24, 25)
+#1214854 06.07.2026 14:49:00 : EVT SPEEDFUSION : INFO # IDLE mode(-1) set
+#1214855 06.07.2026 14:49:00 : EVT ALTIFUSION : AltiBaroMode:2
+#1214856 06.07.2026 14:49:00 : ERR WBMAIN : *0: app 504 Event 37 8099031c
+#1214857 06.07.2026 14:49:00 : ERR WBMAIN : 1: mea 0 Wait 0 00000000
+#1214858 06.07.2026 14:49:00 : ERR WBMAIN : 2: ui 2 Wait 0 00000000
+#1214859 06.07.2026 14:49:00 : EVT GPS : LocationProviderImpl:sub Passive
+#1214860 06.07.2026 14:49:00 : TRC GPS : Full GNSS data subd l:0 c:80160010
+#1214861 06.07.2026 14:49:00 : EVT BLE : Disconn sensor:1
+#1214862 06.07.2026 14:49:00 : EVT BLE : BLE Sensor Link 4800180D Disc (L-E-:00:0)
+#1214863 06.07.2026 14:49:00 : WRN BLE : sendDisconnect 6157
+#1214864 06.07.2026 14:49:00 : ERR BLE : [AURA]No filters left, stopping scan
+#1214865 06.07.2026 14:49:01 : EVT ANALYTICS : #powersave mode:p temp:28.7
+#1214866 06.07.2026 14:49:01 : EVT ANALYTICS : Battery-> 4 soc:100
+#1214867 06.07.2026 14:49:02 : EVT <Unknown> : 1783342142749:Off Skin Set.
+#1214868 06.07.2026 14:49:03 : EVT <Unknown> : 1783342143376:On Skin Set.
+#1214869 06.07.2026 14:49:03 : EVT ANALYTICS : Duration ExSaving:3595
+#1214870 06.07.2026 14:49:04 : EVT ANALYTICS : Duration ExSumBroker:359
+#1214871 06.07.2026 14:49:11 : EVT <Unknown> : 1783342151473:Off Skin Set.
+#1214872 06.07.2026 14:49:12 : EVT UI_FRAMEWORK : JS delete log
+#1214873 06.07.2026 14:49:12 : WRN LOGGER : Delete b:logs/6A4BA41A
+#1214874 06.07.2026 14:49:12 : EVT OHR : No HR update, invalidate by timer
+#1214875 06.07.2026 14:49:13 : EVT <Unknown> : 1783342153100:On Skin Set.
+#1214876 06.07.2026 14:49:13 : EVT <Unknown> : 1783342153611:Off Skin Set.
+#1214877 06.07.2026 14:49:14 : EVT WBSTORAGE : CACHE_DEFRAG (1024->1032, 24->24, 25)
+#1214878 06.07.2026 14:49:14 : EVT APPLICATION : Zapp zwc05901:Load script
+#1214879 06.07.2026 14:49:14 : EVT APPLICATION : Zapp zwc05901:Enable
+#1214880 06.07.2026 14:49:14 : EVT ANALYTICS : Zapp enabled i:3 h:ddb248f2 n:zwc05901 v:124f
+#1214881 06.07.2026 14:49:14 : WRN WBAPI : eID-691468(277): /Weather/Current/ValidWeatherData.temp 
+#1214882 06.07.2026 14:49:16 : EVT PMIC : VBUS state is ON
+#1214883 06.07.2026 14:49:16 : EVT PMIC : chgCntl1:0x70
+#1214884 06.07.2026 14:49:16 : EVT PMIC : check chgCntl1:0x74
+#1214885 06.07.2026 14:49:16 : EVT PMIC : Turn charge ON since VBUS->ON
+#1214886 06.07.2026 14:49:16 : EVT PMIC : PMIC temp zone:0x2
+#1214887 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214888 06.07.2026 14:49:16 : EVT OHR : VBUS on
+#1214889 06.07.2026 14:49:16 : EVT OHR : S:stop 23
+#1214890 06.07.2026 14:49:16 : EVT <Unknown> : 1783342156053:Meas stop 0x2123
+#1214891 06.07.2026 14:49:16 : EVT PMIC : VBUS state is ON
+#1214892 06.07.2026 14:49:16 : WRN <Unknown> : 1783342156054:FSM EVT STOP.
+#1214893 06.07.2026 14:49:16 : EVT OHR : S:OFF 1->0
+#1214894 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214895 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214896 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214897 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214898 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214899 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214900 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214901 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214902 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214903 06.07.2026 14:49:16 : EVT PMIC : PMIC Precharge
+#1214904 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214905 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214906 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214907 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214908 06.07.2026 14:49:16 : EVT PMIC : PMIC Precharge
+#1214909 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214910 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214911 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214912 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214913 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214914 06.07.2026 14:49:16 : EVT PMIC : PMIC Precharge
+#1214915 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214916 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214917 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214918 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214919 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214920 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214921 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214922 06.07.2026 14:49:16 : EVT PMIC : PMIC Precharge
+#1214923 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214924 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214925 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214926 06.07.2026 14:49:16 : EVT PMIC : PMIC Precharge
+#1214927 06.07.2026 14:49:16 : EVT PMIC : PMIC Fast-charge constant cur
+#1214928 06.07.2026 14:49:17 : EVT PMIC : PMIC temp zone:0x7
+#1214929 06.07.2026 14:49:17 : EVT PMIC : VBUS state is OFF
+#1214930 06.07.2026 14:49:17 : EVT PMIC : Turn charge OFF since VBUS->OFF
+#1214931 06.07.2026 14:49:17 : EVT OHR : VBUS off
+#1214932 06.07.2026 14:49:17 : EVT OHR : S:ON 0->1
+#1214933 06.07.2026 14:49:17 : EVT OHR : APPINIT:caps 0x1f4, 6b738616
+#1214934 06.07.2026 14:49:17 : EVT <Unknown> : 1783342157674:AI@1783342157650, tz120
+#1214935 06.07.2026 14:49:17 : EVT OHR : S:start 0x2123
+#1214936 06.07.2026 14:49:17 : EVT <Unknown> : 1783342157680:Meas start 0x2123
+#1214937 06.07.2026 14:49:18 : EVT <Unknown> : 1783342157694:PD1464, 0
+#1214938 06.07.2026 14:49:18 : EVT <Unknown> : 1783342157758:GMV 20251126/1/4/0/395/46
+#1214939 06.07.2026 14:49:18 : EVT <Unknown> : 1783342158012:Mi1.6.10, auth 0, hr_mode 0
+#1214940 06.07.2026 14:49:18 : EVT PMIC : VBUS state is ON
+#1214941 06.07.2026 14:49:18 : EVT PMIC : chgCntl1:0x70
+#1214942 06.07.2026 14:49:18 : EVT PMIC : check chgCntl1:0x74
+#1214943 06.07.2026 14:49:18 : EVT PMIC : Turn charge ON since VBUS->ON
+#1214944 06.07.2026 14:49:18 : EVT PMIC : PMIC temp zone:0x2
+#1214945 06.07.2026 14:49:18 : EVT PMIC : PMIC Fast-charge constant cur
+#1214946 06.07.2026 14:49:18 : EVT OHR : VBUS on
+#1214947 06.07.2026 14:49:18 : EVT OHR : S:stop 23
+#1214948 06.07.2026 14:49:18 : EVT <Unknown> : 1783342158822:Meas stop 0x2123
+#1214949 06.07.2026 14:49:18 : WRN <Unknown> : 1783342158822:FSM EVT STOP.
+#1214950 06.07.2026 14:49:18 : EVT OHR : S:OFF 1->0
+#1214951 06.07.2026 14:49:18 : EVT PMIC : VBUS state is ON
+#1214952 06.07.2026 14:49:24 : EVT PMIC : PMIC Maintain charge
+#1214953 06.07.2026 14:49:25 : EVT WBCOMM : P-9 connection made to ECSD00000000
+#1214954 06.07.2026 14:49:25 : EVT WBCOMM : New Route: ECSD00000000
+#1214955 06.07.2026 14:49:26 : TRC FUEL_GAUGE : Chg->1,B:5,C:4.5,V:4430,U:1,bF:100%,bC:100%
+#1214956 06.07.2026 14:49:27 : EVT PMIC : PMIC Fast-charge constant cur
+#1214957 06.07.2026 14:49:27 : EVT ANALYTICS : Battery-> 2 soc:100
+#1214958 06.07.2026 14:49:28 : EVT PMIC : PMIC Precharge
+#1214959 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214960 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214961 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214962 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214963 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214964 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214965 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214966 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214967 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214968 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214969 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214970 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214971 06.07.2026 14:49:28 : EVT PMIC : PMIC Precharge
+#1214972 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214973 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214974 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214975 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214976 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214977 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214978 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214979 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214980 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214981 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214982 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214983 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214984 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214985 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214986 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214987 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214988 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214989 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214990 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214991 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214992 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214993 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214994 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214995 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214996 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214997 06.07.2026 14:49:28 : EVT PMIC : PMIC Precharge
+#1214998 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1214999 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215000 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215001 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215002 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215003 06.07.2026 14:49:28 : EVT PMIC : PMIC Precharge
+#1215004 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215005 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215006 06.07.2026 14:49:28 : EVT PMIC : PMIC Precharge
+#1215007 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215008 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215009 06.07.2026 14:49:28 : EVT PMIC : PMIC Fast-charge constant cur
+#1215010 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215011 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215012 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215013 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215014 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215015 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215016 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215017 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215018 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215019 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215020 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215021 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215022 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215023 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215024 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215025 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215026 06.07.2026 14:49:29 : ERR WBMAIN : *0: app 1104 Event 36 80005310
+#1215027 06.07.2026 14:49:29 : ERR WBMAIN : 1: mea 33 Wait 0 00000000
+#1215028 06.07.2026 14:49:29 : ERR WBMAIN : 2: ui 317 Wait 0 00000000
+#1215029 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215030 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215031 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215032 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215033 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215034 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215035 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215036 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215037 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215038 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215039 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215040 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215041 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215042 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215043 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215044 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215045 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215046 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215047 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215048 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215049 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215050 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215051 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215052 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215053 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215054 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215055 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215056 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215057 06.07.2026 14:49:29 : EVT PMIC : PMIC Precharge
+#1215058 06.07.2026 14:49:29 : EVT PMIC : PMIC Fast-charge constant cur
+#1215059 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215060 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215061 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215062 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215063 06.07.2026 14:49:30 : ERR WBMAIN : *0: app 770 Event 36 80005310
+#1215064 06.07.2026 14:49:30 : ERR WBMAIN : 1: mea 9 Wait 0 00000000
+#1215065 06.07.2026 14:49:30 : ERR WBMAIN : 2: ui 94 Wait 0 00000000
+#1215066 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215067 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215068 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215069 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215070 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215071 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215072 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215073 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215074 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215075 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215076 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215077 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215078 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215079 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215080 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215081 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215082 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215083 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215084 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215085 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215086 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215087 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215088 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215089 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215090 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215091 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215092 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215093 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215094 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215095 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215096 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215097 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215098 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215099 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215100 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215101 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215102 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215103 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215104 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215105 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215106 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215107 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215108 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215109 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215110 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215111 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215112 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215113 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215114 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215115 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215116 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215117 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215118 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215119 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215120 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215121 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215122 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215123 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215124 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215125 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215126 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215127 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215128 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215129 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215130 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215131 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215132 06.07.2026 14:49:30 : EVT PMIC : PMIC Precharge
+#1215133 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215134 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215135 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215136 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215137 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215138 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215139 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215140 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215141 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215142 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215143 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215144 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215145 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215146 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215147 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215148 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215149 06.07.2026 14:49:30 : EVT PMIC : PMIC Fast-charge constant cur
+#1215150 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215151 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215152 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215153 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215154 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215155 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215156 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215157 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215158 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215159 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215160 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215161 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215162 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215163 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215164 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215165 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215166 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215167 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215168 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215169 06.07.2026 14:49:31 : EVT ANALYTICS : Sync start
+#1215170 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215171 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215172 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215173 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215174 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215175 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215176 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215177 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215178 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215179 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215180 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215181 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215182 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215183 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215184 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215185 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215186 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215187 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215188 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215189 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215190 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215191 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215192 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215193 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215194 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215195 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215196 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215197 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215198 06.07.2026 14:49:31 : EVT ANALYTICS : Sync start
+#1215199 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215200 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215201 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215202 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215203 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215204 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215205 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215206 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215207 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215208 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215209 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215210 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215211 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215212 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215213 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215214 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215215 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215216 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215217 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215218 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215219 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215220 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215221 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215222 06.07.2026 14:49:31 : EVT PMIC : PMIC Precharge
+#1215223 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215224 06.07.2026 14:49:31 : EVT PMIC : PMIC Fast-charge constant cur
+#1215225 06.07.2026 14:49:33 : EVT PMIC : PMIC Maintain charge
+#1215226 06.07.2026 14:49:33 : EVT WBSTORAGE : CACHE_DEFRAG (904->912, 24->24, 25)
+#1215227 06.07.2026 14:49:33 : EVT WBSTORAGE : CACHE_DEFRAG (880->888, 24->24, 25)
+#1215228 06.07.2026 14:49:33 : EVT WBSTORAGE : CACHE_DEFRAG (840->848, 24->24, 25)
+#1215229 06.07.2026 14:49:33 : EVT <Unknown> : DL Region List
+#1215230 06.07.2026 14:49:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1215231 06.07.2026 14:49:33 : EVT PMIC : PMIC Fast-charge constant cur
+#1215232 06.07.2026 14:49:33 : EVT WIFI : Pwr up
+#1215233 06.07.2026 14:49:34 : EVT PMIC : PMIC Maintain charge
+#1215234 06.07.2026 14:49:40 : EVT WIFI : pwr up
+#1215235 06.07.2026 14:49:40 : EVT WIFI : SDK Ver(3.2.8.1)
+#1215236 06.07.2026 14:49:40 : EVT WIFI : Scann APs (1/3)
+#1215237 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215238 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215239 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215240 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215241 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215242 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215243 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215244 06.07.2026 14:49:40 : EVT PMIC : PMIC Precharge
+#1215245 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215246 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215247 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215248 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215249 06.07.2026 14:49:40 : EVT PMIC : PMIC Fast-charge constant cur
+#1215250 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215251 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215252 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215253 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215254 06.07.2026 14:49:41 : EVT WIFI : APs scanned:16
+#1215255 06.07.2026 14:49:41 : EVT WBSTORAGE : CACHE_DEFRAG (832->840, 24->24, 25)
+#1215256 06.07.2026 14:49:41 : WRN WIFI : No APs matched to connect
+#1215257 06.07.2026 14:49:41 : EVT WIFI : Scann APs (2/3)
+#1215258 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215259 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215260 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215261 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215262 06.07.2026 14:49:41 : EVT PMIC : PMIC Precharge
+#1215263 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215264 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215265 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215266 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215267 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215268 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215269 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215270 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215271 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215272 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215273 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215274 06.07.2026 14:49:41 : EVT PMIC : PMIC Fast-charge constant cur
+#1215275 06.07.2026 14:49:42 : EVT WIFI : APs scanned:13
+#1215276 06.07.2026 14:49:42 : WRN WIFI : No APs matched to connect
+#1215277 06.07.2026 14:49:42 : EVT WIFI : Scann APs (3/3)
+#1215278 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215279 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215280 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215281 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215282 06.07.2026 14:49:42 : EVT PMIC : PMIC Precharge
+#1215283 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215284 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215285 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215286 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215287 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215288 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215289 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215290 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215291 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215292 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215293 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215294 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215295 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215296 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215297 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215298 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215299 06.07.2026 14:49:42 : EVT PMIC : PMIC Fast-charge constant cur
+#1215300 06.07.2026 14:49:42 : EVT WIFI : APs scanned:8
+#1215301 06.07.2026 14:49:42 : WRN WIFI : No APs matched to connect
+#1215302 06.07.2026 14:49:42 : EVT WIFI : Internal connect ret:103
+#1215303 06.07.2026 14:49:42 : ERR <Unknown> : DL GET resultCode=500
+#1215304 06.07.2026 14:49:42 : EVT <Unknown> : DL try retry after 80000 ms
+#1215305 06.07.2026 14:49:43 : EVT PMIC : PMIC Maintain charge
+
