@@ -112,9 +112,12 @@ var loadProjects = function(sys) {
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the tick-1 drain, fired on tick 2 (parse and template swap never share a tick), cancelled by any button press
 var drainF12 = function(autoSkip) {
   var r = loadExt(12)();
-  // r[6] = needsMig: an upgraded/legacy LS (stats.mig!==1 or a legacy climbProjStats object). Run the
-  // COLD migration ext ONCE to heal it (rou<ms>->s<ms>, mig=1, climbProjStats->pS<g>), then re-drain the
-  // healed state. ext13 NEVER parses on a fresh mig:1 install, so the hot re-enable drain stays lean.
+  // r[6] = needsMig: gates the COLD migration ext on the presence of a legacy rou<ms> key (stats.rou0).
+  // NOT on stats.mig — the on-watch log (2026-07-07) proved mig=1 does NOT persist across enable/disable
+  // (a drain-time setObject that isn't flushed), so gating on mig!==1 re-fired ext13 on EVERY enable,
+  // inflating the enable heap to 98% (JsTotMem WRN). rou0 is a pure sv-field check (no getObject quirk),
+  // absent on every current/pre-populated install, so ext13 now parses ONLY when there is genuine
+  // rou-format legacy data to migrate. If so, heal it (rou<ms>->s<ms>, climbProjStats->pS<g>) then re-drain.
   if (r[6]) { try { loadExt(13)(); r = loadExt(12)(); } catch (e) {} }
   gradeSystem = r[0];
   projGradeIdx = r[1];
