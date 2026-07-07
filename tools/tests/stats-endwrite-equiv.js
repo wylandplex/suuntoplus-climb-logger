@@ -86,7 +86,10 @@ return null}`;
 const NEW = {
   ext10: fs.readFileSync(path.join(ROOT, 'ext10.js'), 'utf8'),
   ext11: fs.readFileSync(path.join(ROOT, 'ext11.js'), 'utf8'),
-  ext12: fs.readFileSync(path.join(ROOT, 'ext12.js'), 'utf8'),
+  // FROZEN copy of the deleted ext12.js: the production read-side is now main.js drainF12
+  // (hybrid inline drain). tools/tests/drain-inline-equiv.js proves drainF12 == this oracle;
+  // this harness keeps proving the OLD->NEW persistence-pipeline equivalence on top of it.
+  ext12: 'function(){var L=localStorage,aps={},A=[],P=[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1];var GL=[41,24,29,11,14,30,11,12,1,1];var sv=L.getObject("stats")||{},ws=L.getObject("watchSetup"),gs=0,i;if(ws){gs=(ws.sys>=0&&ws.sys<=9)?ws.sys:0;aps=ws.proj||aps}if(sv.system>=0&&sv.system<=9)gs=sv.system|0;for(var s=0;s<10;s++){var sp=aps[s]||[-1,-1,-1,-1,-1];for(i=0;i<5;i++){var pk="p"+s+"_"+(i+1),p=sv[pk];if(p>=-1&&p<GL[s])sp[i]=p|0;A[s*5+i]=sp[i]}aps[s]=sp}var Z=L.getObject("pS"+gs);if(Z){for(i=0;i<20;i++)P[i]=Z[i]!==undefined?Z[i]:i<15?0:-1}return[gs,aps[gs]||[-1,-1,-1,-1,-1],P,sv.sessions|0,A,sv.showSetupOnStart,sv.rou0!==undefined]}',
   ext14: fs.readFileSync(path.join(ROOT, 'ext14.js'), 'utf8'),
 };
 
