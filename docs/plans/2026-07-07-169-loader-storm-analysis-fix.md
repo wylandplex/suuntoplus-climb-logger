@@ -6,6 +6,27 @@ und den Firmware-Anteil sauber an Suunto eskalieren.
 
 ---
 
+## ✅ ERGEBNIS PHASE A (abgeschlossen 2026-07-08, Logs 07j/07k/07l/08a)
+
+**Corpse-Akkumulations-Modell bewiesen, Träger = main.js allein.** Die Dekompositions-Serie
+(nur main.js variiert, Manifest/data.jsn/Templates/exts byte-identisch):
+
+| main.js-Blob | rapide Einzel-Toggles bis Failure |
+|---|---|
+| 7784 B (Produktion) | Fail bei Leiche **#1** (JSalloc-Sturm → `Compiling js failed` → FW-Auto-Disable) |
+| 4060 B (Probe A1) | 4 sauber, **stuck bei #5** — ZWEITE Signatur: kein `Load script`, kein JSalloc; Self-Heal nach ~45 s |
+| 266 B (Probe A1b) | **≥19 sauber im Sekundentakt** — ununterscheidbar von den Stock-Apps |
+
+- Co-App-Kontrolle (User): Weather 15×/s-Toggles clean DURCH das Stuck-Fenster hindurch → Asymmetrie
+  ist größenvermittelt; Manifest (10,4 KB/79 Vars), data.jsn, Templates sind **freigesprochen** (08a).
+- Beide Failure-Signaturen heilen nach **~45 s** selbst → periodischer FW-Cleanup-Timer (Hypothese).
+- A2 implizit bestätigt (ALLE Discard-Zyklen aller Logs clean), A3 doppelt belegt.
+- **Gate-Entscheid: Phase B ist TOT** (−48 % main.js verschiebt die Schwelle nur 1→5 Toggles,
+  nichtlinear; die ~8-%-Diät wäre Rauschen). Einzige Ausnahme: B1 (totes ext18.js) als Gratis-Hygiene.
+  **Phase C = Hauptpfad**; Forum-Report enthält die volle Serie als Evidence 4.
+
+---
+
 ## Faktenlage (alles log-bewiesen, Archive in docs/watch-logs/)
 
 1. **Der Sturm feuert während `Load script`** — bevor irgendein App-Code existiert (Log 07i).

@@ -78,9 +78,19 @@ The re-enable at 22:09:02 succeeded with **zero** allocation failures — nothin
 
 **3. In the same session, every toggle whose disable logged a `JS discard` re-enabled cleanly.** The three toggle cycles in the minutes right before (disables at 22:06:10, 22:07:32, 22:07:58) each show `JS discard disable zapps` at the disable and re-enabled without a single allocation failure; the one cycle whose disable logged **no** discard (22:08:15) is exactly the one that stormed.
 
-**4. There is a second failure mode where the loader never even starts — same trigger, same ~45 s self-heal.**
+**4. The failure threshold scales with main.js size — and with nothing else in the app.**
 
-To test the size dependency I built a stripped variant of the same app (main.js reduced from 7.8 KB to 4.0 KB minified, everything else identical). It survives *more* rapid single-app toggles — four clean disable→re-enable cycles in a row, re-enabling after as little as 1–4 s, zero allocation failures — but the **fifth** re-enable gets stuck in a new way: the disable is logged, and then **no `Load script` appears at all** — no `JSalloc`, no error, nothing:
+I isolated the variable with three builds of the *same* app — identical manifest (79 variables, 48 settings), identical 2.2 KB data store, identical templates and ext files; **only main.js changed** — all driven through the same pattern (rapid single disable → re-enable in the SuuntoPlus menu, no discard in between):
+
+| main.js (minified) | rapid single-toggle result |
+|---|---|
+| 7.8 KB (production) | fails on the **1st** no-discard re-enable (the allocation storm of Evidence 2) |
+| 4.0 KB (stripped) | 4 clean cycles (1–5 s each), **stuck on the 5th** — second failure mode, below |
+| 0.27 KB (stub) | **19 consecutive clean cycles at ~1/s** — indistinguishable from the stock apps |
+
+The stock apps themselves (~0.5–1.3 KB) never fail at any toggle rate — I rapid-toggled Weather 15 times at ~1 s spacing as a control, every cycle instant.
+
+The 4.0 KB build also exposed a **second failure mode** where the loader never even starts: the disable is logged, and then **no `Load script` appears at all** — no `JSalloc`, no error, nothing:
 
 ```
 23:35:23-23:35:44 : four clean single disable -> Load script -> Enable cycles (1-5 s each)
@@ -90,9 +100,9 @@ To test the size dependency I built a stripped variant of the same app (main.js 
 23:36:56 : EVT APPLICATION : Zapp climbl01:Enable
 ```
 
-While that enable was stuck, the two other (much smaller) apps toggled perfectly — 15 consecutive Weather disable/re-enable cycles at ~1 s spacing right through the stuck window, every one loading instantly. The pending enable then completed on its own after ~45 s — the same self-heal delay as in failure mode 1, which suggests a periodic cleanup eventually releases whatever the leaked contexts hold.
+While that enable was stuck, the Weather control toggles ran right through the stuck window, every one loading instantly. The pending enable then completed on its own after ~45 s — the same self-heal delay as in failure mode 1, which suggests a periodic cleanup eventually releases whatever the leaked contexts hold.
 
-So the failure threshold scales with app size: the 7.8 KB build fails on the **first** no-discard re-enable, the 4.0 KB build survives four and fails on the **fifth**, and the ~0.5–1.3 KB stock apps never fail at any toggle rate. That is exactly what accumulating un-discarded contexts predict (each single-disable leaks one context; a bigger app leaves a bigger corpse and needs bigger compile buffers), and hard to explain otherwise.
+This is exactly what accumulating un-discarded JS contexts predict — each single-disable leaks one context, a bigger main.js leaves a bigger corpse and needs bigger compile buffers — and it rules out the manifest, settings/variables, data store, and templates as carriers (the 0.27 KB stub ships all of them unchanged and never fails).
 
 ## Analysis (proven vs. inferred)
 
