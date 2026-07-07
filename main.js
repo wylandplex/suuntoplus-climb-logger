@@ -25,7 +25,6 @@ var lastResult = 0;
 var rSec = 0;
 var hrSum = 0;
 var hrCnt = 0;
-var hrMax = 0;
 var sessionH = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
@@ -89,13 +88,26 @@ function getUserInterface() {
   // setup.html (grade-system setup), and saving.html (pause/end de-load).
   // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
   // After first resolve, goState() owns currentTemplate.
+  // CHURN MARKER (#177, middle-button spam): the framework re-runs getUserInterface on EVERY
+  // app-screen entry (reference.html lifecycle) — a plain middle-click cycles displays at firmware
+  // level (never reaches onEvent) and each re-entry re-mounts templates mid-enable. pendF12 encodes
+  // the bootstrap state: 1 = armed/never mounted, 3 = mounted + quiet, 2 = a re-entry churned since
+  // the last tick. evaluate drains on 1/3 (the normal tick-1 drain is UNCHANGED) and skips one tick
+  // on 2 — the ext12 parse waits for the first CALM second instead of racing the mount churn
+  // (log 2026-07-07d: parse -> relMemCb x2). All pendF12 guards test truthiness, so 2/3 still gate.
   if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
+  if (pendF12) pendF12 = pendF12 === 1 ? 3 : pendF12 > 3 ? pendF12 : 2;  // re-entry = skip 1; never shorten a pending start-burst skip (>3)
   return { template: currentTemplate };
 }
 
 var encGrade = function(idx) {
   return gradeSystem * 100 + idx;
 };
+
+// #171 dedups: slotG = the PROJ-SETUP slot-grade read (OFF sentinel when unset), 3 sites;
+// wMode = the chg(4)+literal modeSub write, 7 sites. o stays a param — the PROPERTY access
+// is literal (.modeSub), which is what the deploy build checks (same proven shape as wGL).
+var slotG = function() { return projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); };
 
 var loadProjects = function(sys) {
   var b = sys * 5;
@@ -168,46 +180,62 @@ var gradeV = 0, lastGradeV = -1;
 // freshly-mounted template never reads a stale Output store; setOutputs clears pubF when done.
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
-var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
+// lockF (T3, #173): 1e6 flag on packedGL = "grade is LOCKED in the EDIT overlay" (empty editor or
+// project-tagged route — mirrors evEdit's own eid1/2 gates). ready.html blanks the chevrons on it
+// and masks the grade decode with %1e6. Max 1e6+950*952+951 = 1,905,351 < 2^24 (float32-exact).
+// Recomputed at the TOP of setOutputs, before any wGL/writeG — every handler republishes via
+// setOutputs, so direct wGL callers (evProjSetup/evSetup, states 6/4) always see a fresh 0.
+// DECODE LOCKSTEP: ready.html big-grade + 2 chevron evals, tools/tests/output-pack-equiv.js.
+var lockF = 0;
+var wGL = function(o) { var v = lockF * 1e6 + gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
+var wMode = function(o, v) { if (chg(4, v)) o.modeSub = v; };
 // packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
   writeG(o);
   var m = climbMode > 0 ? -climbMode : routeNumber;
-  if (chg(4, m)) o.modeSub = m;
+  wMode(o, m);
 };
 
 var setOutputs = function(output) {
+  lockF = state === 5 && (editIdx >= routesA.length || rCm(editIdx) > 0) ? 1 : 0;
   if (chg(1, state)) output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
   if (chg(2, rh)) output.routeHeight = rh;
   if (state === 5) {
     gradeV = editIdx < routesA.length ? encGrade(rGrade(editIdx)) : encGrade(50);  // big grade display = selected route
-    if (chg(4, editIdx + 1)) output.modeSub = editIdx + 1;                 // header #N = route number
+    wMode(output, editIdx + 1);                 // header #N = route number
     lastGradeV = -1; wGL(output);
   } else if (state === 6) {
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);  // big display = slot grade (OFF sentinel when unset)
-    if (chg(4, -(pStep + 1))) output.modeSub = -(pStep + 1);  // header renders negatives as "P1".."P5" — the slot being configured
+    gradeV = slotG();  // big display = slot grade (OFF sentinel when unset)
+    wMode(output, -(pStep + 1));  // header renders negatives as "P1".."P5" — the slot being configured
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
-    if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
+    wMode(output, gradeSystem);
     lastGradeV = -1; wGL(output);
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     var ms = climbMode > 0 ? -climbMode : rn;
-    if (chg(4, ms)) output.modeSub = ms;
+    wMode(output, ms);
   }
-  // packedAct = activeTries*1000 + activeSends (READY, P-mode only; -1 hides the line). ONE output
-  // replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish, setText would not).
-  // actKey is precomputed — this per-tick path allocates nothing.
+  // packedAct: READY P-mode = activeTries*1000+activeSends (>=0); -1 hides the line everywhere else
+  // EXCEPT the EDIT overlay (state 5), which rides the free NEGATIVE channel as a result/steering code:
+  //   pill = NEXT-action preview (current state = the 78%-line word):
+  //   -2 = SEND (pill: F110 flame, press->FAIL)   -3 = FAIL (pill: DEL text, press->arm DEL)
+  //   -4 = DEL armed (pill: F200 trophy, press->restore SEND)   -5 = empty editor (blank)
+  // ONE output replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish,
+  // setText would not). DECODE SITES (lockstep!): ready.html pill-glyph eval + 78%-line word eval,
+  // tools/tests/output-pack-equiv.js. Positive max 16,700,999 < 2^24 (float32-exact).
   var pAct = -1;
   if (state === 0 && climbMode > 0) {
     var apI = climbMode - 1;
     pAct = projSlot[apI + 15] === projGradeIdx[apI] ? Math.min(projSlot[apI] || 0, 16700) * 1000 + Math.min(projSlot[apI + 5] || 0, 999) : 0;
+  } else if (state === 5) {
+    pAct = routesA.length === 0 ? -5 : editDelMark ? -4 : rSend(editIdx) ? -2 : -3;
   }
   if (chg(5, pAct)) output.packedAct = pAct;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
@@ -298,11 +326,12 @@ var toggleRes = function(i, v) {
   recalcBse();
 };
 
-// EDIT overlay bottom-line indicator: "EDIT i/n SEND|FAIL|DEL" via setText into ready.html's #edr
-// node — safe because the overlay never swaps the template (DOM is mounted when this runs). The
-// EDIT prefix is the visual marker that distinguishes the overlay from plain READY.
+// EDIT overlay bottom-line indicator: "EDIT i/n " via setText into ready.html's #edr node — safe
+// because the overlay never swaps the template (DOM is mounted when this runs). The SEND|FAIL|DEL
+// result word moved to the packedAct output (remount-proof; #edr's setText is NOT) — ready.html
+// renders it in the adjacent span, trailing space here keeps the "EDIT i/n WORD" spacing.
 var pushEd = function() {
-  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " " + (editDelMark ? "DEL" : rSend(editIdx) ? "SEND" : "FAIL"));
+  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
 };
 
 // Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
@@ -358,14 +387,15 @@ var evEdit = function(output, eid) {
   }
 };
 
-var commitDirty = function(input) {
-  input = input || {};  // guard lives HERE, not at the call site: the build minifier leaves a bare `input` wrapped in `|| {}` un-renamed (it only renames `input` as a direct call arg or `input.X` member), so onExerciseEnd's commitDirty(input||{}) silently ReferenceError'd and the end-of-session route was never committed. Both call sites now pass bare `input`.
+var commitDirty = function() {
+  // no params since the hrMax cut (#171 exts-1): input.M was only read for ext10's dead arg 5.
+  // (Historic minifier gotcha `input || {}` is moot without the param — see minifier-bare-input.)
   if (frDirty) {
     frDirty = 0;
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
-    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
-      frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode
+    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, 0,
+      frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode. arg 5 (m) is DEAD in ext10 — literal 0 keeps the positional harness (stats-endwrite-equiv) intact; hrMax tracking removed (#171)
     if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
     bestSendIdx = r[0];
     if (r[2]) {
@@ -375,7 +405,7 @@ var commitDirty = function(input) {
       if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
       sessionH += lastHeight || 0;
     }
-    hrSum = hrCnt = hrMax = rSec = 0;
+    hrSum = hrCnt = rSec = 0;
     // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
   }
 };
@@ -384,7 +414,7 @@ var startClimb = function(output) {
   if (routesA.length >= ROUTE_LIMIT) return;  // cap = silent refusal (LIMIT screen stays cut)
   if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;  // #103: no climb on an unconfigured slot
   if (climbMode > 0) currentGrade = projGradeIdx[climbMode - 1];  // sync grade to the slot (proj-setup doesn't touch currentGrade)
-  hrSum = hrCnt = hrMax = rSec = 0;
+  hrSum = hrCnt = rSec = 0;
   startAsc = curAsc;
   goState(1, output);
 };
@@ -466,7 +496,7 @@ var evSetup = function(output, eid, dy) {
     loadProjectStats(gradeSystem);
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
-    if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
+    wMode(output, gradeSystem);
   } else if (eid === 6) {
     goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
   }
@@ -479,14 +509,14 @@ var evProjSetup = function(output, eid, dy) {
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
     projAll[gradeSystem * 5 + pStep] = projGradeIdx[pStep];
     slotsDirty = 1;
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
+    gradeV = slotG(); wGL(output);
   } else if (eid === 5) {
     setText("#edr", "");
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg(4, -(pStep + 1))) output.modeSub = -(pStep + 1);
+    gradeV = slotG(); wGL(output);
+    wMode(output, -(pStep + 1));
     setText("#edr", "SLOT " + (pStep + 1) + "/5");
   }
 };
@@ -496,20 +526,38 @@ function onLoad(_input, output) {
   lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
+  // NO drain here — the onLoad-drain experiment (eaae480) was FALSIFIED for the in-activity
+  // re-enable (log 2026-07-07g + user taxonomy): with both co-apps RESIDENT, onLoad makes
+  // compile+ext12-parse one atomic enable transaction that can NEVER fit (~2.3KB contiguous next
+  // to 2 residents — waiting doesn't help, the free block never grows). Deterministic freeze on
+  // every mid-activity toggle. The tick-1 gap between compile and parse IS the required GC breath
+  // (slow re-enables proven clean 2026-07-06 + 07-07 morning logs). Instant-start is covered by
+  // the onExerciseStart 3-tick skip instead (parse at start+4-5s, past the burst; mid-exercise
+  // parses are proven safe via ext10).
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
+}
+
+// Third churn source (#177): "enable -> START IMMEDIATELY" collided the ext12 parse with the
+// exercise-start burst (log 2026-07-07e: same-second, JsTotMem 98.6%). A 1-tick skip was NOT
+// enough — log 2026-07-07f: parse at start+1.3s, marker-SILENT ui HANG in every instant-start
+// cycle (cable to recover), while the burst visibly runs ~3s (analytics/BLE) and a start after
+// +5s never froze. So the start burst gets a 3-TICK skip (pendF12=6: 6->5->4 skip, drain <=3) —
+// the parse lands ~start+4-5s, past the transition. Parses in a RUNNING exercise are proven safe
+// (ext10 fires mid-session in every clean log); it is the start-transition window that kills.
+function onExerciseStart() {
+  if (pendF12) pendF12 = 6;
 }
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else if (pendF12 > 3) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 6; } } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry, skip 1) re-arms as 3; >3 (exercise-start burst, skip 3: 6->5->4) counts down; 1/3 parse. try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
     rSec++;
     var h = input.H;
-    if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg/peaks
+    if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg
       hrSum += h; hrCnt++;
-      if (h > hrMax) hrMax = h;
     }
   }
 
@@ -520,7 +568,7 @@ function evaluate(input, output) {
   // lap survives, finished as SEND. !dwell: never finish inside the CLIMB-entry guard window.
   if (extLapPending && !dwell) { if (state === 1) finishRoute(1, output); else extLapPending = 0; }
 
-  commitDirty(input);
+  commitDirty();
   setOutputs(output);
   dwell = 0;
 }
@@ -584,7 +632,7 @@ var endRoute = function() {
 var finishSession = function(input) {
   if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
   if (state === 1) endRoute();
-  try { commitDirty(input); } catch (e) {}
+  try { commitDirty(); } catch (e) {}
   try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
   if ((!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst (acc, not routesA, is the route tally now: routesA may already be folded+freed at pause)
   try { deLoad(); } catch (e) {}
@@ -601,7 +649,13 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(0); } catch (e) {} }  // user beat the first tick — bootstrap now, NO auto-skip; caught: an OOM throw out of an event handler is the 'run evt 1' app-death
+  // STARTUP GUARD (#177): NEVER bootstrap on the event path. A press in the sub-second window
+  // between enable and tick 1 used to force the ~2KB ext12 parse INTO the 3-app enable burst —
+  // exec:zapp relMem storm, both co-apps evicted, watch freeze on spam (log 2026-07-07d 13:01:53).
+  // Events are inert until the staggered tick-1 drain (proven calm in every clean log) has run;
+  // the spammed press is dropped by design. Trade-off (accepted): a pre-tick-1 press no longer
+  // cancels the returning-user auto-skip.
+  if (pendF12) return;
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -638,6 +692,7 @@ function onLap(_input, output) {
   // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
   // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
   // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
+  if (pendF12) return;  // startup guard (#177), symmetric with onEvent: no phase transition / active.html mount before the bootstrap drain — a real (auto-)lap cannot occur in that sub-second pre-start window
   if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
   else if (state === 0) startClimb(output);      // READY -> start first climb
   else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)

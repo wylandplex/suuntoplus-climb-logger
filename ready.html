@@ -27,14 +27,17 @@
          START (evL 6) fires the firmware lap directly (was the lapState===0 branch). -->
 
     <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(36% - 18.5px);">&#xF266;</div>
+    <!-- Chevrons are lock-gated (T3, #173): packedGL's 1e6 flag = grade locked in EDIT (empty
+         editor / project-tagged route, mirroring evEdit's eid1/2 gates) -> chevrons blank, absence
+         = feedback (was a silent dead control). Grade decode above masks with %1e6 in lockstep. -->
+    <div class="f-ico p-hc" style="top:calc(36% - 18.5px);"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => x>=1e6?'':'\uF266'" default="&#xF266;" /></div>
 
     <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(M(x/952))" default="--" />
+      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(M(x%1e6/952))" default="--" />
     </div>
 
     <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(66% - 18.5px);">&#xF267;</div>
+    <div class="f-ico p-hc" style="top:calc(66% - 18.5px);"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => x>=1e6?'':'\uF267'" default="&#xF267;" /></div>
 
     <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
          EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
@@ -48,9 +51,18 @@
     <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
          pill was a live-looking dead control there. setVs toggles it via the PROVEN visibility-only
          setStyle mechanism (absence = feedback, Era-A sc6). The eid4 tap zone below stays — a tap in
-         state 6 is a no-op by design. -->
+         state 6 is a no-op by design.
+         T2/S5 (user-corrected 2x): the pill previews the NEXT-IN-LINE action of the eid4
+         SEND->FAIL->DEL->SEND cycle — the CURRENT state lives in the 78%-line word, the pill says
+         what the press DOES: -2 route is SEND -> flame (F110, "press marks FAIL"); -3 FAIL -> the
+         text-font DEL span ("press arms DEL", icon blanks); -4 DEL armed -> trophy (F200, "press
+         restores SEND"); -5 empty editor -> blank. Era-A's F107 at -3 was a meaningless EKG/stats
+         placeholder glyph (#101) — the DEL text replaces it, and the trophy closes the cycle.
+         x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
+         setOutputs + tools/tests/output-pack-equiv.js. -->
     <div id="pm" style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF111;</div>
+      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'\uF110':x===-4?'\uF200':x<-1?'':'\uF111'" default="&#xF111;" /></div>
+      <div class="sp-b-s cm-bgc" style="position:absolute;top:calc(50% - 20.5px);left:2px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-3?'DEL':''" default="" /></div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
@@ -59,12 +71,14 @@
     </div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Project stats line (P-mode only): ONE packed output (tries*1000+sends) replaces the old
-         actT/S/B trio — 2 subscriptions fewer on the swap transient; bestTime lives in summary/companion.
-         In EDIT overlay mode packedAct is -1 (blank) and #edr (setText) shows i/n SEND|FAIL|DEL instead. -->
+    <!-- 78% line: P-mode stats OR the EDIT status. #edr (setText from pushEd) renders "EDIT i/n ",
+         the eval span appends the CURRENT result word from packedAct's negative channel (-2 SEND /
+         -3 FAIL / -4 DEL) — output-driven, so it survives app-swipe remounts (#edr does not: after
+         a remount the line shows only the word until the next pushEd; documented, accepted).
+         Span ORDER matters: #edr first, word second ("EDIT 3/5 SEND", not "SEND EDIT 3/5"). -->
     <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : M(x/1000) + 'T ' + (x%1000) + 'S'" /></span>
       <span id="edr" class="sp-b-s"></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'SEND':x===-3?'FAIL':x===-4?'DEL':x<0?'':M(x/1000)+'T '+(x%1000)+'S'" /></span>
     </div>
 
     <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->
