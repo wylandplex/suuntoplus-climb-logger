@@ -48,9 +48,16 @@
     <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
          pill was a live-looking dead control there. setVs toggles it via the PROVEN visibility-only
          setStyle mechanism (absence = feedback, Era-A sc6). The eid4 tap zone below stays — a tap in
-         state 6 is a no-op by design. -->
+         state 6 is a no-op by design.
+         T2/S5: the pill is DYNAMIC in the EDIT overlay (Era-A ed-pillIcon/ed-pillDel restored) —
+         packedAct's negative channel drives a NEXT-action preview of the eid4 SEND->FAIL->DEL cycle:
+         -2 route is SEND -> press marks FAIL (F110); -3 FAIL -> press marks DEL (F107); -4 DEL armed
+         -> icon blanks, the text-font DEL span shows (press reverts to SEND); -5 empty editor ->
+         blank. x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
+         setOutputs + tools/tests/output-pack-equiv.js. -->
     <div id="pm" style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF111;</div>
+      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'\uF110':x===-3?'\uF107':x<-1?'':'\uF111'" default="&#xF111;" /></div>
+      <div class="sp-b-s cm-bgc" style="position:absolute;top:calc(50% - 20.5px);left:2px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-4?'DEL':''" default="" /></div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
@@ -59,12 +66,14 @@
     </div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Project stats line (P-mode only): ONE packed output (tries*1000+sends) replaces the old
-         actT/S/B trio — 2 subscriptions fewer on the swap transient; bestTime lives in summary/companion.
-         In EDIT overlay mode packedAct is -1 (blank) and #edr (setText) shows i/n SEND|FAIL|DEL instead. -->
+    <!-- 78% line: P-mode stats OR the EDIT status. #edr (setText from pushEd) renders "EDIT i/n ",
+         the eval span appends the CURRENT result word from packedAct's negative channel (-2 SEND /
+         -3 FAIL / -4 DEL) — output-driven, so it survives app-swipe remounts (#edr does not: after
+         a remount the line shows only the word until the next pushEd; documented, accepted).
+         Span ORDER matters: #edr first, word second ("EDIT 3/5 SEND", not "SEND EDIT 3/5"). -->
     <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : M(x/1000) + 'T ' + (x%1000) + 'S'" /></span>
       <span id="edr" class="sp-b-s"></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'SEND':x===-3?'FAIL':x===-4?'DEL':x<0?'':M(x/1000)+'T '+(x%1000)+'S'" /></span>
     </div>
 
     <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->
