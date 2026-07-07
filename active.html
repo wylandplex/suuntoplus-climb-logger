@@ -43,6 +43,15 @@
         <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF200;</div>
       </div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+
+      <!-- Live route height back in the CLIMB body (T2/S7, #173 — the Era-A/B sc1 'H +Nm' cell).
+           routeHeight publishes live every CLIMB tick and is already subscribed on this template.
+           MUST live inside #sc1: as a template-level sibling it would double-render in BREAK on top
+           of the 73% summary row (aV hides it here instead). 73% mirrors BREAK's row for rhythm. -->
+      <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
+        <span class="sp-b-s" style="padding-right:3px">H</span>
+        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" /></span>
+      </div>
     </div>
 
     <!-- BREAK — same big time+pulse as CLIMB (frozen lap -2) PLUS the climb summary row: height, avg, max. Grade+result are in the colored header. -->
