@@ -80,7 +80,7 @@ check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
 console.log("[packedAct] P-mode tries/sends + EDIT steering codes");
 var encActP = function(t, sn) { return Math.min(t, 16700) * 1000 + Math.min(sn, 999); };
 var encActE = function(empty, del, send) { return empty ? -5 : del ? -4 : send ? -2 : -3; };
-var decGlyph = function(x) { return x === -2 ? '\uF110' : x === -3 ? '\uF107' : x < -1 ? '' : '\uF111'; };
+var decGlyph = function(x) { return x === -2 ? '\uF200' : x === -3 ? '\uF110' : x < -1 ? '' : '\uF111'; };
 var decWord  = function(x) { return x === -2 ? 'SEND' : x === -3 ? 'FAIL' : x === -4 ? 'DEL' : x < 0 ? '' : Math.floor(x / 1000) + 'T ' + (x % 1000) + 'S'; };
 var tVals = [0, 1, 34, 35, 50, 999, 16700, 99999];
 var snVals = [0, 1, 34, 63, 999, 5000];
@@ -99,8 +99,8 @@ console.log("  max packedAct = " + encActP(16700, 999) + " (limit 2^24 = 1677721
 var codeCases = [
   [1, 0, 0, -5, '',       ''],      // empty editor: pill blank, word blank
   [0, 1, 0, -4, '',       'DEL'],   // DEL armed: pill blank, DEL rides the word span (text font, not f-ico)
-  [0, 0, 1, -2, '\uF110', 'SEND'],  // send -> press marks FAIL
-  [0, 0, 0, -3, '\uF107', 'FAIL'],  // fail -> press marks DEL
+  [0, 0, 1, -2, '\uF200', 'SEND'],  // send -> trophy (CLIMB SEND-button glyph)
+  [0, 0, 0, -3, '\uF110', 'FAIL'],  // fail -> flame (CLIMB FAIL-button glyph)
 ];
 for (var cc = 0; cc < codeCases.length; cc++) {
   var C = codeCases[cc], code = encActE(C[0], C[1], C[2]), cf = Math.fround(code);

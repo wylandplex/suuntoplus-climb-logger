@@ -193,7 +193,7 @@ Wahrheitstabelle NACH Umsetzung (Feedback = was der Nutzer SIEHT):
 | vState / Template | Top-Pille (18%/83%) | Mittel-Pille (44%/90%) | Bottom-Pille (70%/83%) | Firmware-Lap bei Bottom? |
 |---|---|---|---|---|
 | **0 READY** (`ready.html`) | `&#xE338;` — Overlay-Entry (EDIT bei free / PROJ-SETUP bei P-Mode) | `&#xF111;` — Mode-Toggle (Header flippt ROUTE↔PROJECT) | `&#xE373;` — START | **JA** (`vs===0`) |
-| **5 EDIT** (Overlay auf `ready.html`) | `&#xE365;` — Exit (fuehrt scharfes DEL aus) | **DYNAMISCH:** `&#xF110;` wenn Route=SEND (Druck→FAIL) / `&#xF107;` wenn FAIL (Druck→DEL) / Text **`DEL`** wenn scharf (Druck→revert SEND) / leer bei leerem Editor | `&#xE373;` — vorherige Route (fuehrt scharfes DEL aus) | NEIN |
+| **5 EDIT** (Overlay auf `ready.html`) | `&#xE365;` — Exit (fuehrt scharfes DEL aus) | **DYNAMISCH (Zustands-Anzeige, User-korrigiert):** `&#xF200;` Pokal wenn Route=SEND / `&#xF110;` Flamme wenn FAIL (= CLIMB-Finish-Button-Sprache) / Text **`DEL`** wenn scharf / leer bei leerem Editor — die Era-A-Voranzeige-Semantik (F110/F107) wurde on-watch verworfen (F107 liest sich als EKG/Statistik) | `&#xE373;` — vorherige Route (fuehrt scharfes DEL aus) | NEIN |
 | **6 PROJ-SETUP** (Overlay auf `ready.html`) | `&#xE365;` — Save & zurueck | **VERSTECKT** (Abwesenheit = Feedback, Era-A-treu) | `&#xE373;` — naechster Slot | **NEIN (Fix, heute Bug)** |
 | **1 CLIMB** (`active.html` sc1) | `&#xF110;` weiss — FAIL-Finish | — | `&#xF200;` weiss — SEND-Finish | JA (`S===1`, unveraendert) |
 | **2 BREAK** (`active.html` sc2) | — (Abwesenheit; up-long = Quick-Fix, Band flippt) | `&#xE338;` — save-as-project (unveraendert, s. Verschoben) | `&#xE373;` — zurueck zu READY | NEIN (`evX`, unveraendert) |

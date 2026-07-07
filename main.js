@@ -208,8 +208,8 @@ var setOutputs = function(output) {
   }
   // packedAct: READY P-mode = activeTries*1000+activeSends (>=0); -1 hides the line everywhere else
   // EXCEPT the EDIT overlay (state 5), which rides the free NEGATIVE channel as a result/steering code:
-  //   -2 = selected route is SEND (mid pill previews FAIL)   -3 = FAIL (previews DEL)
-  //   -4 = DEL armed (executes on nav/exit)                  -5 = empty editor
+  //   -2 = selected route is SEND (pill: F200 trophy)   -3 = FAIL (pill: F110 flame)
+  //   -4 = DEL armed (executes on nav/exit; pill: DEL)  -5 = empty editor (pill blank)
   // ONE output replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish,
   // setText would not). DECODE SITES (lockstep!): ready.html pill-glyph eval + 78%-line word eval,
   // tools/tests/output-pack-equiv.js. Positive max 16,700,999 < 2^24 (float32-exact).
