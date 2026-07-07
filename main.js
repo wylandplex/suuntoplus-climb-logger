@@ -88,7 +88,15 @@ function getUserInterface() {
   // setup.html (grade-system setup), and saving.html (pause/end de-load).
   // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
   // After first resolve, goState() owns currentTemplate.
+  // CHURN MARKER (#177, middle-button spam): the framework re-runs getUserInterface on EVERY
+  // app-screen entry (reference.html lifecycle) — a plain middle-click cycles displays at firmware
+  // level (never reaches onEvent) and each re-entry re-mounts templates mid-enable. pendF12 encodes
+  // the bootstrap state: 1 = armed/never mounted, 3 = mounted + quiet, 2 = a re-entry churned since
+  // the last tick. evaluate drains on 1/3 (the normal tick-1 drain is UNCHANGED) and skips one tick
+  // on 2 — the ext12 parse waits for the first CALM second instead of racing the mount churn
+  // (log 2026-07-07d: parse -> relMemCb x2). All pendF12 guards test truthiness, so 2/3 still gate.
   if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
+  if (pendF12) pendF12 = pendF12 === 1 ? 3 : pendF12 > 3 ? pendF12 : 2;  // re-entry = skip 1; never shorten a pending start-burst skip (>3)
   return { template: currentTemplate };
 }
 
@@ -518,12 +526,31 @@ function onLoad(_input, output) {
   lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
+  // NO drain here — the onLoad-drain experiment (eaae480) was FALSIFIED for the in-activity
+  // re-enable (log 2026-07-07g + user taxonomy): with both co-apps RESIDENT, onLoad makes
+  // compile+ext12-parse one atomic enable transaction that can NEVER fit (~2.3KB contiguous next
+  // to 2 residents — waiting doesn't help, the free block never grows). Deterministic freeze on
+  // every mid-activity toggle. The tick-1 gap between compile and parse IS the required GC breath
+  // (slow re-enables proven clean 2026-07-06 + 07-07 morning logs). Instant-start is covered by
+  // the onExerciseStart 3-tick skip instead (parse at start+4-5s, past the burst; mid-exercise
+  // parses are proven safe via ext10).
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
+}
+
+// Third churn source (#177): "enable -> START IMMEDIATELY" collided the ext12 parse with the
+// exercise-start burst (log 2026-07-07e: same-second, JsTotMem 98.6%). A 1-tick skip was NOT
+// enough — log 2026-07-07f: parse at start+1.3s, marker-SILENT ui HANG in every instant-start
+// cycle (cable to recover), while the burst visibly runs ~3s (analytics/BLE) and a start after
+// +5s never froze. So the start burst gets a 3-TICK skip (pendF12=6: 6->5->4 skip, drain <=3) —
+// the parse lands ~start+4-5s, past the transition. Parses in a RUNNING exercise are proven safe
+// (ext10 fires mid-session in every clean log); it is the start-transition window that kills.
+function onExerciseStart() {
+  if (pendF12) pendF12 = 6;
 }
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else if (pendF12 > 3) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 6; } } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry, skip 1) re-arms as 3; >3 (exercise-start burst, skip 3: 6->5->4) counts down; 1/3 parse. try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
@@ -622,7 +649,13 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(0); } catch (e) {} }  // user beat the first tick — bootstrap now, NO auto-skip; caught: an OOM throw out of an event handler is the 'run evt 1' app-death
+  // STARTUP GUARD (#177): NEVER bootstrap on the event path. A press in the sub-second window
+  // between enable and tick 1 used to force the ~2KB ext12 parse INTO the 3-app enable burst —
+  // exec:zapp relMem storm, both co-apps evicted, watch freeze on spam (log 2026-07-07d 13:01:53).
+  // Events are inert until the staggered tick-1 drain (proven calm in every clean log) has run;
+  // the spammed press is dropped by design. Trade-off (accepted): a pre-tick-1 press no longer
+  // cancels the returning-user auto-skip.
+  if (pendF12) return;
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -659,6 +692,7 @@ function onLap(_input, output) {
   // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
   // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
   // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
+  if (pendF12) return;  // startup guard (#177), symmetric with onEvent: no phase transition / active.html mount before the bootstrap drain — a real (auto-)lap cannot occur in that sub-second pre-start window
   if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
   else if (state === 0) startClimb(output);      // READY -> start first climb
   else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)
