@@ -529,6 +529,15 @@ function onLoad(_input, output) {
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
+// Third churn source (#177): "enable -> START IMMEDIATELY" put the tick-1 ext12 parse in the SAME
+// second as the exercise-start burst (Traininglab/Logger/subscription flood of all apps) — log
+// 2026-07-07e: parse+start at 14:10:14/14:10:37 same-second, JsTotMem 98.6% at 14:10:59. Mark it
+// exactly like a screen re-entry: an armed bootstrap bumps to 2, evaluate skips one tick, the
+// parse lands AFTER the burst. No-op once drained (pendF12=0).
+function onExerciseStart() {
+  if (pendF12) pendF12 = 2;
+}
+
 function evaluate(input, output) {
   if (isPaused) return;
   if (pendF12) { if (pendF12 === 2) pendF12 = 3; else { try { drainF12(1); } catch (e) {} } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry mounted this second, #177 middle-spam) skips one tick and re-arms as 3; 1/3 parse. try/catch = retry next tick, never throw out of the hook
