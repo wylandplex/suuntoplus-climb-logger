@@ -25,7 +25,6 @@ var lastResult = 0;
 var rSec = 0;
 var hrSum = 0;
 var hrCnt = 0;
-var hrMax = 0;
 var sessionH = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
@@ -96,6 +95,11 @@ function getUserInterface() {
 var encGrade = function(idx) {
   return gradeSystem * 100 + idx;
 };
+
+// #171 dedups: slotG = the PROJ-SETUP slot-grade read (OFF sentinel when unset), 3 sites;
+// wMode = the chg(4)+literal modeSub write, 7 sites. o stays a param — the PROPERTY access
+// is literal (.modeSub), which is what the deploy build checks (same proven shape as wGL).
+var slotG = function() { return projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); };
 
 var loadProjects = function(sys) {
   var b = sys * 5;
@@ -169,13 +173,14 @@ var gradeV = 0, lastGradeV = -1;
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
 var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
+var wMode = function(o, v) { if (chg(4, v)) o.modeSub = v; };
 // packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
   writeG(o);
   var m = climbMode > 0 ? -climbMode : routeNumber;
-  if (chg(4, m)) o.modeSub = m;
+  wMode(o, m);
 };
 
 var setOutputs = function(output) {
@@ -185,29 +190,35 @@ var setOutputs = function(output) {
   if (chg(2, rh)) output.routeHeight = rh;
   if (state === 5) {
     gradeV = editIdx < routesA.length ? encGrade(rGrade(editIdx)) : encGrade(50);  // big grade display = selected route
-    if (chg(4, editIdx + 1)) output.modeSub = editIdx + 1;                 // header #N = route number
+    wMode(output, editIdx + 1);                 // header #N = route number
     lastGradeV = -1; wGL(output);
   } else if (state === 6) {
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50);  // big display = slot grade (OFF sentinel when unset)
-    if (chg(4, -(pStep + 1))) output.modeSub = -(pStep + 1);  // header renders negatives as "P1".."P5" — the slot being configured
+    gradeV = slotG();  // big display = slot grade (OFF sentinel when unset)
+    wMode(output, -(pStep + 1));  // header renders negatives as "P1".."P5" — the slot being configured
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
-    if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
+    wMode(output, gradeSystem);
     lastGradeV = -1; wGL(output);
   } else {
     var rn = state === 2 ? routeNumber - 1 : routeNumber;
     writeG(output, climbMode > 0 ? climbMode - 1 : undefined);
     var ms = climbMode > 0 ? -climbMode : rn;
-    if (chg(4, ms)) output.modeSub = ms;
+    wMode(output, ms);
   }
-  // packedAct = activeTries*1000 + activeSends (READY, P-mode only; -1 hides the line). ONE output
-  // replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish, setText would not).
-  // actKey is precomputed — this per-tick path allocates nothing.
+  // packedAct: READY P-mode = activeTries*1000+activeSends (>=0); -1 hides the line everywhere else
+  // EXCEPT the EDIT overlay (state 5), which rides the free NEGATIVE channel as a result/steering code:
+  //   -2 = selected route is SEND (mid pill previews FAIL)   -3 = FAIL (previews DEL)
+  //   -4 = DEL armed (executes on nav/exit)                  -5 = empty editor
+  // ONE output replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish,
+  // setText would not). DECODE SITES (lockstep!): ready.html pill-glyph eval + 78%-line word eval,
+  // tools/tests/output-pack-equiv.js. Positive max 16,700,999 < 2^24 (float32-exact).
   var pAct = -1;
   if (state === 0 && climbMode > 0) {
     var apI = climbMode - 1;
     pAct = projSlot[apI + 15] === projGradeIdx[apI] ? Math.min(projSlot[apI] || 0, 16700) * 1000 + Math.min(projSlot[apI + 5] || 0, 999) : 0;
+  } else if (state === 5) {
+    pAct = routesA.length === 0 ? -5 : editDelMark ? -4 : rSend(editIdx) ? -2 : -3;
   }
   if (chg(5, pAct)) output.packedAct = pAct;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
@@ -298,11 +309,12 @@ var toggleRes = function(i, v) {
   recalcBse();
 };
 
-// EDIT overlay bottom-line indicator: "EDIT i/n SEND|FAIL|DEL" via setText into ready.html's #edr
-// node — safe because the overlay never swaps the template (DOM is mounted when this runs). The
-// EDIT prefix is the visual marker that distinguishes the overlay from plain READY.
+// EDIT overlay bottom-line indicator: "EDIT i/n " via setText into ready.html's #edr node — safe
+// because the overlay never swaps the template (DOM is mounted when this runs). The SEND|FAIL|DEL
+// result word moved to the packedAct output (remount-proof; #edr's setText is NOT) — ready.html
+// renders it in the adjacent span, trailing space here keeps the "EDIT i/n WORD" spacing.
 var pushEd = function() {
-  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " " + (editDelMark ? "DEL" : rSend(editIdx) ? "SEND" : "FAIL"));
+  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
 };
 
 // Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
@@ -358,14 +370,15 @@ var evEdit = function(output, eid) {
   }
 };
 
-var commitDirty = function(input) {
-  input = input || {};  // guard lives HERE, not at the call site: the build minifier leaves a bare `input` wrapped in `|| {}` un-renamed (it only renames `input` as a direct call arg or `input.X` member), so onExerciseEnd's commitDirty(input||{}) silently ReferenceError'd and the end-of-session route was never committed. Both call sites now pass bare `input`.
+var commitDirty = function() {
+  // no params since the hrMax cut (#171 exts-1): input.M was only read for ext10's dead arg 5.
+  // (Historic minifier gotcha `input || {}` is moot without the param — see minifier-bare-input.)
   if (frDirty) {
     frDirty = 0;
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
-    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, hrMax || (input.M || 0),
-      frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode
+    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, 0,
+      frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode. arg 5 (m) is DEAD in ext10 — literal 0 keeps the positional harness (stats-endwrite-equiv) intact; hrMax tracking removed (#171)
     if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
     bestSendIdx = r[0];
     if (r[2]) {
@@ -375,7 +388,7 @@ var commitDirty = function(input) {
       if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
       sessionH += lastHeight || 0;
     }
-    hrSum = hrCnt = hrMax = rSec = 0;
+    hrSum = hrCnt = rSec = 0;
     // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
   }
 };
@@ -384,7 +397,7 @@ var startClimb = function(output) {
   if (routesA.length >= ROUTE_LIMIT) return;  // cap = silent refusal (LIMIT screen stays cut)
   if (climbMode > 0 && projGradeIdx[climbMode - 1] < 0) return;  // #103: no climb on an unconfigured slot
   if (climbMode > 0) currentGrade = projGradeIdx[climbMode - 1];  // sync grade to the slot (proj-setup doesn't touch currentGrade)
-  hrSum = hrCnt = hrMax = rSec = 0;
+  hrSum = hrCnt = rSec = 0;
   startAsc = curAsc;
   goState(1, output);
 };
@@ -466,7 +479,7 @@ var evSetup = function(output, eid, dy) {
     loadProjectStats(gradeSystem);
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
-    if (chg(4, gradeSystem)) output.modeSub = gradeSystem;
+    wMode(output, gradeSystem);
   } else if (eid === 6) {
     goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
   }
@@ -479,14 +492,14 @@ var evProjSetup = function(output, eid, dy) {
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
     projAll[gradeSystem * 5 + pStep] = projGradeIdx[pStep];
     slotsDirty = 1;
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
+    gradeV = slotG(); wGL(output);
   } else if (eid === 5) {
     setText("#edr", "");
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
-    gradeV = projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); wGL(output);
-    if (chg(4, -(pStep + 1))) output.modeSub = -(pStep + 1);
+    gradeV = slotG(); wGL(output);
+    wMode(output, -(pStep + 1));
     setText("#edr", "SLOT " + (pStep + 1) + "/5");
   }
 };
@@ -507,9 +520,8 @@ function evaluate(input, output) {
   if (state === 1) {
     rSec++;
     var h = input.H;
-    if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg/peaks
+    if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg
       hrSum += h; hrCnt++;
-      if (h > hrMax) hrMax = h;
     }
   }
 
@@ -520,7 +532,7 @@ function evaluate(input, output) {
   // lap survives, finished as SEND. !dwell: never finish inside the CLIMB-entry guard window.
   if (extLapPending && !dwell) { if (state === 1) finishRoute(1, output); else extLapPending = 0; }
 
-  commitDirty(input);
+  commitDirty();
   setOutputs(output);
   dwell = 0;
 }
@@ -584,7 +596,7 @@ var endRoute = function() {
 var finishSession = function(input) {
   if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
   if (state === 1) endRoute();
-  try { commitDirty(input); } catch (e) {}
+  try { commitDirty(); } catch (e) {}
   try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
   if ((!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst (acc, not routesA, is the route tally now: routesA may already be folded+freed at pause)
   try { deLoad(); } catch (e) {}

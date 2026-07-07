@@ -73,6 +73,46 @@ check(decBse(encBrk(MAXG, 999, 999)) === MAXG, "bestSend must survive saturated 
 console.log("  max packedBreak = " + encBrk(MAXG, 63, 63) + " (limit 2^24 = 16777216)");
 check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
 
+// ---------- packedAct: READY P-mode tries*1000+sends (>=0) | -1 hidden | EDIT codes -2..-5 ----------
+//   encoder mirrors main.js setOutputs: state 0 P-mode = min(tries,16700)*1000 + min(sends,999);
+//   state 5 EDIT = empty ? -5 : delArmed ? -4 : send ? -2 : -3; everywhere else -1.
+//   decoders mirror ready.html: mid-pill GLYPH eval + 78%-line WORD eval (change in lockstep!).
+console.log("[packedAct] P-mode tries/sends + EDIT steering codes");
+var encActP = function(t, sn) { return Math.min(t, 16700) * 1000 + Math.min(sn, 999); };
+var encActE = function(empty, del, send) { return empty ? -5 : del ? -4 : send ? -2 : -3; };
+var decGlyph = function(x) { return x === -2 ? '\uF110' : x === -3 ? '\uF107' : x < -1 ? '' : '\uF111'; };
+var decWord  = function(x) { return x === -2 ? 'SEND' : x === -3 ? 'FAIL' : x === -4 ? 'DEL' : x < 0 ? '' : Math.floor(x / 1000) + 'T ' + (x % 1000) + 'S'; };
+var tVals = [0, 1, 34, 35, 50, 999, 16700, 99999];
+var snVals = [0, 1, 34, 63, 999, 5000];
+for (var ta = 0; ta < tVals.length; ta++) {
+  for (var sb = 0; sb < snVals.length; sb++) {
+    var tv = tVals[ta], sv = snVals[sb], px = encActP(tv, sv), pxf = Math.fround(px);
+    check(f32(px), "packedAct not float32-exact: t=" + tv + " s=" + sv + " -> " + px);
+    check(decWord(pxf) === Math.min(tv, 16700) + "T " + Math.min(sv, 999) + "S",
+      "P-mode word round-trip t=" + tv + " s=" + sv + " -> " + decWord(pxf));
+    check(decGlyph(pxf) === '\uF111', "P-mode glyph must stay F111 (mode-toggle) for x>=0");
+  }
+}
+check(encActP(16700, 999) <= (1 << 24), "packedAct positive max exceeds 2^24");
+console.log("  max packedAct = " + encActP(16700, 999) + " (limit 2^24 = 16777216)");
+// EDIT codes: [empty, delArmed, send] -> code, glyph (NEXT action preview), word (CURRENT result)
+var codeCases = [
+  [1, 0, 0, -5, '',       ''],      // empty editor: pill blank, word blank
+  [0, 1, 0, -4, '',       'DEL'],   // DEL armed: pill blank, DEL rides the word span (text font, not f-ico)
+  [0, 0, 1, -2, '\uF110', 'SEND'],  // send -> press marks FAIL
+  [0, 0, 0, -3, '\uF107', 'FAIL'],  // fail -> press marks DEL
+];
+for (var cc = 0; cc < codeCases.length; cc++) {
+  var C = codeCases[cc], code = encActE(C[0], C[1], C[2]), cf = Math.fround(code);
+  check(code === C[3], "EDIT code mismatch case " + cc + ": " + code + " != " + C[3]);
+  check(f32(code), "EDIT code not float32-exact: " + code);
+  check(decGlyph(cf) === C[4], "EDIT glyph case " + cc + ": got " + JSON.stringify(decGlyph(cf)));
+  check(decWord(cf) === C[5], "EDIT word case " + cc + ": got " + JSON.stringify(decWord(cf)));
+}
+// -1 (hidden everywhere else): word blank, pill keeps the READY mode-toggle glyph
+check(decWord(Math.fround(-1)) === '', "-1 must blank the word");
+check(decGlyph(Math.fround(-1)) === '\uF111', "-1 must keep the F111 mode-toggle pill");
+
 // packedPk (1'/3' peak HR) removed — the 1'/3' rolling-peak feature was cut for the heap diet.
 
 console.log(fails === 0 ? "\nALL PASS" : "\n" + fails + " FAILURE(S)");
