@@ -88,7 +88,15 @@ function getUserInterface() {
   // setup.html (grade-system setup), and saving.html (pause/end de-load).
   // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
   // After first resolve, goState() owns currentTemplate.
+  // CHURN MARKER (#177, middle-button spam): the framework re-runs getUserInterface on EVERY
+  // app-screen entry (reference.html lifecycle) — a plain middle-click cycles displays at firmware
+  // level (never reaches onEvent) and each re-entry re-mounts templates mid-enable. pendF12 encodes
+  // the bootstrap state: 1 = armed/never mounted, 3 = mounted + quiet, 2 = a re-entry churned since
+  // the last tick. evaluate drains on 1/3 (the normal tick-1 drain is UNCHANGED) and skips one tick
+  // on 2 — the ext12 parse waits for the first CALM second instead of racing the mount churn
+  // (log 2026-07-07d: parse -> relMemCb x2). All pendF12 guards test truthiness, so 2/3 still gate.
   if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
+  if (pendF12) pendF12 = pendF12 === 1 ? 3 : 2;
   return { template: currentTemplate };
 }
 
@@ -523,7 +531,7 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(1); } catch (e) {} }  // staggered ext12 bootstrap on the calm first tick; try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else { try { drainF12(1); } catch (e) {} } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry mounted this second, #177 middle-spam) skips one tick and re-arms as 3; 1/3 parse. try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
