@@ -526,6 +526,14 @@ function onLoad(_input, output) {
   lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
+  // EXPERIMENT (#177, user-directed): drain ext12 SYNCHRONOUSLY at enable — if the parse happens
+  // INSIDE onLoad, no start/spam window can ever interleave with it (the 07f hang followed a parse
+  // at start+1.3s; a pre-start parse never froze). Doc-conform: evalFile is main.js-only, onLoad
+  // runs at app-select, the drain reads only LS (no inputs, no output writes). The 2026-07-06
+  // enable-drain falsification hit a 2816B ext12 WITH growing writes — today's is 641B read-only.
+  // On throw, pendF12 stays 1 -> the staggered tick-1 drain + all churn deferrals below remain the
+  // fallback path unchanged.
+  try { drainF12(1); } catch (e) {}
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
