@@ -9,8 +9,19 @@ und den Firmware-Anteil sauber an Suunto eskalieren.
 ## Faktenlage (alles log-bewiesen, Archive in docs/watch-logs/)
 
 1. **Der Sturm feuert während `Load script`** — bevor irgendein App-Code existiert (Log 07i).
-   Scheiternde Allokationen: `JSalloc:1964`×44, `2392`×18, `2095`×3 = Compile-Puffer des
-   Firmware-Loaders für main.js. Unser eigener Parse-Block (ext12: 2348) ist seit dem Hybrid weg.
+   Scheiternde Allokationen = Compile-Puffer des Firmware-Loaders für main.js; unser eigener
+   Parse-Block (ext12: 2348) ist seit dem Hybrid weg. **Verfeinerte Anatomie (Nachanalyse 07i,
+   2026-07-07 spät):** es waren ZWEI getrennte Bursts, nicht ein 56-s-Sturm —
+   - *FATAL-Burst 22:08:18*: 58 Fehlschläge in EINER Sekunde (`1964`×44, `2392`×11, `2095`×3),
+     dann gibt der Loader auf: `Compiling js failed: Error: 1` → `Script load:other` → die
+     Firmware disabled die App SELBST (nachdem sie mid-storm Weather+Movement force-unloadete);
+     UI danach ~45 s unbrauchbar. Der „Freeze" ist also ein abgebrochener Load + Hänger, kein
+     endloser Sturm.
+   - *STRESSED-Burst 22:09:14*: 8 Fehlschläge (`2392`×7, `2412`×1), aber der Compile erholt sich
+     IM SELBEN Load und das Enable gelingt — ein Burst ist überlebbar, fatal ist nur das Aufgeben.
+   - *Self-Heal log-bewiesen*: der Retry 22:09:02 (~45 s nach dem FATAL, nichts verändert) lief
+     mit 0 Fehlschlägen durch. → Outcome-Taxonomie pro Toggle: CLEAN / STRESSED / FATAL
+     (Messvorschrift im Run-Sheet `2026-07-07-169-experiment-runsheet.md`).
 2. **Einzel-Zapp-Disable führt das JS-Discard NIE aus** (Log 07h: `JS discard` erscheint nur beim
    All-Disable/Exercise-Stop). Die tote Instanz (~10 KB) bleibt liegen → der Heap ist beim
    Re-Enable fragmentiert.
@@ -29,7 +40,12 @@ und den Firmware-Anteil sauber an Suunto eskalieren.
 ## Phase A — Beweis-Härtung (Experimente, gates für Phase B)
 
 Jedes Experiment: definiertes Toggle-Muster, Log-Ring sofort archivieren, `JSalloc`-Histogramm +
-Failure-Rate notieren. Gesamt-Watch-Zeit ~30–45 min.
+Klassifikation CLEAN/STRESSED/FATAL pro Toggle. Gesamt-Watch-Zeit ~30–45 min.
+**Durchführung: Run-Sheet `2026-07-07-169-experiment-runsheet.md`** (Blob-Verifikation vor dem
+Flashen, n=20 für A1, vorregistrierter Null-Failure-Fall, Gate-Interpretation inkl. B4-Check).
+**A1-Probe-Build liegt bereit:** Branch `probe/a1-loader-scaling` (Blob 4060 B vs. 7784 B,
+3-Linsen-Review SHIP, .fea bis auf main.js byte-identisch zu master). A3 ist durch die
+07i-Nachanalyse bereits weitgehend belegt (22:09:02-Retry clean) — fällt als A0-Beiprodukt ab.
 
 - **A0 Baseline-Quantifizierung:** 10× Mid-Activity-Toggle (Abstand ~3–5 s) auf dem aktuellen
   Build → Failure-Rate + Chunk-Histogramm. *Die Metrik, an der jede Mitigation gemessen wird.*
