@@ -36,8 +36,12 @@
     <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
     <div class="f-ico p-hc" style="top:calc(66% - 18.5px);">&#xF267;</div>
 
+    <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
+         EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
+         them; inside the script string ONLY \uXXXX escapes render (HTML entities break silently) — the
+         entity form is legal only in the XML `default`. -->
     <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
+      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => x===5||x===6?'\uE365':'\uE338'" default="&#xE338;" /></div>
     </div>
     <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
