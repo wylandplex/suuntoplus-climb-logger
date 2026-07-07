@@ -49,14 +49,15 @@ var climbMode = 0;
 var lastClimbMode = 0;   // slot snapshot at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (cycleSlot in the BREAK commit window must not re-tag it)
 var pStep = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
-var projAll = [];
+var sysChg = 0;    // a SETUP dy changed the system this visit
+var pendSlots = 0; // deferred slot load after a system switch: the setup->ready confirm must stay MOUNT-ONLY (THE LAW: a mount moment tolerates ZERO extra allocation at the 97-99% baseline — the fillSlots getObject AT the confirm froze the watch, same class as the deleted seedSys write). The read runs on the tick AFTER the mount (the proven tick-1-drain choreography).
 // projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19].
 var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
 var sessionsNo = 1;
 // Persistence = the PROVEN choreography: ext12 loads at the calm first-tick drain; the workout
 // path is LS-free; the END does the RMW directly via ext11 (see finishSession). The eP/WAL
 // variant (pause write + next-enable replay) was FALSIFIED on-watch 2026-07-03 — do not re-add.
-var pendF12 = 1;   // ext12 bootstrap pending — drained on the first evaluate tick / first event; cleared only after success (retry-on-OOM pattern)
+var pendF12 = 1;   // bootstrap pending: 1 = attempt on the next tick, >1 = backoff countdown after a failed attempt. Normally cleared INSIDE onLoad (inline drain, no evalFile); the tick path is the OOM fallback only.
 var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes pS<gs>)
 var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
 var sysDirty = 0;  // grade system changed (persist even on a routeless session)
@@ -88,15 +89,9 @@ function getUserInterface() {
   // setup.html (grade-system setup), and saving.html (pause/end de-load).
   // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
   // After first resolve, goState() owns currentTemplate.
-  // CHURN MARKER (#177, middle-button spam): the framework re-runs getUserInterface on EVERY
-  // app-screen entry (reference.html lifecycle) — a plain middle-click cycles displays at firmware
-  // level (never reaches onEvent) and each re-entry re-mounts templates mid-enable. pendF12 encodes
-  // the bootstrap state: 1 = armed/never mounted, 3 = mounted + quiet, 2 = a re-entry churned since
-  // the last tick. evaluate drains on 1/3 (the normal tick-1 drain is UNCHANGED) and skips one tick
-  // on 2 — the ext12 parse waits for the first CALM second instead of racing the mount churn
-  // (log 2026-07-07d: parse -> relMemCb x2). All pendF12 guards test truthiness, so 2/3 still gate.
+  // (The #177 churn-sensor machinery was removed with the hybrid inline drain: there is no
+  // deferred evalFile parse left to protect — the bootstrap completes inside onLoad.)
   if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
-  if (pendF12) pendF12 = pendF12 === 1 ? 3 : pendF12 > 3 ? pendF12 : 2;  // re-entry = skip 1; never shorten a pending start-burst skip (>3)
   return { template: currentTemplate };
 }
 
@@ -109,36 +104,36 @@ var encGrade = function(idx) {
 // is literal (.modeSub), which is what the deploy build checks (same proven shape as wGL).
 var slotG = function() { return projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); };
 
-var loadProjects = function(sys) {
-  var b = sys * 5;
-  for (var i = 0; i < 5; i++) {
-    projGradeIdx[i] = projAll[b + i] !== undefined ? projAll[b + i] : -1;
-  }
+// fillSlots (hybrid): slots come straight from the stats object — the projAll
+// 50-value all-systems cache is GONE (~0.5KB RAM + the 10x5 drain loop saved). Accepted
+// degradation: an in-session system round-trip (A->B->A) re-reads A's PERSISTED slots, so
+// unsaved in-session slot edits of a departed system are no longer visible until end-write
+// (end-write only ever covered the ACTIVE system — unchanged).
+var fillSlots = function(sv, sys) {
+  for (var i = 0; i < 5; i++) { var p = sv["p" + sys + "_" + (i + 1)]; projGradeIdx[i] = p >= -1 && p < GRADE_LENS[sys] ? p | 0 : -1; }
 };
 
-// ext12 bootstrap, staggered off the enable burst (the proven drain pattern): parses ext12 on the
-// first evaluate tick / first event / end-belt. ext12 also RMWs a pending eP end-payload from the
-// PREVIOUS session before returning, so everything below is already post-persist state.
-// autoSkip (tick-1 only): a returning user (persisted sessions > 0) jumps SETUP -> READY like the
-// classic build — never from the event path, where a press means the user is USING the setup screen.
-var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the tick-1 drain, fired on tick 2 (parse and template swap never share a tick), cancelled by any button press
+
+// INLINE DRAIN (hybrid, #177/#169 follow-up): direct getObject reads — NO evalFile, so no ~2KB
+// contiguous parse block at enable. Runs synchronously in onLoad: the bootstrap completes before
+// any start/spam window can exist (instant-start safe BY CONSTRUCTION, replaces the churn-sensor
+// machinery). Object-graph reads are many SMALL allocations (fragmentation-tolerant) — dominated-
+// safe vs the on-watch-proven full ext12 parse at onLoad (log 2026-07-07g fresh-enable cycles).
+// watchSetup legacy fallback dropped (pre-populated installs always ship stats.system).
+// LOCKSTEP oracle: tools/tests/drain-inline-equiv.js proves equivalence with the deleted ext12.js.
+var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
-  var r = loadExt(12)();
-  // r[6] = needsMig: gates the COLD migration ext on the presence of a legacy rou<ms> key (stats.rou0).
-  // NOT on stats.mig — the on-watch log (2026-07-07) proved mig=1 does NOT persist across enable/disable
-  // (a drain-time setObject that isn't flushed), so gating on mig!==1 re-fired ext13 on EVERY enable,
-  // inflating the enable heap to 98% (JsTotMem WRN). rou0 is a pure sv-field check (no getObject quirk),
-  // absent on every current/pre-populated install, so ext13 now parses ONLY when there is genuine
-  // rou-format legacy data to migrate. If so, heal it (rou<ms>->s<ms>, climbProjStats->pS<g>) then re-drain.
-  if (r[6]) { try { loadExt(13)(); r = loadExt(12)(); } catch (e) {} }
-  gradeSystem = r[0];
-  projGradeIdx = r[1];
-  projSlot = r[2];
-  sessionsNo = (r[3] | 0) + 1;
-  projAll = r[4];
+  var L = localStorage, sv = L.getObject("stats") || {}, i;
+  // stats.rou0 = genuine rou-format legacy data -> COLD ext13 migration (rare), then re-read.
+  if (sv.rou0 !== undefined) { try { loadExt(13)(); sv = L.getObject("stats") || {}; } catch (e) {} }
+  gradeSystem = sv.system >= 0 && sv.system <= 9 ? sv.system | 0 : 0;
+  fillSlots(sv, gradeSystem);
+  var Z = L.getObject("pS" + gradeSystem);
+  if (Z) for (i = 0; i < 20; i++) projSlot[i] = Z[i] !== undefined ? Z[i] : i < 15 ? 0 : -1;
   currentGrade = DEFAULT_IDX[gradeSystem];
+  sessionsNo = (sv.sessions | 0) + 1;
   pendF12 = 0;
-  if (autoSkip && r[3] > 0 && r[5] === 0) skipP = 1;  // returning-user SETUP->READY auto-skip ONLY when the companion setting stats.showSetupOnStart is explicitly 0; default (1/undefined) = ask every start
+  if (autoSkip && sv.sessions > 0 && sv.showSetupOnStart === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
 };
 
 var loadProjectStats = function() {
@@ -300,8 +295,7 @@ var saveAsProject = function(output) {
   if (r) {
     currentGrade = r[0]; climbMode = r[1];
     if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
-    projAll[gradeSystem * 5 + r[1] - 1] = r[0];
-    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats
+    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats (projGradeIdx already updated via by-ref; the projAll mirror is gone — hybrid)
     goState(0, output);
   }
 };
@@ -492,12 +486,13 @@ var evSetup = function(output, eid, dy) {
   if (dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
-    loadProjects(gradeSystem);
+    sysChg = 1;  // hybrid: slots load ONCE at the eid6 confirm (per-press LS reads would stall the fluid dy scroll; SETUP shows no slots)
     loadProjectStats(gradeSystem);
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     wMode(output, gradeSystem);
   } else if (eid === 6) {
+    if (sysChg) { sysChg = 0; pendSlots = 1; }  // slots load one tick AFTER the mount (never AT it); a plain confirm must not clobber in-session slot edits
     goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
   }
 };
@@ -507,7 +502,6 @@ var evProjSetup = function(output, eid, dy) {
     projGradeIdx[pStep] += dy;
     if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
-    projAll[gradeSystem * 5 + pStep] = projGradeIdx[pStep];
     slotsDirty = 1;
     gradeV = slotG(); wGL(output);
   } else if (eid === 5) {
@@ -526,31 +520,19 @@ function onLoad(_input, output) {
   lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
-  // NO drain here — the onLoad-drain experiment (eaae480) was FALSIFIED for the in-activity
-  // re-enable (log 2026-07-07g + user taxonomy): with both co-apps RESIDENT, onLoad makes
-  // compile+ext12-parse one atomic enable transaction that can NEVER fit (~2.3KB contiguous next
-  // to 2 residents — waiting doesn't help, the free block never grows). Deterministic freeze on
-  // every mid-activity toggle. The tick-1 gap between compile and parse IS the required GC breath
-  // (slow re-enables proven clean 2026-07-06 + 07-07 morning logs). Instant-start is covered by
-  // the onExerciseStart 3-tick skip instead (parse at start+4-5s, past the burst; mid-exercise
-  // parses are proven safe via ext10).
+  // HYBRID drain at onLoad: unlike the falsified eaae480 experiment this is NOT an evalFile parse
+  // (no ~2KB contiguous block) — plain getObject reads in small allocations. Bootstrap completes
+  // inside the enable, so no start/spam window can interleave. On throw (corpse-heap toggle case,
+  // #169 firmware behavior): 3-tick backoff, then the tick fallback retries.
+  try { drainF12(1); } catch (e) { pendF12 = 4; }
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
-// Third churn source (#177): "enable -> START IMMEDIATELY" collided the ext12 parse with the
-// exercise-start burst (log 2026-07-07e: same-second, JsTotMem 98.6%). A 1-tick skip was NOT
-// enough — log 2026-07-07f: parse at start+1.3s, marker-SILENT ui HANG in every instant-start
-// cycle (cable to recover), while the burst visibly runs ~3s (analytics/BLE) and a start after
-// +5s never froze. So the start burst gets a 3-TICK skip (pendF12=6: 6->5->4 skip, drain <=3) —
-// the parse lands ~start+4-5s, past the transition. Parses in a RUNNING exercise are proven safe
-// (ext10 fires mid-session in every clean log); it is the start-transition window that kills.
-function onExerciseStart() {
-  if (pendF12) pendF12 = 6;
-}
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else if (pendF12 > 3) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 6; } } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry, skip 1) re-arms as 3; >3 (exercise-start burst, skip 3: 6->5->4) counts down; 1/3 parse. try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { if (pendF12 > 1) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 4; } } }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169)
+  else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { pendSlots = 1; } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
@@ -649,13 +631,10 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  // STARTUP GUARD (#177): NEVER bootstrap on the event path. A press in the sub-second window
-  // between enable and tick 1 used to force the ~2KB ext12 parse INTO the 3-app enable burst —
-  // exec:zapp relMem storm, both co-apps evicted, watch freeze on spam (log 2026-07-07d 13:01:53).
-  // Events are inert until the staggered tick-1 drain (proven calm in every clean log) has run;
-  // the spammed press is dropped by design. Trade-off (accepted): a pre-tick-1 press no longer
-  // cancels the returning-user auto-skip.
-  if (pendF12) return;
+  // Fallback guard: pendF12 only when the onLoad drain threw (corpse heap, #169); pendSlots for
+  // the 1-tick window after a system switch (stale slots must not drive startClimb/packedAct).
+  // A press must never force bootstrap/LS work.
+  if (pendF12 || pendSlots) return;
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -692,7 +671,7 @@ function onLap(_input, output) {
   // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
   // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
   // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
-  if (pendF12) return;  // startup guard (#177), symmetric with onEvent: no phase transition / active.html mount before the bootstrap drain — a real (auto-)lap cannot occur in that sub-second pre-start window
+  if (pendF12 || pendSlots) return;  // fallback guard, symmetric with onEvent
   if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
   else if (state === 0) startClimb(output);      // READY -> start first climb
   else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)
