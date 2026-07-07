@@ -622,7 +622,13 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  if (pendF12) { try { drainF12(0); } catch (e) {} }  // user beat the first tick — bootstrap now, NO auto-skip; caught: an OOM throw out of an event handler is the 'run evt 1' app-death
+  // STARTUP GUARD (#177): NEVER bootstrap on the event path. A press in the sub-second window
+  // between enable and tick 1 used to force the ~2KB ext12 parse INTO the 3-app enable burst —
+  // exec:zapp relMem storm, both co-apps evicted, watch freeze on spam (log 2026-07-07d 13:01:53).
+  // Events are inert until the staggered tick-1 drain (proven calm in every clean log) has run;
+  // the spammed press is dropped by design. Trade-off (accepted): a pre-tick-1 press no longer
+  // cancels the returning-user auto-skip.
+  if (pendF12) return;
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -659,6 +665,7 @@ function onLap(_input, output) {
   // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
   // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
   // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
+  if (pendF12) return;  // startup guard (#177), symmetric with onEvent: no phase transition / active.html mount before the bootstrap drain — a real (auto-)lap cannot occur in that sub-second pre-start window
   if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
   else if (state === 0) startClimb(output);      // READY -> start first climb
   else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)

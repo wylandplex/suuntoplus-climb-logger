@@ -92,6 +92,11 @@ function freshReady() {
   // So drive: app starts state 4 (no watchSetup) -> press eid6 in SETUP to goto
   // READY (state 0), which is the legit way a first-run user enters active.
   api.onLoad({}, {});
+  // tick-1 bootstrap drain FIRST: the startup guard (#177) makes onEvent/onLap inert until the
+  // staggered drain has run (real watch: evaluate ticks from enable — only sub-second button spam
+  // ever beat tick 1, and that is now dropped by design; the event-path ext12 parse stormed
+  // exec:zapp, log 2026-07-07d).
+  tick(api);
   if (api.getState() !== 0) {
     // first-run: SETUP screen (state 4). Confirm grade system, go to READY.
     api.onEvent({}, {}, 6); // evSetup eid6 -> goState(0)
