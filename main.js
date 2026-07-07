@@ -533,7 +533,10 @@ function onLoad(_input, output) {
   // enable-drain falsification hit a 2816B ext12 WITH growing writes — today's is 641B read-only.
   // On throw, pendF12 stays 1 -> the staggered tick-1 drain + all churn deferrals below remain the
   // fallback path unchanged.
-  try { drainF12(1); } catch (e) {}
+  // catch -> pendF12=6: a FAILED enable-drain means the heap is hot (#169 rapid re-enable — the
+  // previous instance's discard is async); retrying every tick would fire a RelMem burst per second.
+  // Wait 3 ticks before the fallback attempt, churn sensors can extend further.
+  try { drainF12(1); } catch (e) { pendF12 = 6; }
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
@@ -550,7 +553,7 @@ function onExerciseStart() {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else if (pendF12 > 3) pendF12--; else { try { drainF12(1); } catch (e) {} } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry, skip 1) re-arms as 3; >3 (exercise-start burst, skip 3: 6->5->4) counts down; 1/3 parse. try/catch = retry next tick, never throw out of the hook
+  if (pendF12) { if (pendF12 === 2) pendF12 = 3; else if (pendF12 > 3) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 6; } } }  // staggered ext12 bootstrap on the FIRST CALM tick: 2 (screen re-entry, skip 1) re-arms as 3; >3 (exercise-start burst, skip 3: 6->5->4) counts down; 1/3 parse. try/catch = retry next tick, never throw out of the hook
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
