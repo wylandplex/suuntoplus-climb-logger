@@ -49,7 +49,8 @@ var climbMode = 0;
 var lastClimbMode = 0;   // slot snapshot at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (cycleSlot in the BREAK commit window must not re-tag it)
 var pStep = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
-var sysChg = 0;  // a SETUP dy changed the system this visit -> eid6 confirm reloads slots from LS (hybrid: no projAll cache)
+var sysChg = 0;    // a SETUP dy changed the system this visit
+var pendSlots = 0; // deferred slot load after a system switch: the setup->ready confirm must stay MOUNT-ONLY (THE LAW: a mount moment tolerates ZERO extra allocation at the 97-99% baseline — the fillSlots getObject AT the confirm froze the watch, same class as the deleted seedSys write). The read runs on the tick AFTER the mount (the proven tick-1-drain choreography).
 // projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19].
 var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
 var sessionsNo = 1;
@@ -491,7 +492,7 @@ var evSetup = function(output, eid, dy) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     wMode(output, gradeSystem);
   } else if (eid === 6) {
-    if (sysChg) { sysChg = 0; fillSlots(localStorage.getObject("stats") || {}, gradeSystem); }  // one small LS read, only when the system actually changed (a plain confirm must not clobber in-session slot edits)
+    if (sysChg) { sysChg = 0; pendSlots = 1; }  // slots load one tick AFTER the mount (never AT it); a plain confirm must not clobber in-session slot edits
     goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
   }
 };
@@ -531,6 +532,7 @@ function onLoad(_input, output) {
 function evaluate(input, output) {
   if (isPaused) return;
   if (pendF12) { if (pendF12 > 1) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 4; } } }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169)
+  else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { pendSlots = 1; } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
@@ -629,9 +631,10 @@ function onExerciseEnd(input, _output) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
-  // Fallback guard: only reachable when the onLoad drain threw (corpse heap, #169) — events stay
-  // inert until the backoff retry succeeds; a press must never force bootstrap work.
-  if (pendF12) return;
+  // Fallback guard: pendF12 only when the onLoad drain threw (corpse heap, #169); pendSlots for
+  // the 1-tick window after a system switch (stale slots must not drive startClimb/packedAct).
+  // A press must never force bootstrap/LS work.
+  if (pendF12 || pendSlots) return;
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -668,7 +671,7 @@ function onLap(_input, output) {
   // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
   // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
   // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
-  if (pendF12) return;  // fallback guard, symmetric with onEvent (only reachable when the onLoad drain threw)
+  if (pendF12 || pendSlots) return;  // fallback guard, symmetric with onEvent
   if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
   else if (state === 0) startClimb(output);      // READY -> start first climb
   else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)
