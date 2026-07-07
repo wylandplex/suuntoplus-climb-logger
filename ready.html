@@ -8,12 +8,17 @@
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
-          function evL(){if(lock)return;if(vs!==5)lap();evX(6)}
+          function evL(){if(lock)return;if(vs===0)lap();evX(6)}
         ">
   <div id="climblogger">
 
-    <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to non-EDIT states —
-         in the EDIT overlay (vState 5) the bottom zone/down-long navigates routes and must NOT lap -->
+    <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to READY ONLY (#172) —
+         in the EDIT overlay (5) the bottom zone/down-long navigates routes, in PROJ-SETUP (6) it advances
+         slots; neither must fire a firmware lap (a real lap would pollute the FIT + shift Lap/-1/-2).
+         Known pre-existing race (documented, not fixed): an app-swipe remount while in an overlay leaves
+         vs at its init 0 for a sub-second window until the vState eval fires — a press in that window can
+         phantom-lap. Init vs=-1 would fix it but swallow the lap in the common BREAK->READY->instant-START
+         flow (worse: wrong climb timer), so 0 stays. -->
     <span><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" /></span>
 
     <!-- READY as its own single-screen template (split out of active.html): mounts ~1/3 of the old
