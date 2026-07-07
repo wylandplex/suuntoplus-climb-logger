@@ -3,17 +3,22 @@
         onLoad="
           var lock=0,vs=0,M=Math.floor;
           function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          function setVs(x){vs=x;return ''}
+          function setVs(x){vs=x;setStyle('#pm','visibility',x===6?'HIDDEN':'VISIBLE');return ''}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
-          function evL(){if(lock)return;if(vs!==5)lap();evX(6)}
+          function evL(){if(lock)return;if(vs===0)lap();evX(6)}
         ">
   <div id="climblogger">
 
-    <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to non-EDIT states —
-         in the EDIT overlay (vState 5) the bottom zone/down-long navigates routes and must NOT lap -->
+    <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to READY ONLY (#172) —
+         in the EDIT overlay (5) the bottom zone/down-long navigates routes, in PROJ-SETUP (6) it advances
+         slots; neither must fire a firmware lap (a real lap would pollute the FIT + shift Lap/-1/-2).
+         Known pre-existing race (documented, not fixed): an app-swipe remount while in an overlay leaves
+         vs at its init 0 for a sub-second window until the vState eval fires — a press in that window can
+         phantom-lap. Init vs=-1 would fix it but swallow the lap in the common BREAK->READY->instant-START
+         flow (worse: wrong climb timer), so 0 stays. -->
     <span><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" /></span>
 
     <!-- READY as its own single-screen template (split out of active.html): mounts ~1/3 of the old
@@ -22,22 +27,42 @@
          START (evL 6) fires the firmware lap directly (was the lapState===0 branch). -->
 
     <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(36% - 18.5px);">&#xF266;</div>
+    <!-- Chevrons are lock-gated (T3, #173): packedGL's 1e6 flag = grade locked in EDIT (empty
+         editor / project-tagged route, mirroring evEdit's eid1/2 gates) -> chevrons blank, absence
+         = feedback (was a silent dead control). Grade decode above masks with %1e6 in lockstep. -->
+    <div class="f-ico p-hc" style="top:calc(36% - 18.5px);"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => x>=1e6?'':'\uF266'" default="&#xF266;" /></div>
 
     <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(M(x/952))" default="--" />
+      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(M(x%1e6/952))" default="--" />
     </div>
 
     <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(66% - 18.5px);">&#xF267;</div>
+    <div class="f-ico p-hc" style="top:calc(66% - 18.5px);"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => x>=1e6?'':'\uF267'" default="&#xF267;" /></div>
 
+    <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
+         EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
+         them; inside the script string ONLY \uXXXX escapes render (HTML entities break silently) — the
+         entity form is legal only in the XML `default`. -->
     <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
+      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => x===5||x===6?'\uE365':'\uE338'" default="&#xE338;" /></div>
     </div>
     <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF111;</div>
+    <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
+         pill was a live-looking dead control there. setVs toggles it via the PROVEN visibility-only
+         setStyle mechanism (absence = feedback, Era-A sc6). The eid4 tap zone below stays — a tap in
+         state 6 is a no-op by design.
+         T2/S5 (user-corrected 2x): the pill previews the NEXT-IN-LINE action of the eid4
+         SEND->FAIL->DEL->SEND cycle — the CURRENT state lives in the 78%-line word, the pill says
+         what the press DOES: -2 route is SEND -> flame (F110, "press marks FAIL"); -3 FAIL -> the
+         text-font DEL span ("press arms DEL", icon blanks); -4 DEL armed -> trophy (F200, "press
+         restores SEND"); -5 empty editor -> blank. Era-A's F107 at -3 was a meaningless EKG/stats
+         placeholder glyph (#101) — the DEL text replaces it, and the trophy closes the cycle.
+         x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
+         setOutputs + tools/tests/output-pack-equiv.js. -->
+    <div id="pm" style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'\uF110':x===-4?'\uF200':x<-1?'':'\uF111'" default="&#xF111;" /></div>
+      <div class="sp-b-s cm-bgc" style="position:absolute;top:calc(50% - 20.5px);left:2px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-3?'DEL':''" default="" /></div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
@@ -46,12 +71,14 @@
     </div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Project stats line (P-mode only): ONE packed output (tries*1000+sends) replaces the old
-         actT/S/B trio — 2 subscriptions fewer on the swap transient; bestTime lives in summary/companion.
-         In EDIT overlay mode packedAct is -1 (blank) and #edr (setText) shows i/n SEND|FAIL|DEL instead. -->
+    <!-- 78% line: P-mode stats OR the EDIT status. #edr (setText from pushEd) renders "EDIT i/n ",
+         the eval span appends the CURRENT result word from packedAct's negative channel (-2 SEND /
+         -3 FAIL / -4 DEL) — output-driven, so it survives app-swipe remounts (#edr does not: after
+         a remount the line shows only the word until the next pushEd; documented, accepted).
+         Span ORDER matters: #edr first, word second ("EDIT 3/5 SEND", not "SEND EDIT 3/5"). -->
     <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x < 0 ? '' : M(x/1000) + 'T ' + (x%1000) + 'S'" /></span>
       <span id="edr" class="sp-b-s"></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'SEND':x===-3?'FAIL':x===-4?'DEL':x<0?'':M(x/1000)+'T '+(x%1000)+'S'" /></span>
     </div>
 
     <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->

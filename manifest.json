@@ -13,11 +13,6 @@
       "type": "subscribe"
     },
     {
-      "name": "M",
-      "source": "Activity/Lap/-2/HeartRate/Max",
-      "type": "subscribe"
-    },
-    {
       "name": "Asc",
       "source": "Fusion/Altitude/Ascent",
       "type": "subscribe"
