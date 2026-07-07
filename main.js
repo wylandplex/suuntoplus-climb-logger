@@ -526,17 +526,14 @@ function onLoad(_input, output) {
   lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
-  // EXPERIMENT (#177, user-directed): drain ext12 SYNCHRONOUSLY at enable — if the parse happens
-  // INSIDE onLoad, no start/spam window can ever interleave with it (the 07f hang followed a parse
-  // at start+1.3s; a pre-start parse never froze). Doc-conform: evalFile is main.js-only, onLoad
-  // runs at app-select, the drain reads only LS (no inputs, no output writes). The 2026-07-06
-  // enable-drain falsification hit a 2816B ext12 WITH growing writes — today's is 641B read-only.
-  // On throw, pendF12 stays 1 -> the staggered tick-1 drain + all churn deferrals below remain the
-  // fallback path unchanged.
-  // catch -> pendF12=6: a FAILED enable-drain means the heap is hot (#169 rapid re-enable — the
-  // previous instance's discard is async); retrying every tick would fire a RelMem burst per second.
-  // Wait 3 ticks before the fallback attempt, churn sensors can extend further.
-  try { drainF12(1); } catch (e) { pendF12 = 6; }
+  // NO drain here — the onLoad-drain experiment (eaae480) was FALSIFIED for the in-activity
+  // re-enable (log 2026-07-07g + user taxonomy): with both co-apps RESIDENT, onLoad makes
+  // compile+ext12-parse one atomic enable transaction that can NEVER fit (~2.3KB contiguous next
+  // to 2 residents — waiting doesn't help, the free block never grows). Deterministic freeze on
+  // every mid-activity toggle. The tick-1 gap between compile and parse IS the required GC breath
+  // (slow re-enables proven clean 2026-07-06 + 07-07 morning logs). Instant-start is covered by
+  // the onExerciseStart 3-tick skip instead (parse at start+4-5s, past the burst; mid-exercise
+  // parses are proven safe via ext10).
   // NEVER call setOutputs here — output writes in onLoad cause "max app" crash on Vertical 2.
 }
 
