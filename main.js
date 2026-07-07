@@ -1,3 +1,12 @@
+// =============================================================================
+// A1d CORE-NOEDIT PROBE (branch probe/a1d-core-noedit) — sacrifice CANDIDATE.
+// Production main.js MINUS the EDIT overlay (state 5) and MINUS on-watch
+// project EDITING (state 6 + save-as-project). Projects stay USABLE: slots are
+// companion-configured (drain reads stats.pX_Y as always), cycling/display/
+// stats/persistence all intact. BREAK up-long quickfix survives as the result
+// correction. Fully saving build — safe for real sessions.
+// Purpose: map the toggle-corpse curve between 4060B (#5) and 7784B (#1).
+// =============================================================================
 var currentTemplate;  // resolved in getUserInterface() from watchSetup on first call (ordering-safe), then driven by goState cluster switches
 var state = 4;
 
@@ -19,7 +28,6 @@ var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
 var rDur   = function(i) { return Math.floor(routesB[i] / 1000); };
 var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), rCm(i), routesA[i] % 1e4); };
 var wSend  = function(i, v) { routesA[i] = packA(rGrade(i), v, rCm(i), routesA[i] % 1e4); };
-var wCm    = function(i, v) { routesA[i] = packA(rGrade(i), rSend(i), v, routesA[i] % 1e4); };
 var lastResult = 0;
 
 var rSec = 0;
@@ -33,8 +41,6 @@ var bestSendIdx = -1;
 var frDirty = 0;
 var frSend = 0;
 var extLapPending = 0;  // deferred CLIMB-finish armed by an EXTERNAL lap (auto-lap / non-app lap) in onLap; drained in evaluate one tick later so an app FAIL/SEND button (onEvent fires AFTER onLap on this platform) can cancel it via finishRoute. SEND by default.
-var editIdx = 0;        // EDIT overlay (state 5 ON the ready template — no swap): selected route
-var editDelMark = 0;    // old mid-button cycle SEND->FAIL->DEL; the DEL mark executes on nav/exit (eid 5/6)
 var isPaused = 0;
 var finalized = 0;  // onExerciseEnd idempotency (fast pause→end guard); reset to 0 in onLoad each session
 var lastSummaryCache = null;
@@ -47,7 +53,6 @@ var lastHeight = 0;
 // writeActStats stay cut) and WITHOUT rescanBest (stale slot bestTime after an un-send: accepted).
 var climbMode = 0;
 var lastClimbMode = 0;   // slot snapshot at route finish — commitDirty attributes the pending route to THIS, not the live climbMode (cycleSlot in the BREAK commit window must not re-tag it)
-var pStep = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var sysChg = 0;    // a SETUP dy changed the system this visit
 var pendSlots = 0; // deferred slot load after a system switch: the setup->ready confirm must stay MOUNT-ONLY (THE LAW: a mount moment tolerates ZERO extra allocation at the 97-99% baseline — the fillSlots getObject AT the confirm froze the watch, same class as the deleted seedSys write). The read runs on the tick AFTER the mount (the proven tick-1-drain choreography).
@@ -98,11 +103,6 @@ function getUserInterface() {
 var encGrade = function(idx) {
   return gradeSystem * 100 + idx;
 };
-
-// #171 dedups: slotG = the PROJ-SETUP slot-grade read (OFF sentinel when unset), 3 sites;
-// wMode = the chg(4)+literal modeSub write, 7 sites. o stays a param — the PROPERTY access
-// is literal (.modeSub), which is what the deploy build checks (same proven shape as wGL).
-var slotG = function() { return projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); };
 
 // fillSlots (hybrid): slots come straight from the stats object — the projAll
 // 50-value all-systems cache is GONE (~0.5KB RAM + the 10x5 drain loop saved). Accepted
@@ -175,14 +175,9 @@ var gradeV = 0, lastGradeV = -1;
 // freshly-mounted template never reads a stale Output store; setOutputs clears pubF when done.
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
-// lockF (T3, #173): 1e6 flag on packedGL = "grade is LOCKED in the EDIT overlay" (empty editor or
-// project-tagged route — mirrors evEdit's own eid1/2 gates). ready.html blanks the chevrons on it
-// and masks the grade decode with %1e6. Max 1e6+950*952+951 = 1,905,351 < 2^24 (float32-exact).
-// Recomputed at the TOP of setOutputs, before any wGL/writeG — every handler republishes via
-// setOutputs, so direct wGL callers (evProjSetup/evSetup, states 6/4) always see a fresh 0.
-// DECODE LOCKSTEP: ready.html big-grade + 2 chevron evals, tools/tests/output-pack-equiv.js.
-var lockF = 0;
-var wGL = function(o) { var v = lockF * 1e6 + gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
+// lockF dropped with the EDIT overlay (a1d): the grade is never locked, chevrons always render.
+// ready.html's x>=1e6 chevron gate and %1e6 grade mask are no-ops on unflagged values.
+var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
 var wMode = function(o, v) { if (chg(4, v)) o.modeSub = v; };
 // packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
@@ -194,20 +189,11 @@ var pushMode = function(o) {
 };
 
 var setOutputs = function(output) {
-  lockF = state === 5 && (editIdx >= routesA.length || rCm(editIdx) > 0) ? 1 : 0;
   if (chg(1, state)) output.vState = state;
-  lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
+  lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
   if (chg(2, rh)) output.routeHeight = rh;
-  if (state === 5) {
-    gradeV = editIdx < routesA.length ? encGrade(rGrade(editIdx)) : encGrade(50);  // big grade display = selected route
-    wMode(output, editIdx + 1);                 // header #N = route number
-    lastGradeV = -1; wGL(output);
-  } else if (state === 6) {
-    gradeV = slotG();  // big display = slot grade (OFF sentinel when unset)
-    wMode(output, -(pStep + 1));  // header renders negatives as "P1".."P5" — the slot being configured
-    lastGradeV = -1; wGL(output);
-  } else if (state === 4) {
+  if (state === 4) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
     wMode(output, gradeSystem);
     lastGradeV = -1; wGL(output);
@@ -217,20 +203,12 @@ var setOutputs = function(output) {
     var ms = climbMode > 0 ? -climbMode : rn;
     wMode(output, ms);
   }
-  // packedAct: READY P-mode = activeTries*1000+activeSends (>=0); -1 hides the line everywhere else
-  // EXCEPT the EDIT overlay (state 5), which rides the free NEGATIVE channel as a result/steering code:
-  //   pill = NEXT-action preview (current state = the 78%-line word):
-  //   -2 = SEND (pill: F110 flame, press->FAIL)   -3 = FAIL (pill: DEL text, press->arm DEL)
-  //   -4 = DEL armed (pill: F200 trophy, press->restore SEND)   -5 = empty editor (blank)
-  // ONE output replaces the old actT/S/B trio + survives app-swipe remounts (outputs republish,
-  // setText would not). DECODE SITES (lockstep!): ready.html pill-glyph eval + 78%-line word eval,
-  // tools/tests/output-pack-equiv.js. Positive max 16,700,999 < 2^24 (float32-exact).
+  // packedAct: READY P-mode = activeTries*1000+activeSends (>=0); -1 hides the line everywhere
+  // else (the EDIT negative channel -2..-5 left with the overlay; ready.html decodes stay no-ops).
   var pAct = -1;
   if (state === 0 && climbMode > 0) {
     var apI = climbMode - 1;
     pAct = projSlot[apI + 15] === projGradeIdx[apI] ? Math.min(projSlot[apI] || 0, 16700) * 1000 + Math.min(projSlot[apI + 5] || 0, 999) : 0;
-  } else if (state === 5) {
-    pAct = routesA.length === 0 ? -5 : editDelMark ? -4 : rSend(editIdx) ? -2 : -3;
   }
   if (chg(5, pAct)) output.packedAct = pAct;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
@@ -242,7 +220,7 @@ var setOutputs = function(output) {
 
 var goState = function(s, output) {
   state = s;
-  var t = s === 0 || s === 5 || s === 6 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : "saving";  // slim rebuild: limit stays cut; EDIT (5) and PROJ-SETUP (6) are OVERLAYS on the ready template — entering/leaving them swaps nothing (projsetup.html deleted)
+  var t = s === 0 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : "saving";  // a1d: states 5/6 unreachable (overlays cut)
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
@@ -290,16 +268,6 @@ var toggleMode = function() {
   }
 };
 
-var saveAsProject = function(output) {
-  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projSlot, routesA, sessionsNo);
-  if (r) {
-    currentGrade = r[0]; climbMode = r[1];
-    if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
-    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats (projGradeIdx already updated via by-ref; the projAll mirror is gone — hybrid)
-    goState(0, output);
-  }
-};
-
 var recalcBse = function() {
   bestSendIdx = -1;
   for (var i = 0; i < routesA.length; i++) {
@@ -320,66 +288,7 @@ var toggleRes = function(i, v) {
   recalcBse();
 };
 
-// EDIT overlay bottom-line indicator: "EDIT i/n " via setText into ready.html's #edr node — safe
-// because the overlay never swaps the template (DOM is mounted when this runs). The SEND|FAIL|DEL
-// result word moved to the packedAct output (remount-proof; #edr's setText is NOT) — ready.html
-// renders it in the adjacent span, trailing space here keeps the "EDIT i/n WORD" spacing.
-var pushEd = function() {
-  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
-};
-
-// Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
-var edDel = function() {
-  if (!editDelMark) return;
-  editDelMark = 0;
-  if (editIdx < routesA.length) {
-    var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = routesA[editIdx] % 1e4;
-    if (dCm > 0) {
-      var dp = dCm - 1;
-      if (projSlot[dp] > 0) projSlot[dp]--;
-      if (dSend && projSlot[dp + 5] > 0) projSlot[dp + 5]--;
-      if (projSlot[dp] <= 0) { projSlot[dp] = projSlot[dp + 5] = projSlot[dp + 10] = 0; projSlot[dp + 15] = -1; }
-      psDirty = 1;
-    }
-    if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
-    routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
-    recalcBse();
-    if (routeNumber > 1) routeNumber--;
-    if (editIdx >= routesA.length && routesA.length > 0) editIdx = routesA.length - 1;
-  }
-};
-
-// EDIT overlay (state 5) — OLD controls preserved: eid1/2 grade ±1 (free routes), eid4 result cycle
-// SEND->FAIL->DEL, eid6 previous route (executes a DEL mark), eid5 exit (executes a DEL mark).
-// Rendering rides the READY template: big grade = selected route (packedGL), header #N = route number
-// (modeSub), #edr line = i/n + result. ready.html gates its lap() on vState!==5, so eid6 stays lap-free.
-var evEdit = function(output, eid) {
-  if (eid === 5 || eid === 6) {
-    edDel();
-    if (eid === 6 && routesA.length > 0) {
-      editIdx = (editIdx - 1 + routesA.length) % routesA.length;
-      setOutputs(output); pushEd();
-    } else {
-      setText("#edr", "");
-      goState(0, output);
-    }
-    return;
-  }
-  if (routesA.length === 0) return;  // empty editor: stay (old behavior); exit via eid 5/6
-  if (eid === 4) {
-    if (editDelMark) { editDelMark = 0; toggleRes(editIdx, 1); }
-    else if (rSend(editIdx)) toggleRes(editIdx, 0);
-    else editDelMark = 1;
-    setOutputs(output); pushEd();
-  } else if (eid === 1 || eid === 2) {
-    if (!rCm(editIdx)) {
-      var Le = GRADE_LENS[gradeSystem];
-      wGrade(editIdx, ((rGrade(editIdx) + (eid === 1 ? 1 : -1)) % Le + Le) % Le);
-      if (rSend(editIdx)) recalcBse();
-      setOutputs(output); pushEd();
-    }
-  }
-};
+// EDIT overlay (evEdit/edDel/pushEd) cut in a1d — result correction = the BREAK up-long quickfix.
 
 var commitDirty = function() {
   // no params since the hrMax cut (#171 exts-1): input.M was only read for ext10's dead arg 5.
@@ -422,16 +331,6 @@ var evReady = function(output, eid, dy) {
       cycleSlot(dy);
     }
     pushMode(output);
-  } else if (eid === 5) {
-    if (climbMode > 0) {                                          // proj-setup overlay (old binding)
-      pStep = 0;
-      goState(6, output);  // same template — no swap; DOM alive, indicators render immediately
-      setText("#edr", "SLOT " + (pStep + 1) + "/5");
-    } else {                                                      // free mode: EDIT overlay (old binding,
-      editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
-      goState(5, output);
-      pushEd();
-    }
   } else if (eid === 4) {
     toggleMode();
     pushMode(output);
@@ -469,8 +368,6 @@ var evBreak = function(output, eid, dy) {
     lastResult = rSend(li) ? 0 : 1;
     toggleRes(li, lastResult);
     setOutputs(output);
-  } else if (eid === 4) {
-    saveAsProject(output);
   } else if (eid === 6 && !frDirty) {
     goState(0, output);
   }
@@ -497,23 +394,8 @@ var evSetup = function(output, eid, dy) {
   }
 };
 
-var evProjSetup = function(output, eid, dy) {
-  if (dy) {
-    projGradeIdx[pStep] += dy;
-    if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
-    else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
-    slotsDirty = 1;
-    gradeV = slotG(); wGL(output);
-  } else if (eid === 5) {
-    setText("#edr", "");
-    goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
-  } else if (eid === 6) {
-    pStep = (pStep + 1) % 5;
-    gradeV = slotG(); wGL(output);
-    wMode(output, -(pStep + 1));
-    setText("#edr", "SLOT " + (pStep + 1) + "/5");
-  }
-};
+// PROJ-SETUP overlay (evProjSetup, state 6) cut in a1d — slots are companion-configured
+// (stats.pX_Y settings -> drain fillSlots), slotsDirty stays 0 so ext11 never clobbers them.
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
@@ -646,9 +528,7 @@ function onEvent(_input, output, eventId) {
   if (state === 0) evReady(output, eventId, dy);
   else if (state === 1) { if (eventId === 5 || eventId === 6) finishRoute(eventId === 6 ? 1 : 0, output); }
   else if (state === 2) evBreak(output, eventId, dy);
-  else if (state === 5) evEdit(output, eventId);
   else if (state === 4) evSetup(output, eventId, dy);
-  else if (state === 6) evProjSetup(output, eventId, dy);
 }
 
 function onExercisePause(input, _output) {
