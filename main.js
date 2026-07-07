@@ -172,7 +172,14 @@ var gradeV = 0, lastGradeV = -1;
 // freshly-mounted template never reads a stale Output store; setOutputs clears pubF when done.
 var pubC = {}, pubF = 1;
 var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; } return 0; };
-var wGL = function(o) { var v = gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
+// lockF (T3, #173): 1e6 flag on packedGL = "grade is LOCKED in the EDIT overlay" (empty editor or
+// project-tagged route — mirrors evEdit's own eid1/2 gates). ready.html blanks the chevrons on it
+// and masks the grade decode with %1e6. Max 1e6+950*952+951 = 1,905,351 < 2^24 (float32-exact).
+// Recomputed at the TOP of setOutputs, before any wGL/writeG — every handler republishes via
+// setOutputs, so direct wGL callers (evProjSetup/evSetup, states 6/4) always see a fresh 0.
+// DECODE LOCKSTEP: ready.html big-grade + 2 chevron evals, tools/tests/output-pack-equiv.js.
+var lockF = 0;
+var wGL = function(o) { var v = lockF * 1e6 + gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
 var wMode = function(o, v) { if (chg(4, v)) o.modeSub = v; };
 // packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
@@ -184,6 +191,7 @@ var pushMode = function(o) {
 };
 
 var setOutputs = function(output) {
+  lockF = state === 5 && (editIdx >= routesA.length || rCm(editIdx) > 0) ? 1 : 0;
   if (chg(1, state)) output.vState = state;
   lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
