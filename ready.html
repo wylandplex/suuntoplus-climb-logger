@@ -3,7 +3,7 @@
         onLoad="
           var lock=0,vs=0,M=Math.floor;
           function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          function setVs(x){vs=x;return ''}
+          function setVs(x){vs=x;setStyle('#pm','visibility',x===6?'HIDDEN':'VISIBLE');return ''}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
@@ -45,7 +45,11 @@
     </div>
     <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+    <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
+         pill was a live-looking dead control there. setVs toggles it via the PROVEN visibility-only
+         setStyle mechanism (absence = feedback, Era-A sc6). The eid4 tap zone below stays — a tap in
+         state 6 is a no-op by design. -->
+    <div id="pm" style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
       <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xF111;</div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
