@@ -1,16 +1,8 @@
-# DRAFT — Suunto forum post (forum.suunto.com, category: SuuntoPlus development)
-
-> Internal note (not part of the post): fill in the firmware version before posting.
-> Evidence sources: docs/watch-logs/2026-07-07h_ROOTCAUSE-single-disable-leaks-jscontext-no-discard.log
-> and docs/watch-logs/2026-07-07i_hybrid-switchfix-OK_reenable-LOADER-compile-storm-intermittent.log.
-
----
-
 **Suggested title:** Vertical 2: re-enabling a single SuuntoPlus app mid-activity can freeze the watch — JS context of the disabled app is never discarded
 
 ## Environment
 
-- Watch: Suunto Vertical 2, firmware **[FW x.x.x]**
+- Watch: Suunto Vertical 2, firmware **2.53.42** (HW 1424B3)
 - 3 SuuntoPlus apps enabled during the activity (my own app, main.js ~7.8 KB minified, plus Weather and Movement)
 - Reproduced across many sessions over several days; device logs available
 
@@ -103,6 +95,21 @@ The 4.0 KB build also exposed a **second failure mode** where the loader never e
 While that enable was stuck, the Weather control toggles ran right through the stuck window, every one loading instantly. The pending enable then completed on its own after ~45 s — the same self-heal delay as in failure mode 1, which suggests a periodic cleanup eventually releases whatever the leaked contexts hold.
 
 This is exactly what accumulating un-discarded JS contexts predict — each single-disable leaks one context, a bigger main.js leaves a bigger corpse and needs bigger compile buffers — and it rules out the manifest, settings/variables, data store, and templates as carriers (the 0.27 KB stub ships all of them unchanged and never fails).
+
+**5. The leaked context also breaks the *next* session's save — dose-dependently.** The un-discarded context doesn't only block the re-enable; it lingers and starves the next ~2 KB contiguous allocation the app makes. After one or more single-disable re-enables during an activity, ending the exercise storms on the same allocation class — this time the failure fires at my end-of-session `evalFile` (before any of that code runs), the firmware again force-unloads both co-apps, and the UI freezes ~50 s:
+
+```
+17:08:02 : EVT APPLICATION : Zapp climbl01:Disable      (single disable, no discard -> leaked context)
+17:08:04 : EVT APPLICATION : Zapp climbl01:Enable       (re-enable succeeds)
+   ...normal activity, then end the exercise...
+17:08:24 : EVT UI_FRAMEWORK : evalFile: .../ext11.js from ui
+17:08:24 : ERR APPLICATION : Zapp:relMemCb (exec:zapp)
+17:08:24 : ERR APPLICATION : Zapp 3:RelMem->unload      (Weather + Movement force-unloaded)
+17:08:24 : ERR APPLICATION : Zapp:RelMem->None avail
+17:08:24 : ERR DUKTAPE : JSalloc:2137                   (x11 -> ~52 s freeze)
+```
+
+It is dose-dependent: with two leaked contexts a comparable end recovered after 3 failures; with more accumulated, it took 11 failures and a ~52 s freeze. So the missing discard has a second, downstream cost — a normal end-of-session allocation that is reliable on a fresh/discarded heap fails once un-discarded contexts have piled up.
 
 ## Analysis (proven vs. inferred)
 
