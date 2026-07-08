@@ -8,18 +8,17 @@ const ri = n => Math.floor(rnd() * n);
 const GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 const packA = (g, s, c, h) => g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, Math.max(0, Math.round(h)));
 const packB = (d, hr) => Math.min(86399, Math.max(0, Math.round(d))) * 1000 + (hr > 0 ? hr : 0);
-function gradeName(s, i) {
-  if (i >= 50) return 'OFF';
-  if (s === 0) return '' + (3 + Math.floor(i / 6)) + 'abc'.charAt(Math.floor(i / 2) % 3) + (i % 2 ? '+' : '');
-  if (s === 1) { var u = (i - 2) % 3; return i < 2 ? '4' + (i ? '+' : '') : '' + (5 + Math.floor((i - 2) / 3)) + (u === 0 ? '-' : u === 2 ? '+' : ''); }
-  if (s === 2) return i < 5 ? '5.' + (i + 5) : '5.' + (10 + Math.floor((i - 5) / 4)) + 'abcd'.charAt((i - 5) % 4);
-  if (s === 3) return '' + (4 + Math.floor(i / 3)) + 'abc'.charAt(i % 3);
-  if (s === 4) return i ? 'V' + (i - 1) : 'VB';
-  if (s === 5) return '' + (4 + Math.floor(i / 6)) + 'ABC'.charAt(Math.floor(i / 2) % 3) + (i % 2 ? '+' : '');
-  if (s === 6) return 'WI' + (i ? 3 + Math.floor((i - 1) / 2) : 2) + (i && (i - 1) % 2 ? '+' : '');
-  if (s === 7) return 'M' + (i + 1);
-  return s === 8 ? 'Set' : 'Lap';
+// Stufe 3: gradeName is no longer resident — main.js reads the per-system slice ext30+gs (warmed at
+// route commit). Source the names here from the ACTUAL shipped slices, so this fuzz proves the whole
+// chain slices == old ext19 name table. (The valid indices this fuzz feeds are always < GRADE_LENS[gs],
+// i.e. the >=50 OFF path is unreachable — matching the caller, which passes a real logged grade.)
+const fs = require('fs'), path = require('path');
+const SLICE = [];
+for (let g = 0; g < 10; g++) {
+  const src = fs.readFileSync(path.join(__dirname, '..', '..', 'ext' + (30 + g) + '.js'), 'utf8');
+  SLICE[g] = new Function('return (' + src.trim().replace(/;$/, '') + ')')();
 }
+function gradeName(s, i) { return i >= 50 ? 'OFF' : SLICE[s](i); }
 
 // replicate the NEW main.js pipeline exactly
 function newPipeline(rA, rB, gs) {

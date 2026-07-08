@@ -67,19 +67,13 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
 var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason).
-
-var gradeName = function(s, i) {
-  // sole caller is buildSummary(gradeSystem, acc[6] % 100) — acc[6]%100 is a route-array packed grade, always GRADE_LENS-bounded (0..40), so the old i>=50 OFF guard was unreachable; OFF is rendered template-side via encGrade(50).
-  if (s === 0) return "" + (3 + Math.floor(i / 6)) + "abc".charAt(Math.floor(i / 2) % 3) + (i % 2 ? "+" : "");
-  if (s === 1) { var u = (i - 2) % 3; return i < 2 ? "4" + (i ? "+" : "") : "" + (5 + Math.floor((i - 2) / 3)) + (u === 0 ? "-" : u === 2 ? "+" : ""); }
-  if (s === 2) return i < 5 ? "5." + (i + 5) : "5." + (10 + Math.floor((i - 5) / 4)) + "abcd".charAt((i - 5) % 4);
-  if (s === 3) return "" + (4 + Math.floor(i / 3)) + "abc".charAt(i % 3);
-  if (s === 4) return i ? "V" + (i - 1) : "VB";
-  if (s === 5) return "" + (4 + Math.floor(i / 6)) + "ABC".charAt(Math.floor(i / 2) % 3) + (i % 2 ? "+" : "");
-  if (s === 6) return "WI" + (i ? 3 + Math.floor((i - 1) / 2) : 2) + (i && (i - 1) % 2 ? "+" : "");
-  if (s === 7) return "M" + (i + 1);
-  return s === 8 ? "Set" : "Lap";
-};
+// f3 = the current grade-system's NAME SLICE (ext30+gradeSystem, 26-105B). gradeName (533B) left main.js
+// in Stufe 2's follow-up: its sole caller is buildSummary, which runs at pause-fold + END. Parsing at the
+// END would grow the crash-sensitive window (M6, 08b) — so the slice is lazy-parsed at the FIRST route
+// COMMIT (M8, the proven ext10 moment, each slice under the 229B band), cached through pause/end, and read
+// by buildSummary. Released at onLoad/end/system-switch. loadExt(30+gs) is generated + verified byte-equal
+// to the old gradeName by tools/gen-gradename-slices.js + tools/tests/gradename-slice-equiv.js.
+var f3;
 
 // Start-screen rule — single source of truth for getUserInterface() + onLoad(): returning user with a
 // saved setup and showSetupOnStart off → READY (active cluster); otherwise first-run SETUP (manage).
@@ -378,6 +372,7 @@ var commitDirty = function() {
     var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, 0,
       frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode. arg 5 (m) is DEAD in ext10 — literal 0 keeps the positional harness (stats-endwrite-equiv) intact; hrMax tracking removed (#171)
     if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
+    if (!f3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) {} }  // warm the name slice at the proven commit moment (M8) so buildSummary needs no END-window parse (M6)
     bestSendIdx = r[0];
     if (r[2]) {
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
@@ -472,6 +467,7 @@ var evSetup = function(output, eid, dy) {
   if (dy) {
     gradeSystem = (gradeSystem + dy + 10) % 10;
     currentGrade = DEFAULT_IDX[gradeSystem];
+    f3 = null;   // drop the stale-system name slice (reloads for the new system at the next commit); switch is pre-routes so no summary needs it in between
     sysChg = 1;  // hybrid: slots load ONCE at the eid6 confirm (per-press LS reads would stall the fluid dy scroll; SETUP shows no slots)
     loadProjectStats(gradeSystem);
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
@@ -502,7 +498,7 @@ var evProjSetup = function(output, eid, dy) {
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
-  lastSummaryCache = null; acc = null;  // reset the session summary + the pause-fold aggregate for the new session
+  lastSummaryCache = null; acc = null; f3 = null;  // reset the session summary + the pause-fold aggregate + the name slice for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
   // HYBRID drain at onLoad: unlike the falsified eaae480 experiment this is NOT an evalFile parse
@@ -553,7 +549,7 @@ var acc = null;
 var buildSummary = function() {
   if (!acc || acc[1] === 0) return;
   try {
-    var spNm = acc[6] >= 0 ? gradeName(gradeSystem, acc[6] % 100) : "";
+    var spNm = acc[6] >= 0 && f3 ? f3(acc[6] % 100) : "";  // f3 warmed at commit (M8); a missing slice (parse threw on a corpse heap) just drops the Highest-Send row — cosmetic (C11)
     // The watch drops the WHOLE post-exercise summary above ~4 rows (reference.html: "one might face
     // the limit at around 4 or 5 summary outputs") — a 5th row (Avg HR appears only when HR was worn,
     // which is why a LONG ride with real HR showed nothing while a short no-HR session did). Cap to 4,
@@ -604,7 +600,7 @@ var finishSession = function(input) {
   try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
   if ((!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst (acc, not routesA, is the route tally now: routesA may already be folded+freed at pause)
   try { deLoad(); } catch (e) {}
-  f10 = null; fE = null;
+  f10 = null; fE = null; f3 = null;  // buildSummary already ran in foldRoutes above (name read) — release all cached parses before the ext11 RMW / disable
   try {
     loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, 0, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));  // ext11 reads a[0]=sends, a[1]=routes, a[6]=height from the folded accumulator
   } catch (e) {}
