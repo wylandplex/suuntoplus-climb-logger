@@ -186,7 +186,10 @@ var chg = function(k, v) { if (pubF || pubC[k] !== v) { pubC[k] = v; return 1; }
 var lockF = 0;
 var wGL = function(o) { var v = lockF * 1e6 + gradeV * 952 + (lastGradeV + 1); if (chg(3, v)) o.packedGL = v; };
 var wMode = function(o, v) { if (chg(4, v)) o.modeSub = v; };
-// packedBreak (BREAK sends/routes + best-send tally) removed -> moved to end summary (Sends/Routes + Highest Send). Frees 1 WB path off active.html's mount/swap-transient + the per-tick pack. bestSendIdx kept (ext10 needs it).
+// packedBreak RESTORED (old BREAK screen, feat/restore-break-screen): BREAK sends/routes + best-send
+// tally, packed in setOutputs' state-2 branch (see there). COST NOTE: re-adds 1 WB output path to
+// active.html's mount/swap-transient — the exact thing the e8cb57b diet removed; on-watch test whether
+// it revives the setup->ready / app-swipe evict class now that the diet stages freed headroom.
 // 1'/3' rolling peak-HR feature removed (hrBuf ring + packedPk/routePk1/routePk3) — heap diet.
 
 var pushMode = function(o) {
@@ -235,6 +238,17 @@ var setOutputs = function(output) {
     pAct = routesA.length === 0 ? -5 : editDelMark ? -4 : rSend(editIdx) ? -2 : -3;
   }
   if (chg(5, pAct)) output.packedAct = pAct;
+  // packedBreak (RESTORED for the old BREAK screen): session sends/routes + best-send tally, packed
+  // into ONE output for the BREAK row. (bestSend+1)*4096 + sat(sends)*64 + sat(routes), counts clamp
+  // at 63 (display degrades, composite stays valid; ROUTE_LIMIT 35). Written only in BREAK (state 2);
+  // 0 elsewhere (the row lives on sc2 only). DECODE LOCKSTEP: active.html sc2 + output-pack-equiv.js.
+  var pBrk = 0;
+  if (state === 2) {
+    var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1, snd = 0, bi;
+    for (bi = 0; bi < routesA.length; bi++) if (rSend(bi)) snd++;
+    pBrk = (bse + 1) * 4096 + Math.min(63, snd) * 64 + Math.min(63, routesA.length);
+  }
+  if (chg(8, pBrk)) output.packedBreak = pBrk;
   var hg = state === 1 ? gradeV : state === 2 ? lastGradeV : -1;  // header grade: current (CLIMB) / sent (BREAK) / blank (READY — its body shows it big)
   if (chg(6, hg)) output.hdrGrade = hg;
   var hres = state === 2 ? (lastResult ? 1 : 2) : 0;  // header colour: 1=green(sent) / 2=orange(fail) on BREAK, set by the CLIMB-finish result; 0=neutral elsewhere
