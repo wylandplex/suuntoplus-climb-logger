@@ -1,0 +1,738 @@
+{
+  "summary": "Full ext placement/splitting architecture: diet satellites + end-save de-risking after the 08b end-window crash",
+  "agentCount": 5,
+  "logs": [
+    "Beweise: forensik=ok, karte=ok",
+    "3/3 Designs fertig"
+  ],
+  "result": {
+    "evidence": {
+      "endForensics": {
+        "findings": [
+          {
+            "claim": "The failing JSalloc chunk at every end storm tracks the localStorage STORE FILE size, never the ext11 parse size (1056-1082B built): 08b JSalloc:2230 vs data.jsn 2213B (+17); c76deac JSalloc:2056 vs its shipped data.jsn 2035B (+21) at an ENABLE-time pure READ with ext11 untouched; the 03.07-06.07 cluster 2070/2071/2073 matches one stable era store; 06.07 grow-write storms 2142/2148 match a fresh 1820B store being grown; no storm value in any of 10 events lands near 1056B or a compile multiple of it.",
+            "evidence": "docs/watch-logs/2026-07-08b_endsave-crash-RAW.log:1463; 2026-07-06_c76deac-enable-ASSERT-crash.log:473; 2026-07-03_c2e4e99-firstend-crash.log:189; 2026-07-06_4df2481-firstrun-freeze.log:1335; git cat-file sizes: c76deac:data.json=2035B, addb62c..master data.json=2213B, ext11.js 1055-1082B across all commits; built climbl01-q.fea: data.jsn 2213B, ext11.js 1056B",
+            "confidence": "proven"
+          },
+          {
+            "claim": "Same build, different store, different JSalloc: on 02.07 the identical binary stormed at 2933 (legacy rou-format store) and later that evening at 2163 (post-rewrite store) — parse-size theory is categorically dead; the store is the variable.",
+            "evidence": "docs/watch-logs/2026-07-02_endwindow-diet-endcrash.log:1775 (JSalloc:2933 at 20:28:35) and 2026-07-02_freshinstall-endcrash.log:1810 (JSalloc:2163 at 20:56:49), same deployed build, both storms at the ext12 enable-drain LS read",
+            "confidence": "proven"
+          },
+          {
+            "claim": "The buffer is the WHOLE-FILE access buffer and it is charged on BOTH reads and writes: c2e4e99's storm (2071 x3) fired BEFORE the 'evalFile: ext11.js' log line — its finishSession arms the eP WAL via localStorage.setItem immediately before loadExt(11), so a ~100-byte key write cost a full store-sized contiguous alloc; c76deac's storm was a pure getObject read at enable. Key-level splitting of the store does NOT reduce the ask — only total file shrinkage does.",
+            "evidence": "git show c2e4e99:main.js lines 568-590 (setItem('eP',...) precedes loadExt(11)); 2026-07-03_c2e4e99-firstend-crash.log lines 178-196: Disable -> relMemCb/JSalloc:2071 x3 -> THEN evalFile ext11; stats VALUE alone is only 970B (measured), ruling out a value-sized buffer",
+            "confidence": "proven"
+          },
+          {
+            "claim": "A second, distinct JSalloc family exists: Duktape COMPILE buffers, identifiable by 'failed to eval' / 'Load script' context (ext12 1518B built failing repeatedly at JSalloc:2508; the #169 loader storm chunks 1964/2392 on 7784B main.js). 08b has NO 'failed to eval' line and only ONE evalFile ext11 request, so its 2230 failure happened INSIDE the running RMW, not at the compile.",
+            "evidence": "docs/watch-logs/2026-07-06_summary-missing-longsession.log lines 1-100 (JSalloc:2508 x5 -> 'evalFile: failed to eval ...ext12.js' -> retry loop); grep 'failed to eval' on 2026-07-08b_endsave-crash-RAW.log returns zero hits",
+            "confidence": "proven"
+          },
+          {
+            "claim": "Pause->end gap does NOT separate clean from storm: clean full-RMW ends occurred at 1s (d702310 #2, 14:24:04->14:24:05), 3s (02.07 20:27:57->20:28:00), 4s (07d 39-min t3, 13:44:25->13:44:29), 9s (299100c); storms occurred at 8s (c2e4e99) and 12s (e3e3070). The 08b 3s gap was not the trigger; the pause-fold DID run (frDirty was clear — the route committed at 11:05:01, pause 11:05:05).",
+            "evidence": "docs/watch-logs/2026-07-07d_t3...log:448-483 (clean 39min end, 4s gap); 2026-07-06_d702310-prefill-endfreeze.log:272-311 (1s gap, ExSaving completed); 2026-07-02_freshinstall-endcrash.log:415-519 (3s gap clean); 2026-07-03_c2e4e99 (8s gap storm); 2026-07-06_e3e3070 (12s gap storm)",
+            "confidence": "proven"
+          },
+          {
+            "claim": "The two real storm discriminators: (a) GROW-rewrites (first-write growth, WAL-key insertion, seedSys) storm quasi-deterministically — the class the s0/stats/pS0 pre-population killed; (b) contiguous-headroom collapse at the first LS op after a long session — 08b was a same-size RMW (1 route, zero corpses, clean triple-enable at 10:00:52, no relMem all session) that still died after 1h04 of continuous MAPS style/tile churn with Weather+Movement co-resident at the 97-99% baseline.",
+            "evidence": "08b lines 786-877 (clean 'JS nsto enable' triple Load script, no RelMem) vs lines 1451-1494 (storm); MAPS style reload lines throughout 10:01-11:05; 4df2481 #1 stormed at 36s session (grow-write) while its #2 ended clean 40s later (same-size rewrite) — growth, not time, drove that pair",
+            "confidence": "strong"
+          },
+          {
+            "claim": "Once the end-window alloc fails there is NO rescue path: RelMem force-unloaded BOTH co-apps ('Zapp 3:RelMem->unload' for zzwethen+zzmoveen) and still reported 'RelMem->None avail' on the very next callback — disable does not reclaim memory synchronously (consistent with #169 corpse mechanics). Retry-depth predicts outcome: x3-retry storms survived to 'Exercise stopped' (c2e4e99, 4df2481), x11-retry storms are fatal (eP-WAL, c76deac double-ASSERT, 08b). finishSession's try/catch demonstrably cannot catch this failure mode — 08b hung with no 'Exercise stopped', no ExSaving, then FS ASSERT (file.cpp:143, f_close on the watchface app's handle ddb248f2) at cable-plug at 11:07:36 and BOOTLOOP.",
+            "evidence": "08b lines 1451-1494 (Disable -> evalFile ext11 -> relMemCb -> co-app RelMem->unload x2 -> None avail + JSalloc:2230 x11 -> 'Zapp disabled i:5' -> silence -> 11:07:32 VBUS ON -> 11:07:36 ASSERT/BOOTLOOP); main.js:614-625 (try/catch present around loadExt(11))",
+            "confidence": "strong"
+          },
+          {
+            "claim": "M7 (getSummaryOutputs) is NOT a new calm moment: at every exercise end the firmware disables ALL zapps and destroys the JS arena ('JS discard disable zapps' + 'JS will discard') within ~1 second of the app's Disable — getSummaryOutputs is served inside the SAME teardown window as ext11; the recap the user later browses is broker-served (Duration ExSumBroker:347-448ms) after our context is gone, and the post-save window immediately hosts a fresh zapp compile (watchface 'Zapp zwc05901:Load script' ~10s after the save). Nothing can be deferred past the end window.",
+            "evidence": "docs/watch-logs/2026-07-07d_t3...log lines 452-511: Disable 13:44:29 -> ext11 -> all 3 disabled -> 'JS discard disable zapps'/'JS will discard' 13:44:30 -> Exercise stopped -> 'JS feeling open ex-saving' -> ExSaving:3567 -> ExSumBroker:448 -> zwc05901 Load script 13:44:43; same pattern in 2026-07-06_299100c-prepop-CLEAN.log:1263-1264",
+            "confidence": "proven"
+          },
+          {
+            "claim": "Store anatomy today (shipped data.jsn 2213B, measured per-key): stats=970B (carrying dead weight: buckets:{}, pyramid:'', avgHr, avgMaxHr, avgHrr, activeHrr, peakSession, bestSessionHmRecent ~130-160B combined), s0=252B (full 14-field), s1-s7=72B each (5-field), s8/s9=73B, pS0=136B, projNames0..7 (companion-writable strings, unbounded). ext11's chain = getObject(stats) + getObject(s<g>) + conditional setObject(pS<g>) + setObject(stats) + setObject(s<g>) = 4-5 back-to-back whole-file-sized contiguous asks. The rewrite preserves buckets/pyramid by pass-through (v is the mutated full stats object).",
+            "evidence": "python per-key measurement of /home/skyfi/Documents/suuntoapps/climb-logger/data.json; /home/skyfi/Documents/suuntoapps/climb-logger/ext11.js (2 getObject + up-to-3 setObject); unzip -l climbl01-q.fea data.jsn=2213B",
+            "confidence": "proven"
+          },
+          {
+            "claim": "A live grow-rewrite landmine remains: ext11 writes a 14-field s<g> snapshot but s1-s7 ship 5-field (72B) — the FIRST end on any non-default grade system grows the store ~+180B in the end window, the exact storm class the s0 pre-population fixed. projNames edits from the companion likewise grow the file between sessions, silently raising every future end-window ask.",
+            "evidence": "data.json s1-s7 = {totalRoutes,totalSends,sendPct,sessions,peakGrade} vs ext11's F-list of 14 fields written to L.setObject('s'+g,s); main.js:479-483 comment confirms 'ext11 grows s<g> to the full 14-field shape at that system's end'",
+            "confidence": "proven"
+          },
+          {
+            "claim": "WBSTORAGE CACHE_DEFRAG lines are the WB path/settings cache (values 600-1024B, fire with NAVIGATION/UI churn all session and around the ex-saving screen), NOT the zapp LS file — they do not correlate with ext11's LS ops. There is no direct store-file rewrite telemetry in the logs; the whole-file model rests on the JSalloc~=file-size correlation, which fits 5 independent store eras (2035->2933B range) within ~25B.",
+            "evidence": "2026-07-07d log: CACHE_DEFRAG at 13:02:01-13:02:12 mid-session and 13:44:31 tied to 'JS feeling open ex-saving', none at the 13:44:29 ext11 moment; 128 occurrences spread across clean logs",
+            "confidence": "strong"
+          },
+          {
+            "claim": "The store-size history the JSalloc series traces: 2933 (legacy rou-format store, 02.07) -> 2163 (post-migration rewrite, same evening, same build) -> ~2070 (03.07-06.07 transplant-era store) -> 2056 (c76deac fresh 2035B shipped +21) -> 2142/2148 (06.07 grow-writes from fresh 1820B built) -> 2230 today (2213B shipped +17 organic digit growth). The +17/+21 deltas are inferred growth, consistent across eras but not independently measurable from logs.",
+            "evidence": "JSalloc series across all 10 storm logs vs git cat-file data.json sizes at each commit vs built data.jsn sizes (1820B in the June-era .fea, 2213B in climbl01-q.fea); install does NOT wipe the store (ext13 migration exists; 2933 legacy store survived the 02.07 reinstall)",
+            "confidence": "strong"
+          },
+          {
+            "claim": "The 08b session shape: only ONE route was committed in the whole 1h04 session (single ext10 evalFile at 11:05:01, and f10 stays cached per session with no prior pause to null it), so route-array size and route count are irrelevant to this crash; the pause-fold had ~3s to act on a nearly-empty routesA anyway. The heap pressure came from elsewhere (1h04 of system/map/co-app churn), not from the app's own session data.",
+            "evidence": "grep evalFile.*climbl01 on 08b: exactly two lines — ext10 at 11:05:01 and ext11 at 11:05:08; grep -c 'Exercise paused' = 1; main.js f10 caching semantics (nulled only at pause)",
+            "confidence": "strong"
+          },
+          {
+            "claim": "P-DIET and P-END are independent failure families: the diet (a1d 6302B, end chain byte-identical to master) neither caused nor could have prevented the 08b crash — resident-blob size governs the enable-window compile roulette (chunks 1964/2392), while the end window is governed by store-file size and LS op count. Shrinking main.js toward 6.3KB carries no end-window penalty and no end-window benefit.",
+            "evidence": "08b crashed on the 6302B a1d build at an LS-family alloc (2230=store), not a compile-family one; 07d's CLEAN 39-min end ran on the LARGER 7414B t3 build; JSalloc at ends never scaled with blob size across 5861-8700B era builds",
+            "confidence": "strong"
+          },
+          {
+            "claim": "A headroom-reservation defense (allocate a ~2.5KB dummy block at onLoad/M1, release it in finishSession immediately before loadExt(11) so a contiguous hole exists for the parse + first LS op) is the pendSlots-spirit lever the data points to; it is untested on-watch.",
+            "evidence": "Derived from the whole-file buffer model + the observation that the 08b failure was the FIRST ~2.2KB contiguous ask of the teardown; no log evidence for or against the reservation itself",
+            "confidence": "hypothesis"
+          }
+        ],
+        "designImplications": [
+          "P-END lever #1 — shrink the STORE FILE, not the end ext: every byte off the store is a byte off EVERY end-window contiguous ask (and every enable-drain read). Concrete diet: drop dead stats fields (buckets, pyramid, avgHr, avgMaxHr, avgHrr, activeHrr, peakSession, bestSessionHmRecent ~130-160B), slim or lazily-create s1-s9 (~800B for systems most users never touch), cap/trim projNames. Target: store well under 2KB so the end ask fits fragmentation holes that 2.2KB does not.",
+          "P-END lever #2 — cut the op COUNT: ext11 currently makes 4-5 whole-file-sized asks (2 reads + 2-3 writes). Restructure the RMW to 1 getObject + 1 setObject (e.g. fold the s<g> previous-session snapshot into the stats object, write pS<g> data inside stats) — halves the number of chances to hit the fatal alloc without changing what is persisted.",
+          "Kill the remaining grow-rewrite landmines: ship s1-s9 in the SAME shape ext11 writes (or make ext11 write only the shipped 5-field shape for systems with no extended data), so no first-end-on-new-system ever grows the file in the end window; treat companion projNames growth as a store-size budget item.",
+          "Do NOT add any LS write anywhere outside the end window on the theory that 'a small key is cheap' — c2e4e99 proved a ~100B setItem costs a full store-sized buffer. Any WAL/checkpoint idea inherits the whole-file cost; the mid-session and pause write bans stand, and even pause-time READS carry the same buffer cost (c76deac read storm).",
+          "M7 is dead as a design moment: getSummaryOutputs runs inside the same ~1s teardown as ext11 and the JS arena is discarded immediately after ('JS will discard'); the browsable recap is broker-served. Keep it RAM-only; never plan work there.",
+          "For the P-DIET architecture: proceed with the ext21-class satellite freely — the 08b crash is not a parse failure and does not indict M4 press-time parses. gradeName+buildSummary should stay RESIDENT (they run in the pause/end path where adding a compile-family risk on top of the existing LS-family risk is the only way to make things worse); their 1456B is the price of a storm-free fold. The end window's ext11 parse itself has never been the failing alloc — replacing it with resident code buys ~0 direct risk reduction, but shrinking its LS chain does.",
+          "Expand the zero-risk early-return: finishSession already skips the whole burst for routeless/clean sessions — extend change-detection so unchanged stats/s<g>/pS<g> values skip their setObject entirely (fewer file-sized asks per typical session).",
+          "Candidate on-watch experiment (hypothesis): heap-hole reservation — hold a ~2.5KB dummy allocation from onLoad, free it in finishSession right before loadExt(11); with the whole-file buffer model this converts the end-window lottery into a reserved contiguous hole. Needs a dedicated probe build + the 3-app log protocol before trusting it.",
+          "Accept that a fatal end storm is unrecoverable in code: try/catch demonstrably does not catch the allocator death spiral (08b hung to bootloop with catches in place), and RelMem cannot reclaim co-app memory synchronously. Prevention (store diet, op-count cut, no-growth) is the only defense; there is no graceful-degradation path to design for."
+        ],
+        "verdicts": {
+          "jsallocIsWriteBuffer": "CONFIRMED with refinement: the failing chunk is the whole-store-FILE access buffer (~file size +17-25B), charged on EVERY localStorage op — writes (c2e4e99: 2071 at the eP setItem BEFORE the ext11 evalFile line; grow-writes 2142/2148) AND reads (c76deac: 2056 = 2035B shipped data.jsn +21 at an enable-time getObject; 02.07 re-enable drains 2933/2163). It is NOT the ext11 parse: no storm value across 10 events matches ext11's 1055-1082B or a compile multiple, and 08b lacks the 'failed to eval' marker that identifies the separate compile-buffer family (ext12 2508/1518B; loader 1964/2392). 08b's 2230 = current store 2213B (+17) failing INSIDE the running RMW, on its first LS op.",
+          "storeSizeHistory": "The failing chunk tracks the STORE size at every era, never the code: 2933 (legacy rou-format store, 02.07) -> 2163 (post-rewrite store, SAME BUILD same evening — the single killing datapoint for the parse theory) -> ~2070/2071/2073 (03.07-06.07 stable era store) -> 2056 (c76deac fresh 2035B +21) -> 2142/2148 (06.07 grow-writes from the fresh 1820B built data.jsn) -> 2230 (08.07, shipped 2213B +17). ext11 meanwhile only moved 1082->1055B and main.js 8700->5861->7784->6302B with zero correlation. Note: installs do NOT wipe the store (the 2933 legacy store survived the 02.07 reinstall; ext13 migration exists for exactly this reason), so the store, not the build, is the persistent variable.",
+          "endCleanConditions": "The pause->end gap is NOT the discriminator: clean full-RMW ends at 1s/3s/4s/9s gaps (d702310, 02.07 fresh-install, 07d 39-min t3, 299100c) vs storms at 8s/12s gaps (c2e4e99, e3e3070). Clean requires two things: (1) the rewrite must not GROW the file — grow-rewrites (first-write growth, WAL-arm, seedSys) storm quasi-deterministically and were fixed by pre-population; (2) >= store-size contiguous headroom in the shared arena at the first LS op — 08b was a same-size RMW with zero corpses, ONE route, a clean triple-enable, and a completed pause-fold, killed purely by headroom collapse after 1h04 of MAPS+co-app churn at the 97-99% baseline. Severity follows retry depth: x3-retry storms survived to 'Exercise stopped', x11-retry storms are fatal (hang -> no ExSaving -> FS ASSERT at cable-plug -> bootloop), and RelMem force-unloading co-apps reclaims nothing synchronously, so once the storm starts mid-teardown there is no rescue."
+        }
+      },
+      "momentMap": {
+        "moments": [
+          {
+            "moment": "1. Enable / Load-script (firmware compiles main.js; getUserInterface; runs BEFORE any app code)",
+            "parseBudget": "NO evalFile ever (M1). The main.js COMPILE is itself the allocation: failed chunk requests 1964/2392/2095/2348B during 'Load script'. Corpse ladder (blob size vs leaked-corpse tolerance): 7784B fails at corpse #1, 6302B at ~#2-3, 4060B at #5, 266B decomp probe survived 19 rapid toggles ('main.js is the carrier'). Unfixable at runtime — only blob diet + corpse avoidance help.",
+            "lsRead": "none possible (no app code running yet)",
+            "lsWrite": "none possible",
+            "evidenceGrade": "proven (growth = toxic)",
+            "keyEvidence": "07h log 15:18:43 JSalloc:2348 x11 -> 'Compiling js failed: Error: 1' -> firmware auto-disable; 07i two-burst FATAL/STRESSED anatomy; 07k/07l 4060B probe (stuck enable only after 4 corpses, 45s self-heal); 08a 266B/19-toggle clean; docs/plans/2026-07-07-169-loader-storm-analysis-fix.md"
+          },
+          {
+            "moment": "2. onLoad (bootstrap drain, hybrid inline)",
+            "parseBudget": "ZERO evalFile — hybrid inline getObject drain is the proven, untouchable mechanism (evalFile-in-onLoad falsified: eaae480 made toggles a deterministic freeze, compile+parse atomic). ONE latent exception in shipped code: legacy-only cold-migration loadExt(13) (1475B) inside drainF12 when sv.rou0 exists — never fires on a fresh flash (main.js:128).",
+            "lsRead": "PROVEN: plain getObject reads of stats/s<gs>/pS<gs> — small allocations, no ~2KB contiguous arena; on throw -> pendF12=4 backoff (corpse-heap case)",
+            "lsWrite": "BANNED/toxic: drain-written latches do NOT persist (stats.mig=1 written 07:50:47 was gone at 08:02:47 re-enable, log 07b) and drain growth-writes stormed at enable (c76deac ASSERT crash)",
+            "evidenceGrade": "proven (master validated on-watch: instant-start/toggle/switch)",
+            "keyEvidence": "main.js:518-529; logs 2026-07-07i/j (hybrid switchfix OK, master reflash clean); 2026-07-06_c76deac-enable-ASSERT-crash.log; memory no-midsession-flash-writes (drain-latch finding, commit 5a68170)"
+          },
+          {
+            "moment": "3. First ticks after enable (t1-t3: pendF12 OOM-fallback, pendSlots, skipP auto-skip)",
+            "parseBudget": "0 today. Historical precedent: the tick-1 ext12 drain (1592B flat) ran here for months clean — so a ~1.6KB flat parse at tick-1 is proven IF ever needed again; now only the pendF12 fallback path (3-tick backoff, each failed attempt on a corpse heap costs a RelMem burst).",
+            "lsRead": "PROVEN small getObject one calm tick after a mount: pendSlots fillSlots read (the pendSlots law, main.js:53/535 — the same read AT the confirm mount froze the watch); skipP goState tick-2 auto-skip proven for returning users",
+            "lsWrite": "banned (same drain-write non-persistence + storm evidence as onLoad)",
+            "evidenceGrade": "proven",
+            "keyEvidence": "07e log: ext12 13:50:51 BEFORE 'Exercise started' 13:50:52 and 14:57:35 vs start 14:57:39 (ticks run pre-start); 07b 07:50:47 drain 1s after a menu-only enable; main.js:53 comment"
+          },
+          {
+            "moment": "4. Steady evaluate tick (1Hz during exercise, any visible screen)",
+            "parseBudget": "0 — resident only (HR sum, extLapPending drain, commitDirty, setOutputs publish-on-change 161B state-5/6 render is per-tick-pinned). Sole indirect parse: commitDirty triggers the M8 ext10 lazy-parse on the tick after a route press.",
+            "lsRead": "none",
+            "lsWrite": "none (mid-session flash ban, user mandate)",
+            "evidenceGrade": "proven (months; runs regardless of which screen is visible — HR accumulates while user is on map screens, 08b session)",
+            "keyEvidence": "main.js:532-556; memory no-midsession-flash-writes; every clean session log 07b/07c"
+          },
+          {
+            "moment": "5. Fluid paths: eid 1/2/7/8 flicks + per-tick render",
+            "parseBudget": "0, zero per-press allocation, never gated behind busy-locks. Violation class is LETHAL: per-press inner-fn/object-graph calls = GC-livelock (ext20; reproduced by probe C with only an 803B parse).",
+            "lsRead": "none",
+            "lsWrite": "none",
+            "evidenceGrade": "proven (violation = toxic, on-watch convicted)",
+            "keyEvidence": "memory grade-switches-fluid; ext-parse-cost-model probe series (2026-07-02_probeC-heavycall.log = full lethal signature; sessionE-ext20-freeze.log); recalcBse/cycleSlot fluid-pinned inventory"
+          },
+          {
+            "moment": "6. Action presses eid 4/5/6 (READY EDIT-entry, BREAK quickfix, EDIT result-cycle/DEL, SETUP confirm, PROJ save)",
+            "parseBudget": "PROVEN 217-229B (ext14 217B save-as-project, ext10 229B — months clean); weak-positive at 803B (probe C parse fine, its CALL was the killer); UNPROVEN band ~650-950B (ext21 645B built+60k-oracle-green, never on-watch); 3.6KB = recoverable once-per-session hiccup (probes A/B) but never do this per-press. Lifecycle: cached-per-visit, released at exit/pause/end (C10); every press-time evalFile try/catch'd, graceful no-op, press-again retry, no timers. Calls: by-ref mutation ok, flat returns ok, no per-call inner fns.",
+            "lsRead": "NO clean precedent at a press; TOXIC when it collides with a mount (fillSlots getObject at the SETUP confirm froze — deferred to pendSlots tick)",
+            "lsWrite": "TOXIC: seedSys write at setup-leave froze the switch (deleted 91a3b93); mid-session flash ban stands",
+            "evidenceGrade": "proven <=229B / weak 650-803B / none above / toxic call-shapes",
+            "keyEvidence": "08b 11:05:01 ext10 press-parse clean; 07b 7x ext10 parses one session; probeC log; scratchpad d2app (ext21) + d1src (ext15 946B) both off-watch only; 2026-07-06_e4196a7-switch-freeze.log"
+          },
+          {
+            "moment": "7. Overlay entry/exit (EDIT / PROJ-setup — applyVis on ready.html, tChanged=false, NO template swap)",
+            "parseBudget": "Currently 0 (EDIT cluster 906B + proj-editing 505B resident). If satellited: this IS an action-press moment -> M4 rules and the 217-229B proven / 645B unproven band apply; entry-parse + cached-per-visit + release at exit/pause/end is the designed lifecycle.",
+            "lsRead": "none",
+            "lsWrite": "none",
+            "evidenceGrade": "proven as resident; satellite variant = unproven band (built+measured only)",
+            "keyEvidence": "log 2026-07-07c (editpill clean, 12:14-12:17 zero warnings); 3way-split-dead-end memory (hot states stay one template); d2app measured 6375B build"
+          },
+          {
+            "moment": "8. Template swaps via goState tChanged (setup->ready confirm, READY->CLIMB ready->active, ->saving)",
+            "parseBudget": "0 — a mount moment tolerates ZERO extra app allocation: the mount alone costs ~3.8KB exec:ui (ready.xml) and the fixed ~2KB script-eval block must still fit after it. Any parse, LS read, or LS write stacked on the swap has frozen or evicted on-watch.",
+            "lsRead": "TOXIC at the swap (fillSlots getObject at confirm froze; the read moved to pendSlots one tick later = clean)",
+            "lsWrite": "TOXIC (seedSys switch write at setup-leave froze; deleted — the confirm is mount-only, system persists at END via sysDirty)",
+            "evidenceGrade": "proven law (multiple on-watch failures + the fix validated)",
+            "keyEvidence": "2026-07-06_59600c7-setup-ready-evict.log (mount + JSalloc:2148 on 99% heap -> co-app evict); e4196a7-switch-freeze.log; main.js:53; memory suuntoplus-template-memory-model (ALL hidden siblings build at mount)"
+          },
+          {
+            "moment": "9. App-swipe remount (user swipes back to the app mid-exercise)",
+            "parseBudget": "0 — remount rebuilds entirely from resident state (screen-restore T1/T2); no parse, no LS. Same zero-allocation law as moment 8.",
+            "lsRead": "none (template LS is dead on-watch anyway)",
+            "lsWrite": "none",
+            "evidenceGrade": "proven",
+            "keyEvidence": "log 2026-07-07c T1/T2 checkpoint CLEAN; PRs #174/#175 merged; memory template-localstorage-dead-on-watch"
+          },
+          {
+            "moment": "10. Route commit (M8: first commit per session and after every pause, f10 freed at pause)",
+            "parseBudget": "ext10 229B lazy-parse then cached (f10) — proven at HIGH frequency: 7 separate parses in the 1h 07b session (one 5s after a pause line), all clean; call = by-ref projSlot mutation + small flat array return (rare-moment object return tolerated). NOTE: this moment re-fires after every pause, so a fatter satellite here parses often. Under-used carrier: headroom up to the ~650B measured band is plausible but on-watch UNPROVEN above 229B.",
+            "lsRead": "none (all state passed as params)",
+            "lsWrite": "none",
+            "evidenceGrade": "proven at 229B",
+            "keyEvidence": "07b lines 1018-1226 (7 parses); 08b 11:05:01 (clean parse — but 7s before the fatal end: churn aggravator); ext10.js source"
+          },
+          {
+            "moment": "11. Pause entry (onExercisePause)",
+            "parseBudget": "NO parse precedent (the one f11-at-pause build was superseded, never validated) — treat parse-at-pause as unproven, and pause can resume so nothing here may assume the session is over. PROVEN resident work: deLoad (frees active.xml ~11.8KB exec:ui, biggest chunk), f10=null, foldRoutes+buildSummary (fold committed routes into 8-slot acc, FREE routesA/B, gradeName call — all resident, skipped if frDirty).",
+            "lsRead": "untested — no precedent either way",
+            "lsWrite": "TOXIC: the eP/WAL pause setItem froze the watch (2026-07-03); mid-session write ban absolute here because pause can resume",
+            "evidenceGrade": "proven (resident trio) / none (parse) / toxic (write)",
+            "keyEvidence": "main.js:654-658; 2026-07-03_ep-wal-pausefreeze-crash.log; 59600c7 log (pause-fold made ends clean); 08b: the pause itself at 11:05:05 was clean — the crash came at end"
+          },
+          {
+            "moment": "12. Paused-idle ticks (exercise paused, user idle on saving/dim screen)",
+            "parseBudget": "UNKNOWN — it is not even proven that evaluate() fires while paused: the isPaused guard at main.js:533 returns before any work, and evaluate leaves no log line, so all archived logs are silent. If ticks DO fire, this is the only schedulable calm window BEFORE the end save. Currently carries zero work.",
+            "lsRead": "unknown",
+            "lsWrite": "banned regardless (pause can resume)",
+            "evidenceGrade": "none — candidate NEW moment, probe required (see newMoments)",
+            "keyEvidence": "main.js:533; absence of any tick evidence in 07b (13 pauses) is expected either way — negative evidence impossible from logs"
+          },
+          {
+            "moment": "13. Continue / remount (onExerciseContinue)",
+            "parseBudget": "0 — resets isPaused, re-mounts the state template if 'saving' was shown (mount rules of moment 8 apply); f10 re-parses lazily at the NEXT route commit (proven). No work has ever been placed here.",
+            "lsRead": "none",
+            "lsWrite": "none",
+            "evidenceGrade": "proven (13 pause/continue cycles in 07b, all clean incl. post-continue commits)",
+            "keyEvidence": "main.js:659; 07b 08:19:00-09:16:07 pause series with clean ext10 re-parses after"
+          },
+          {
+            "moment": "14. END teardown (Disable -> onExerciseEnd -> finishSession: commitDirty, foldRoutes, deLoad, f10=null, ext11 parse+RMW)",
+            "parseBudget": "ext11 1056B parse (needs the ~2.06KB contiguous evalFile arena: JSalloc:2070 historical) PLUS the store-rewrite demand: ext11 does 2 getObject reads then 3 setObject writes, and EVERY setObject rewrites the whole data.jsn — 08b's JSalloc:2230 = data.jsn 2213B + 17 (n=1, ambiguous with the 2057-2392 arena band, but matches the c2e4e99-era 'write buffer' reading). CRITICAL SCALING FACT: data.jsn grows with lifetime usage (2123 -> 2213B already), so end-window contiguous demand grows even if code never changes. PROVEN-CONDITIONAL: clean 6x on 02.07 (8.7KB resident), clean 07b (1h session, 4m24s pause->end gap), clean 07c (4s gap BUT 2-min session, last ext10 parse T-32s) — catastrophic 08b (1h04 session, only-ext10-parse T-7s, pause T-3s, ZERO corpses -> relMemCb storm, both co-apps force-unloaded, RelMem->None avail, JSalloc:2230 x11, double ASSERT 11:07:36, BOOTLOOP). The 07c counter-example means the conditioning variable is NOT the gap alone — total churn (fresh ext10 arena seconds before), session length/store delta, and settle time all load. THE WINDOW MAY NOT GROW (ext22 idea dead); designs must REDUCE its contiguous demand (store diet shrinks the rewrite buffer; removing the parse removes the arena) or move work OUT.",
+            "lsRead": "proven-conditional (2 getObject inside ext11)",
+            "lsWrite": "proven-conditional — the ONLY reliable persistence moment on the watch (drain writes do not persist), and simultaneously today's crash site; every write must remain a same-size-class rewrite of a pre-shipped key (growth transients falsified: pre-pop 299100c fix)",
+            "evidenceGrade": "proven-conditional, currently TOXIC at 1h-session scale (fresh bootloop on a clean-family build)",
+            "keyEvidence": "2026-07-08b_endsave-crash-RAW.log lines 1450-1539; 2026-07-03_c2e4e99-firstend-crash.log 18:10:39 (JSalloc:2071 BEFORE the ext11 line = write buffer, eP era); 07b 09:20:31 clean end + ExSaving:3854; 07c 12:17:23 clean 4s-gap end"
+          },
+          {
+            "moment": "15. Post-save getSummaryOutputs (M7 recap serving)",
+            "parseBudget": "Currently 0 by design (RAM lastSummaryCache, main.js:661-663). TIMING FINDING: this moment is END-ADJACENT, not later — the historical ext9 recap parse rendered INTO the ExSaving window (~3.5-4.1s after stop), and the context that serves it is the disabled-but-resident zapp (discard is deferred: 'JS will discard' lags 4s+, 07h 15:37:14->18). Historical precedent: ext9 ~600-char parse served the recap for months (June-17 era, 8.7KB resident, deleted b7f6927) = a weak-proven small-parse precedent. Heap state at this instant on current builds: UNKNOWN — in 08b it was mid-storm. Verdict: cosmetic-only candidate; NEVER for mandatory persistence (it fires inside the exact window P-END is de-risking).",
+            "lsRead": "weak/historical (the pre-b7f6927 path read lastSummary from LS inline — worked for months)",
+            "lsWrite": "none, and none advisable",
+            "evidenceGrade": "weak (historical, different era) / unknown at current baseline",
+            "keyEvidence": "main.js:661; memory no-midsession-flash-writes finding #2 (2026-06-17 vertical2.log, not archived); ExSaving durations 07b:3854ms 07c:3547ms; 07h discard-lag lines"
+          },
+          {
+            "moment": "16. Companion sync",
+            "parseBudget": "n/a — NO app code runs; the phone is a viewer of watch LS (data.jsn) and syncs on its own schedule. The app's entire obligation is that LS is current after END (ext11 guarantees it; user requirement: companion-current stats at sync). No design lever exists here except store shape/size.",
+            "lsRead": "n/a (external reader)",
+            "lsWrite": "n/a",
+            "evidenceGrade": "proven domain fact",
+            "keyEvidence": "memory stats-write-only-plan (companion = viewer of watch LS; records legacy/no writer); user's cross-session stats accumulate"
+          },
+          {
+            "moment": "17. Watchface / menu idle — split verdict: (a) watchface = app DISABLED, (b) enabled pre-start/menu idle = ticks RUN",
+            "parseBudget": "(a) Watchface/outside sport mode: the app is disabled at sport-exit ('Disable' + all-disable 'JS discard disable zapps') — ZERO ticks, zero code, only a possible corpse. This moment DOES NOT EXIST for work. (b) Enabled-but-not-started (sport mode selected, pre-start screens/menus): evaluate ticks RUN at ~1Hz — proven by tick-1 ext12 drains firing on menu-only enables with NO exercise (07b: Enable 07:50:46 -> drain 07:50:47 -> Disable 07:50:59, no start between) and pre-start drains 4s before start (07e 14:57:35 vs 14:57:39). Window observed 12-77s but can be 1-2s (instant start, 07e/07f) — any work here must be optional/instant-start-safe. Same budgets as moment 3.",
+            "lsRead": "proven in (b) (the drain itself + pendSlots class)",
+            "lsWrite": "banned in (b); impossible in (a)",
+            "evidenceGrade": "proven both ways — this answers the task's open question",
+            "keyEvidence": "07b 07:50:46-59 menu-enable tick-drain; 07e drain-before-start lines; 08b 01:03-01:05 toggle series showing Disable at watchface; 07l 'JS discard disable zapps' at every menu exit"
+          },
+          {
+            "moment": "18. Disable (single-app toggle vs all-disable path)",
+            "parseBudget": "No app hook beyond the in-exercise end path. SINGLE-app disable LEAKS the compiled context (~10KB corpse per climbl01 instance) — firmware runs the JS discard ONLY on the ALL-disable path (menu exit / exercise stop). Corpses are not evictable apps: they starve moment 1 until an all-disable discard. Mid-session manual disable -> next enable = compile roulette. Path-param floods + co-app Disables after an incident = fallout, not the crash.",
+            "lsRead": "none",
+            "lsWrite": "none (nothing runs)",
+            "evidenceGrade": "proven (the #169 root cause, user-hypothesis confirmed)",
+            "keyEvidence": "2026-07-07h_ROOTCAUSE log; 07l discard lines at menu exit; memory current-best-build-and-next-levers; watch-log-forensics-rules taxonomy"
+          }
+        ],
+        "newMoments": [
+          "PAUSED-IDLE TICKS (biggest unexplored lever for P-END): it is unknown whether evaluate() fires while isPaused. Probe = move a resident counter above the isPaused return (zero-allocation, 1-line reorder) and expose it via an existing output after continue, or show it on saving.html. If ticks fire, pause+N-seconds becomes the only schedulable calm window BEFORE the end save — candidate host for (i) a staged 217-229B-class pre-parse with try/catch+backoff, or (ii) a RAM pre-read of stats/s<gs> so ext11's 2 getObject reads leave the end window. Hard limits stay: NO LS writes (pause can resume — ep-wal freeze precedent), parse-at-pause has no clean precedent (superseded f11-at-pause build never validated), and tick-deferred work needs explicit user sign-off (the ban was M1-scoped; pendSlots is the proven exception pattern).",
+          "PRE-START ENABLED-IDLE WINDOW (proven ticks, 12-77s observed, can be 1-2s): already hosts pendF12/pendSlots/skipP, otherwise idle. LS READS are proven here (the drain itself). Candidate: at tick 3+, optionally pre-stage end-window inputs in RAM (e.g., cache the s<gs> object the end RMW needs). Caveat: this shrinks the end window's READ side only — the dominant demand (the whole-store setObject rewrite buffer ~= data.jsn size, JSalloc:2230 vs 2213B) is untouched by pre-reading. Must be optional + instant-start-safe (07e/07f).",
+          "ROUTE-COMMIT PIGGYBACK (M8 is an under-used proven carrier): ext10's 229B parse re-fires after EVERY pause (f10 freed) and is proven at 7 parses/session. A fatter combined satellite parsed at first-commit-per-segment (instead of a new press-entry parse) rides an already-proven moment and stays cached. The 650-950B band is the open question — one on-watch probe (ext21-class content parsed at route-commit) would settle it and decide where gradeName+buildSummary-adjacent code can live.",
+          "POST-SAVE getSummaryOutputs: assessed and DOWNGRADED as a work host — evidence shows it fires INSIDE the ExSaving window seconds after stop (end-adjacent, served by the deferred-discard resident context), not in a later calm moment; historical ext9 parse there is weak precedent from the 8.7KB era. Usable for cosmetic recap work only; never for persistence. Cheap probe if wanted: a try/catch'd tiny getObject there on a short session + log watch.",
+          "STORE-SIZE AS A MOMENT-INDEPENDENT LEVER (new finding from 08b forensics): JSalloc:2230 = data.jsn 2213B + 17. Because EVERY setObject rewrites the whole data.jsn, the end window's contiguous demand scales with TOTAL store size, which grows over the user's lifetime (2123->2213B already) — a slow-motion regression no code freeze prevents. A store diet (drop/shorten keys, pack s0-s9, delete the never-read eP seed if still shipped) shrinks the end-window buffer for free and is the only lever that helps moment 14 without touching its code. Also: ext18 (869B) still ships in the .fea with NO loadExt(18) call site — dead payload, free to delete.",
+          "NEGATIVE FINDINGS (do not design against): watchface idle does not exist as a moment (app disabled, zero ticks — proven); the all-disable discard at menu exit is firmware-only with no app hook (useful only as the corpse cleaner); onExerciseContinue carries no precedent and little value; companion sync runs no app code.",
+          "08b ANATOMY ADDENDUM for the P-END design: the 07c counter-example (4s pause->end gap, CLEAN, 2-min session) proves the 3s gap alone did not kill 08b — the fatal end stacked THREE churn sources inside 7s: the session's only ext10 arena parse at T-7s, pause-fold+deLoad at T-3s, then ext11 arena + whole-store rewrite at T-0 on a 1h04 session's grown store. Any P-END design should be scored against this stacked-churn scenario, not against gap length."
+        ]
+      }
+    },
+    "designs": [
+      {
+        "name": "A-minimal-motion: byte-parity end choreography, consolidated single-read store, name-slice satellites at route-commit",
+        "architecture": "PHILOSOPHY: the 08b bootloop was an LS-buffer failure (JSalloc:2230 = store file 2213B+17), not a parse failure — so this design keeps the proven end choreography move-for-move (pause-fold -> deLoad -> ONE sequential ext11 parse -> RMW) and attacks only its DEMAND: fewer whole-file asks, a smaller file, zero in-window growth, byte-parity parse. The diet comes from the already-measured D2 satellite motion (ext21 + ext14-wCm) plus moving gradeName (533B) out via per-system name-slice satellites at the proven route-commit moment; buildSummary+foldRoutes deliberately STAY resident (they run in the pause/end path — the one place where adding compile-family risk on top of the LS-family crash site is forbidden).\n\nTHREE MOVES, ALL BUILT AND MEASURED (sources: /tmp/claude-1000/-home-skyfi-Documents-suuntoapps-climb-logger/2039e491-48d8-49de-a28c-3c18d8e3dbc2/scratchpad/a3app, build in .../build-a3/climbl01-q.fea — Build successful, validateFile=true, output-lint clean):\n\n(1) STORE CONSOLIDATION (P-END core). All internal per-system state moves into ONE stats key per system: stats.x<g> = 33-slot CSV string ([0..3] totalRoutes/totalSends/sessions/totalHeight accumulators, [4..12] the 9 legacy pass-through snapshot fields, [13..32] the 20-slot project vector). s0..s9 slim to their exact 5-field companion-contract shape (s0: 259B->79B); pS0..pS9 retired (no pS write ever again); dead never-written stats fields (buckets, avgHrr, activeHrr, peakSession) dropped from the shipped store. data.jsn: 2213B -> 1836B (-17%). ext11's chain collapses from 2 reads + 2-3 writes to 1 getObject(stats) + setObject(s<g>) + setObject(stats) — 3 asks steady-state, writes ORDERED so the shrinking write precedes the growing one (peak migration ask ~2140B < today's fatal 2230B). Both end-window growth landmines die: the s<g> 14-field first-end grow (+180B) and the pS<g> creation (+144B) are structurally impossible (write shapes <= shipped shapes). Lifetime file ceiling: ~2.1-2.2KB vs today's unbounded march to ~3.8KB. Bonus: the enable drain needs ONE getObject (stats) instead of two post-migration — the c76deac enable-read-storm class shrinks too. Migration is INSIDE ext11's existing single parse (x<g> undefined -> read old s<g>[+pS<g> only when clean]), once per system, ask count 4-5 = parity with today's EVERY end, then permanently 3. A 20,000-trial lockstep oracle (a3app/tools/tests/ext11-restructure-equiv.js) proves old-vs-new contract equality (all stats.*/s<g>.* companion fields, p<g>_* settings, purge ordering, post-switch history-preserve semantics) on both fresh installs and upgrade-in-place over the user's old store shape.\n\n(2) ext11 BYTE-PARITY (M6). Restructured ext11 builds to 1055B vs master's 1056B — the compile arena ask is unchanged. Achieved by moving the slot-purge and the active* computation RESIDENT into finishSession (pure in-RAM data, a 4-slot array — no allocation class change in the window), which the oracle showed is also required for exact purge->active* ordering. NO second end ext ever (ext22 and any migration-sibling idea rejected per M6); getSummaryOutputs stays RAM-only (M7 dead).\n\n(3) gradeName -> M8 NAME-SLICE SATELLITES (P-DIET). ext30..ext39 (one per grade system, 23-183B each — BELOW the proven 229B parse class) each return one flat CSV string of that system's grade names, generated in lockstep from master's gradeName (generator asserts equality for all systems x all indices). Parsed ONCE per session at the first commitDirty, sequentially right after the proven f10 parse; the returned string (nmS, <=190 chars) stays resident for the session (survives pause — it is a string, not a parse cache); the fn ref is dropped immediately. On throw: nmS stays null, natural retry at the next commit, no timers. buildSummary indexes nmS at fold time — always consistent with acc[6] (no staleness under EDIT/quickfix mutations, unlike best-name-at-commit variants). buildSummary itself is rewritten data-driven (row specs in one split string) and stays resident, called at pause-fold and end-fold exactly as master. ext18 (dead payload, no call site) and ext22 are deleted; ext21/ext14 carried over from D2 unchanged (60k-trial oracle green, off-watch only).\n\nRESULT: main.js blob 7191B (master 7784B, -593B), end window strictly reduced on every axis, zero nominal UX delta. The remaining ~700B gap to the 6.3-6.5KB floor is exactly the resident buildSummary+foldRoutes that M5/M6/M7 pin; two PROBE-GATED stage-2 options are specified (not committed): (S2a) after the M8-band probe proves ~700B parses, fold the row-builder into ext10 (f10 is provably alive at every acc-changing fold if the pause handler folds before nulling f10) -> ~6.74KB; (S2b) a D1-class edit-overlay-entry satellite for the remaining EDIT/proj action bodies -> ~6.4KB. Neither may proceed on the corpse-roulette rationale alone: the A1 gate analysis showed even -48% blob only scales the toggle threshold (1->5 corpses), so end-safety, not the diet, is this design's payload.",
+        "extLayout": [
+          {
+            "file": "ext10.js",
+            "contents": "UNCHANGED (229B built): per-route commit logic — best-send tracking, project-slot attempt/send/bestTime mutation, packed route record return.",
+            "parseMoment": "M8 route-commit: lazy evalFile at the first commitDirty of the session and after every pause (f10 nulled at pause/end) — months-proven at this exact size and frequency.",
+            "callShape": "Flat args (11 scalars + by-ref projSlot array + sessionsNo); returns small flat array [bestSendIdx, 0, rec[6]] — rare-moment object return, tolerated per M8 evidence. No inner fns, no outputs.",
+            "cacheLifecycle": "Cached as f10 for the session segment; released at onExercisePause and in finishSession before the ext11 parse (master lifecycle, untouched).",
+            "sizeBudget": "229B — proven class; MUST NOT grow without the M8-band probe (stage-2 S2a would take it to ~700B, probe-gated)."
+          },
+          {
+            "file": "ext11.js",
+            "contents": "RESTRUCTURED end RMW (1061B source / 1055B built vs master 1056B — byte-parity): reads stats once; parses stats.x<g> CSV (33 slots) or, when x<g> is absent (un-migrated store / fresh install first end per system), migrates from old s<g> (+pS<g> only when no dirty flags, to preserve un-loaded project history); updates accumulators + contract fields + p<g>_<i> settings sync (d&2) + active* from the A param; writes slim contract s<g> THEN stats (shrink-before-grow order). Slot purge and active* computation moved OUT to main.js (ordering-identical to master, oracle-enforced).",
+            "parseMoment": "M6 END teardown only — the ONE sequential parse in finishSession, exactly master's choreography. Never nested, wrapped in try/catch.",
+            "callShape": "loadExt(11)(accSlice, projGradeIdx, projSlot, gradeSystem, dirtyBits, A[4]) — flat arrays + scalars, by-ref P, no return value, no outputs, no inner fns.",
+            "cacheLifecycle": "Parse-call-discard within finishSession; never cached (single use per session).",
+            "sizeBudget": "HARD CAP 1056B built (parity) — any future edit must re-measure the built file; currently 1055B. LS asks: 3 steady-state (1R+2W), 4-5 on one-time migration ends (parity with today's every end)."
+          },
+          {
+            "file": "ext13.js",
+            "contents": "UNCHANGED (1475B built): cold rou-format legacy migration, drain-triggered only when stats.rou0 exists (never fires on current stores). Its old-shape outputs (s<g>/pS<g>) chain correctly into ext11's x-migration path.",
+            "parseMoment": "M1-adjacent latent exception inherited from master: inside drainF12, legacy stores only. Untouched by this design.",
+            "callShape": "No args, no return; direct LS rewrites of legacy keys.",
+            "cacheLifecycle": "Parse-call-discard, at most once per store lifetime.",
+            "sizeBudget": "1475B (<=1.6KB flat) — frozen, delete only after confirming no rou-era stores remain in the wild."
+          },
+          {
+            "file": "ext14.js",
+            "contents": "D2 version (318B built): BREAK eid4 save-as-project — slot seeding + stats init + wCm route-tagging folded in by-ref (frees wCm/wSend/rDur from resident).",
+            "parseMoment": "M4 action press (BREAK eid4), parse-per-press — the historically proven ext14 moment (217B for months; now +101B).",
+            "callShape": "Flat scalars + by-ref projGradeIdx/projSlot/routesA; returns null or flat [grade, slot] pair. try/catch, no-op on throw, press-again retry.",
+            "cacheLifecycle": "Not cached (parse-per-press, master semantics).",
+            "sizeBudget": "318B — slightly above the proven 229B ceiling; covered by the same on-watch checkpoint as ext21."
+          },
+          {
+            "file": "ext21.js",
+            "contents": "D2 version verbatim (645B built): EDIT overlay action bodies (eid4 result cycle SEND->FAIL->DEL, DEL execution on nav/exit) + BREAK eid5 quickfix — old toggleRes+edDel semantics, 60k-trial lockstep oracle green.",
+            "parseMoment": "M4 action press: pre-warmed at the EDIT-overlay ENTRY press (probe-C moment, no template swap), lazy-retried at the first action press on throw.",
+            "callShape": "callE(op, i) with pre-allocated reused 6-slot eBag vector + by-ref routesA/routesB/projSlot; zero per-call inner fns, zero object returns, outputs written by main via setOutputs after the call.",
+            "cacheLifecycle": "Cached in fE per overlay visit; released at EVERY goState, at pause, and at end (zero-alloc null assignment — mount-safe).",
+            "sizeBudget": "645B — THE unproven-band element (proven 229B / weak 803B); the design's primary on-watch question, checkpoint mandatory before merge."
+          },
+          {
+            "file": "ext30.js .. ext39.js (ten files)",
+            "contents": "Per-system grade-name CSV slices, GENERATED from master's gradeName by a lockstep generator that asserts byte-equality for every (system, index): ext30 French 163B, ext31 UIAA 91B, ext32 YDS 184B, ext33 British 53B, ext34 V-Scale 65B, ext35 Font 125B, ext36 Ice 69B, ext37 Mixed 59B, ext38 'Set' 24B, ext39 'Lap' 24B.",
+            "parseMoment": "M8 route-commit piggyback: loadExt(30+gradeSystem)() ONCE per session, sequentially after the proven f10 parse on the FIRST commit (nmS guard); never re-fires after pause (the string survives; f10's re-parse does not re-trigger it).",
+            "callShape": "Zero args; returns ONE flat short string (23-190 chars) — the allowed flat-primitive return shape; fn ref discarded immediately after the single call; no LS, no outputs, no inner fns.",
+            "cacheLifecycle": "The RESULT (nmS string) is resident for the session, reset in onLoad (system can change between sessions); the parsed function is never cached.",
+            "sizeBudget": "23-184B each — all BELOW the proven 229B class; buildSummary indexes nmS at fold time, so names are always consistent with post-edit acc[6] (no staleness)."
+          },
+          {
+            "file": "ext18.js — DELETED",
+            "contents": "Dead payload removed (869-1443B in the shipped .fea with NO loadExt(18) call site; its lastSummary-seed purpose died with the RAM-only recap).",
+            "parseMoment": "n/a (deleted).",
+            "callShape": "n/a.",
+            "cacheLifecycle": "n/a."
+          },
+          {
+            "file": "ext22.js — NOT CREATED (explicitly rejected)",
+            "contents": "Yesterday's D2 end-summary ext stays dead per M6 (the end window may not grow); buildSummary lives resident instead, gradeName in ext30-39.",
+            "parseMoment": "n/a.",
+            "callShape": "n/a.",
+            "cacheLifecycle": "n/a."
+          }
+        ],
+        "endWindowPlan": "CHOREOGRAPHY: unchanged move-for-move from master (commitDirty [+f10 parse only if a route is mid-climb — existing master behavior] -> foldRoutes+buildSummary resident -> early-return if nothing to save -> deLoad -> f10/fE=null -> resident purge + A-block -> single try/catch'd loadExt(11) -> sequential LS ops inside).\n\nBEFORE (master on the user's watch; store 2213B shipped, 2230B measured at 08b):\n- Parse demand: ext11 1056B source -> compile-family arena ~1.7-2.1KB transient (chunk ratio 1.6-2x per the ext12/loader storm data).\n- Store demand: getObject(stats) + getObject(s<g>) + [setObject(pS<g>) if dirty] + setObject(stats) + setObject(s<g>) = 4-5 whole-file contiguous asks x ~2230B. Cumulative window churn ~11-13KB.\n- In-window growth landmines: first end on a new system grows the file +~180B (14-field s<g>) plus +~144B (pS<g> creation) — the storm class that killed c2e4e99/4df2481-#1.\n- Lifetime trajectory: store marches toward ~3.8KB (10x 259B s<g> + pS creations), so EVERY future ask grows even with frozen code.\n\nAFTER (measured build):\n- Parse demand: ext11 1055B built = BYTE-PARITY (-1B). Arena ask unchanged. No second end parse of any kind.\n- Store demand steady-state: 1 getObject(stats) + setObject(s<g>) + setObject(stats) = 3 asks. Fresh store 1836B -> asks ~1850-1950B (worst single ask -370B / -16.6% vs 2230). User's migrated store settles ~2100B -> 3 asks x ~2120B. Cumulative window churn ~7.8-8.4KB (-35%).\n- Migration ends (once per system, existing stores): 4-5 asks at the old ~2230B class — COUNT parity with today's every-end; write order (s<g> shrink-write BEFORE the x<g>-adding stats write) caps the peak single ask at ~2140B, BELOW today's fatal 2230B. After the first migration end the file drops ~90-190B and keeps shrinking as further systems migrate.\n- Landmines: s<g> growth ELIMINATED (write shape <= shipped shape, s0 shrinks 259->~80B), pS creation ELIMINATED (no pS writes exist). Sole residual: one-time stats.x<g> value creation (+~90B) per system, deliberately ordered onto the just-shrunk file.\n- Enable-window co-benefit (same buffer physics): drain does 1 getObject instead of 2 once x<g> exists — halves the c76deac-class enable-read exposure.\n- Early-return extension: unchanged from master (routeless+clean sessions skip the burst entirely); with the consolidated store a slots-only or system-only session is 1R+2W instead of today's 4.\n- Explicitly NOT done: no LS anywhere else (pause/tick/summary writes stay banned), no headroom-reservation hack (logged as a separate probe candidate for the orchestrator, untested), no getSummaryOutputs work (M7 dead).",
+        "residentEstimate": 7191,
+        "estimateArithmetic": "All numbers are REAL BUILDS (blob = unzip -p climbl01-q.fea main.js | wc -c, build-app.js on the full app dir): master = 7784B. D2 rebuilt today from .../scratchpad/d2app = 6375B (verified) = master − [ext21 satellite motion + ext14 wCm fold + stepG/setOutputs dedups] − [gradeName 533B + buildSummary ~490B -> ext22]. A3 (this design, .../scratchpad/a3app) = D2 − ext22 mechanism + resident data-driven buildSummary (+~500B) + nmS glue in commitDirty/onLoad (+~60B) + drain x<g>-CSV read branch (+~110B) + resident slot-purge + active* A-block in finishSession (+~170B, transferred OUT of ext11 to hold its byte-parity and fix purge ordering) − ext22 call site (−~25B) = 7191B MEASURED (Build successful; validateFile=true; output-lint clean; node --check ok). Net vs master: −593B (−7.6%). Honest gap statement: the 6.3-6.5KB floor from yesterday's run included ext22 (end-window summary ext), which M6 now kills; its ~900-1000B of gradeName+buildSummary had to land somewhere, and this design lands 533B of it in ext30-39 (M8) while the ~500B row-builder stays resident as the price of a storm-free fold. Probe-gated stage-2 (NOT in the 7191 figure): S2a rows->ext10 at ~700B M8 parse = ~6740B; S2a+S2b edit-cluster satellite = ~6400B.",
+        "uxDeltas": [
+          "None in nominal operation. Summary recap: identical rows, order, formats, postfixes and 4-row cap (data-driven builder emits the same objects; grade names come from slices generated in lockstep from gradeName with an asserted-equality generator for all 10 systems x all indices).",
+          "Companion contract untouched: all 74 manifest variables and 49 settings paths (incl. stats.p<g>_<i> slots and projNames0-7) unchanged; the 20,000-trial oracle proves every companion-visible stats.*/s<g>.* value identical to master across fresh installs AND upgrade-in-place on the old store shape, including slot-purge ordering and post-system-switch history preservation. The four dropped stats fields (buckets, avgHrr, activeHrr, peakSession) were never exposed to the companion and never written by any code.",
+          "New OOM-only graceful degradations (no nominal path): (1) if the ext3<gs> slice parse throws at every commit of a session, the recap's Highest Send row is omitted for that session (master's equivalent failure dropped ALL rows via its try/catch); (2) inherited from D2: an EDIT/quickfix action press on a corpse heap is a silent no-op with natural press-again retry.",
+          "Watch behavior timing: unchanged — no new work at mounts, flicks, ticks, pause, or end; the one added parse (name slice) rides the existing first-commit tick after the proven f10 parse."
+        ],
+        "risks": [
+          {
+            "risk": "ext11 restructure is new code at the exact crash site. Mitigated off-watch (byte-parity 1055B build, 20k-trial contract oracle incl. upgrade-in-place, migration, purge ordering, switch-preserve), but the store-buffer physics only show on the watch.",
+            "mitigation": "Byte-parity cap enforced; write order shrink-before-grow; 3-ask steady state; migration ask-count parity with today.",
+            "onWatchCheckpoint": "End-window ladder with the full 3-app log protocol, archiving the ring after EVERY step: (a) fresh-flash short session (2-min, 1 route) clean end — verify Disable -> single 'evalFile ext11' -> ExSaving with ZERO relMemCb/JSalloc lines; (b) 30-min session; (c) the 08b stacked-churn replica: 1h+ with MAPS style churn + Weather + Movement co-resident, route commit at T-10s, pause, end ~3s later. Freeze taxonomy per rules; >=60s hands-off-cable on any anomaly."
+          },
+          {
+            "risk": "Migration end on the user's real watch store (one-time per system): 4-5 asks at the old ~2230B class in one window, plus the +~90B x<g> creation grow-write (ordered onto the just-shrunk file, peak ask ~2140B < 2230B — but grow-writes are the storm-prone class).",
+            "mitigation": "Deploy protocol: make the FIRST end after flashing this build a short, low-churn bench session (fresh enable -> 1 route -> end within 2 min — the proven-clean 07c class) so migration happens with maximum headroom; subsequent systems migrate the same way when first used.",
+            "onWatchCheckpoint": "On that first bench end, grep the archived log for the Disable->ext11 sequence: require zero JSalloc, then re-enable and verify the drain does exactly ONE getObject-era read pattern (no pS fallback line) and stats/companion values carried over intact."
+          },
+          {
+            "risk": "ext21 at 645B is the unproven M4 band (proven 229B, weak-positive 803B) — inherited from D2, still never on-watch. ext14 at 318B is +101B above its proven size, same class.",
+            "onWatchCheckpoint": "Dedicated satellite session before merging anything: enter/exit EDIT >=5x (incl. immediately after pause-continue and after an app-swipe remount), cycle results + DEL + quickfix >=3x each, save-as-project twice; logs must show clean 'evalFile ext21/ext14' lines with no JSalloc/relMemCb, fluid eid1/2 flicks throughout (no busy-lock regressions), and fE release on every state change (no stale-cache behavior)."
+          },
+          {
+            "risk": "Second sequential parse at M8 (f10 229B then ext3x 23-184B in the same commit tick, once per session) has no exact precedent — single parses at this moment are proven, back-to-back ones are not.",
+            "mitigation": "Slices are below the proven size class; one-shot per session; try/catch with natural next-commit retry; ref discarded immediately (no cache to leak).",
+            "onWatchCheckpoint": "First-commit moment under churn (MAPS + co-apps): verify the two evalFile lines appear with no JSalloc between/after; verify post-pause commits re-parse ONLY ext10 (exactly one ext3x line per session in the log); verify the recap shows the correct grade name after an EDIT that changes the peak send."
+          },
+          {
+            "risk": "Store fossils remain on the user's watch (orphaned pS keys ~144B + dead stats fields ~52B never deleted — delete/shrink-writes were deliberately dropped from ext11 to hold byte-parity), keeping their migrated file ~200B above a fresh install's.",
+            "mitigation": "Accepted: op-count and parse-parity outrank perfection; a later maintenance build can shrink-write pS<g>=0 once ext11 headroom exists.",
+            "onWatchCheckpoint": "After 2-3 sessions post-migration, dump companion-synced store size / check the enable JSalloc silence; if their steady file stays >2.2KB, schedule the fossil-shrink maintenance write into a future ext11 revision (measured against the 1056B cap)."
+          },
+          {
+            "risk": "Slice/table drift: ext30-39 are generated artifacts — a future grade-system change edited by hand in only one place would silently desync recap names from GRADE_LENS/template decodes.",
+            "mitigation": "The generator (which asserts gradeName equality for every index) is the single source; commit it under tools/ alongside the ext11 oracle; regenerate on any grade-table change.",
+            "onWatchCheckpoint": "None needed beyond the generator run in CI/pre-build; on-watch spot-check one name per changed system in the recap."
+          },
+          {
+            "risk": "P-DIET lands at 7191B, not the 6.3-6.5KB floor — corpse-ladder tolerance likely still ~#1-2 (and the A1 gate showed even −48% only moves the toggle threshold, it heals nothing). Stage-2 options (rows->ext10 ~6740B; +edit-cluster satellite ~6400B) each add unproven-band parse risk at high-frequency moments.",
+            "mitigation": "Ship A3's end-safety first (independent failure families — the diet neither helps nor hurts the end window); gate stage-2 on the M8-band probe the momentMap already calls for.",
+            "onWatchCheckpoint": "M8-band probe build: ext10 temporarily padded to ~700B (inert flat content), full session with >=7 commits across pauses (07b pattern); clean logs => S2a is unlocked and the pause reorder (fold before f10=null) gets its own checkpoint; any JSalloc at a commit => stage-2 is dead and 7191B is final for this philosophy."
+          },
+          {
+            "risk": "data.default.json (3278B) still ships the OLD store shape; if the simulator or any tooling seeds from it, sim behavior diverges from the watch store (sim already lies about LS — divergence would mask migration bugs).",
+            "mitigation": "Implementer task: mirror the data.json restructure into data.default.json (or delete it if unused); keep raw arrays out per the datajson-array-values-dropped rule (x<g> is a CSV STRING, immune to that build bug — a deliberate choice).",
+            "onWatchCheckpoint": "None (off-watch hygiene); verify with one sim run that setup->ready and a commit behave, while treating sim LS results as non-evidence per memory."
+          }
+        ],
+        "momentRuleAudit": "M1 (enable window): COMPLIANT, improved. No evalFile added anywhere in Load-script/onLoad/first ticks; the hybrid inline getObject drain is untouched as a mechanism; its LS demand DROPS from 2 reads (stats + pS<g>) to 1 read (stats) once x<g> exists — the pS read survives only as the pre-migration fallback (exactly today's count). No new tick- or timer-deferred work; pendF12/pendSlots/skipP untouched. The latent ext13 legacy path is inherited unchanged. The x-CSV split() at drain is small-allocation class, same family as the proven getObject object-graph reads.\nM2 (mounts): COMPLIANT. Zero new allocation at any goState/tChanged swap, setup->ready confirm, or app-swipe remount; fE release on state change is a null assignment (D2 mechanism); pendSlots one-tick-deferral law untouched; no LS, no parse at any mount.\nM3 (fluid paths): COMPLIANT. eid1/2/7/8 handling is resident everywhere (stepG, cycleSlot, evProjSetup dy, evEdit grade-edit, evBreak grade-scroll); no locks added on 1/2/7/8; the name-slice parse is NOT on any fluid or per-tick path (commit tick only, once per session); per-tick setOutputs render untouched.\nM4 (action presses): COMPLIANT WITH FLAGS. ext21 (645B, overlay-entry pre-warm + lazy retry, cached-per-visit, released at exit/pause/end = the C10 lifecycle) sits in the unproven 650-950 band — explicitly checkpointed; ext14 at 318B is +101B over its proven 217-229B class — same checkpoint. Every press-time evalFile is try/catch'd, graceful no-op, natural press-again, no timers. Call shapes: eBag reused vector by-ref, flat returns, zero per-call inner fns, zero output writes from exts (main writes literal output.X only — deploy validator true, output-lint clean).\nM5 (pause): COMPLIANT, untouched. deLoad + f10/fE=null + resident foldRoutes+buildSummary, skipped when frDirty; NO parse at pause, NO LS in either direction; nmS is a pre-existing resident string by pause time, not a pause acquisition.\nM6 (end window): COMPLIANT — the design's center. Single sequential ext11 parse at 1055B built vs master 1056B (byte-parity, arena unchanged); NO second end ext (ext22 and a migration-sibling both rejected); LS ops 4-5 -> 3 steady-state on a 17% smaller file with shrink-before-grow write order; both in-window growth landmines eliminated; purge/active* additions to finishSession are pure resident RAM ops (one 4-slot array). The window strictly shrinks on every measured axis; the only transient exception (one migration end per system at old-size ask count with peak ask ~2140B < 2230B) is deploy-protocol-managed and checkpointed.\nM7 (getSummaryOutputs): COMPLIANT. RAM-only serving untouched; no parse, no LS, no new work planned there (moment confirmed dead by the evidence phase).\nM8 (route-commit): COMPLIANT WITH ONE PROBE. ext10 untouched at its proven 229B/frequency; the addition is a once-per-session 23-184B slice parse sequential after f10's first parse — below the proven size class at a proven moment, but 'two sequential parses in one commit tick' is itself unprecedented and carries the audit's one genuinely new on-watch question (checkpointed). The slice does not re-fire at post-pause re-parses (nmS guard), keeping M8's per-segment cost identical to master after the first commit.\nCross-cutting: no nested function declarations (validateFile=true = deploy-grade); dispatcher untouched (<1874B constraint unaffected); outputs float32-safe (no packing changes); exts write no outputs; all ext parse sizes <=1475B flat (max = untouched ext13); no mid-session flash writes added anywhere; fea rebuild for deployment remains VS Code-only (CLI builds here were measurement-only)."
+      },
+      {
+        "name": "Designer B — MOMENT-SHIFT \"Stage-Left\": commit-staged end satellite + drain read-shift + pause headroom reserve + M7 recap (probe built+measured 6724B)",
+        "architecture": "PHILOSOPHY: the end window keeps ONLY what physically cannot leave it — the whole-store setObject writes (END is the only persistence moment on this watch: drain writes proven non-persistent, mid-session/pause writes proven toxic). Everything else that today executes between 'Disable' and 'Exercise stopped' is shifted to earlier, proven moments, and every shifted element degrades to today's exact behavior on failure (a strict-fallback lattice: the design can never make an end WORSE than master).\n\nTHE FOUR SHIFTS (on top of the D2 base = ext21 EDIT-satellite + ext14+wCm + ext22 content extracted, measured 6375B):\n1. READ-SHIFT (end reads → M1 drain): drainF12 retains the stats object it already reads (statsRAM) and re-adds the s<gs> getObject (tRAM) — this RESTORES the months-proven ext12-era drain read set (stats/s<gs>/pS<gs>), it is not a new moment. pendSlots' calm-tick read refreshes both after a system switch. finishSession hands both to ext11 as params; ext11 keeps `v=v||getObject(...)` fallback reads, so a failed drain collapses to today's path. Removes 2 of the 4-5 whole-store contiguous asks (JSalloc≈2230 class, per the forensics' per-op buffer model) from the end window.\n2. PARSE-SHIFT (end evalFile → M8 route-commit piggyback): commitDirty arms pendStage after each successful commit until fS11 is cached; evaluate parses ext11 ONE tick later (pendSlots choreography — never at the press, never per-press, one-shot per session), and fS11 is deliberately NOT freed at pause: its ~1KB compiled residency replaces the ~2.07KB end-window parse arena (08b reading: the end parse SUCCEEDED and likely consumed the very hole the first 2230B store ask then missed — removing the parse un-eats that hole). Every session that needs the fold/RMW (≥1 route) has by construction had a commit = a staging opportunity, with natural per-commit retry. Fallback: `(fS11 || loadExt(11))` at end = today's window exactly. This is precisely the \"route-commit piggyback\" carrier the evidence phase nominated; the 650-950B+ band question is checkpoint-gated.\n3. SUMMARY-SHIFT (recap rows → M7, evaluated per mission): ext22 (gradeName + row build, unchanged content) is NEVER parsed in the end window anymore (D2's end-sibling call — the explicitly killed idea — is deleted). getSummaryOutputs builds lastSummaryCache lazily via one try/catch'd loadExt(22) AFTER the save completes — the months-proven ext9 recap moment, used exactly as the evidence graded it: cosmetic-only, never persistence; a throw degrades to a resident Sends/Routes row built from acc with REAL numbers (better than master's 0/0 default). foldRoutes stays RESIDENT (the storm-free fold/free of routesA/B at pause is the safety valve; honoring the evidence phase's core concern — nothing in the pause/end path ever compiles).\n4. HEADROOM-SHIFT (the pendSlots-spirit reservation, hypothesis-grade): onExercisePause — immediately after deLoad frees the ~13KB active.html — builds a 3072-char string reserve (contiguous, refcount-freed; log-doubling from a 24-char literal, ~60B source). finishSession releases it as the LAST act before the LS burst, so the first ~2230B store-buffer ask lands in a pre-cut 3072B hole instead of playing the fragmentation lottery. Freed on continue (never held while climbing); try/catch'd (OOM → proceed as today). Heap-alloc only: no LS, no parse — same M5 class as foldRoutes' acc allocation.\n\nIDEAS EVALUATED AND REJECTED (with the honest re-examination the mission asked for):\n- Write stats at M7/getSummaryOutputs: DEAD for writes — M7 fires inside the same ~1s teardown ('JS will discard' follows within seconds; in 08b it was mid-storm), and c2e4e99 proved ANY setItem charges a whole-store buffer, so moving the write 2s later reduces nothing and adds a race with the arena discard. Adopted for the cosmetic row build only.\n- Apply-pending-at-next-enable-drain: the falsification's failure mode (replay-at-enable-PARSE + pause-window WAL write) is indeed distinct from this variant — but it dies on three independent proven facts anyway: (a) drain writes do not persist (stats.mig latch vanished, log 07b) → the pending key can never be cleared nor the fold checkpointed → double-apply; (b) the end still needs ≥1 whole-store ask to write even a ~100B pending key (c2e4e99) → ZERO end-window demand reduction; (c) companion stats stale until the NEXT session's end → violates companion-current-after-save. Rejected without needing the historical falsification.\n- Pre-write invariant parts at pause (same-size rewrite): no evidence supports relaxing the M5 write ban (the only pause write ever shipped froze the watch); a pause write faces the same whole-store contiguous ask on the same churned heap ~3s earlier (zero reduction), and a resume forces a second end write (doubled exposure + reconciliation). Dropped.\n- Build summary at the LAST route commit: 'last commit' is unknowable in advance; adopted in modified form — inputs (acc) fold incrementally at pause/end exactly as today, the row build moves to M7, and the real commit-moment win is staging the end-write satellite at the FIRST commit.\n\n08b COUNTERFACTUAL: enable 10:00:52 → drain reads 3 keys (proven class, clean heap); commit 11:05:01 (ext10 parse clean — proven in that log); 11:05:02 fS11 staged; pause 11:05:05 deLoad frees ~13KB → reserve carves 3072B of it; end 11:05:08: zero parse, zero reads, reserve released, the single fatal-class 2230B ask lands in the pre-cut hole. Two independent defenses where master had none. Honest caveat: if the 11:05:02 staging parse had failed (band question), the reserve alone must carry a fallback parse (2070B arena) + writes — the hole covers one, not both, so the double-jeopardy path is only ~1-2 asks better than today.\n\nCOMPOSITION: orthogonal to the store diet (Designer A class) — every byte off data.jsn shrinks BOTH the remaining write asks and the required reserve; the s1-s7 14-field first-end growth landmine and companion projNames growth are inherited unchanged and stay owned by that design. ext18 (dead payload, no call site) is deleted. Probe sources: /tmp/claude-1000/-home-skyfi-Documents-suuntoapps-climb-logger/2039e491-48d8-49de-a28c-3c18d8e3dbc2/scratchpad/bshift (main.js + ext11.js on the d2app base), built .fea at .../scratchpad/build-bshift/climbl01-q.fea. Build successful, validateFile=true, output-lint clean, no bare-input in blob, dispatcher 1369B < 1874B cliff. NOT yet oracle-gated: tools/tests/stats-endwrite-equiv + drain-inline-equiv must be extended to the new ext11 signature/write-order and run 60k-trial lockstep before any deploy (repo: /home/skyfi/Documents/suuntoapps/climb-logger).",
+        "extLayout": [
+          {
+            "file": "ext10.js",
+            "contents": "Route-commit math (attempt/send/bestTime slot update + packed route record) — UNCHANGED from master, 229B built.",
+            "parseMoment": "M8: lazy at first route commit per segment (and after each pause, f10 nulled at pause) — proven at 7 parses/session.",
+            "callShape": "11 flat primitive args; by-ref projSlot mutation; small flat array return (rare-moment object tolerated). No inner fns, no outputs.",
+            "cacheLifecycle": "f10 cached per segment; freed at pause and end (unchanged).",
+            "sizeBudget": "229B built (proven band)."
+          },
+          {
+            "file": "ext11.js",
+            "contents": "REWRITTEN end-write satellite: signature f(v,t,a,p,P,c,g,d) — v=statsRAM, t=tRAM handed over from the drain; `v=v||getObject('stats')`, `t=t||getObject('s'+g)` fallback reads execute ONLY if the RAM handoff is missing; same mutation math verbatim; write order reordered most-valuable-first: setObject(stats) → setObject(s<g>) → setObject(pS<g> if dirty).",
+            "parseMoment": "STAGED at commit-tick+1 (pendStage armed by every successful commitDirty until cached; drained in evaluate's else-if chain after pendF12/pendSlots/skipP; try/catch, re-armed by next commit on throw). NEVER parsed at mount/press/pause. End-window parse exists only as fallback when staging never succeeded = today's exact path.",
+            "callShape": "Called ONCE in finishSession: flat args + by-ref projGradeIdx/projSlot + the acc-derived 7-slot vector; no return, no outputs, no inner fns. In the staged path the call performs ZERO reads and 2-3 setObject writes.",
+            "cacheLifecycle": "fS11 cached from staging to END — deliberately NOT freed at pause (its ~1KB compiled residency replaces the ~2.07KB end parse arena). Reset in onLoad.",
+            "sizeBudget": "1070B built (≤1.6KB flat budget; ABOVE the 803B weak-positive — the design's one gated band probe)."
+          },
+          {
+            "file": "ext22.js",
+            "contents": "Recap row builder (gradeName inlined + 4-row summary from acc) — content unchanged from D2's measured ext22.",
+            "parseMoment": "M7 getSummaryOutputs, POST-save (ExSaving window, deferred-discard context — the months-proven ext9 recap moment; evidence-sanctioned cosmetic-only use). REMOVED from the end window entirely (M6: the killed end-sibling idea).",
+            "callShape": "f(acc, gradeSystem) → row-object array, once per session (rare-moment object return); try/catch'd; no LS, no outputs.",
+            "cacheLifecycle": "Result cached in lastSummaryCache after first successful call; the fn reference itself is not retained. Throw → resident real-numbers Sends/Routes row.",
+            "sizeBudget": "1037B built (vs ext9 precedent ~600B — flagged, cosmetic-only consequence)."
+          },
+          {
+            "file": "ext21.js",
+            "contents": "D2 element unchanged: EDIT/BREAK-quickfix ACTION bodies (result cycle op1, DEL execution op2, quickfix op3) via reused 6-slot eBag vector.",
+            "parseMoment": "M4: overlay-entry press pre-warm (eid5) or lazy at first action press; never on eid1/2/7/8 flicks.",
+            "callShape": "op code + by-ref eBag/routesA/routesB/projSlot; flat, zero inner fns, zero returns beyond eBag slots; main.js writes all outputs literally after the call.",
+            "cacheLifecycle": "fE cached per visit; released at EVERY goState, pause, end (C10).",
+            "sizeBudget": "645B built (unproven 650-950 band — on-watch checkpoint before trusting; 60k-trial lockstep oracle already green off-watch)."
+          },
+          {
+            "file": "ext14.js",
+            "contents": "D2 variant: save-as-project slot seeding + wCm route tagging (by-ref).",
+            "parseMoment": "M4: eid4 action press in BREAK (proven 217-229B class, months clean).",
+            "callShape": "Flat args; by-ref projGradeIdx/projSlot/routesA; small array return; try/catch'd no-op + press-again.",
+            "cacheLifecycle": "Not cached (single-shot per press, as master).",
+            "sizeBudget": "318B built."
+          },
+          {
+            "file": "ext13.js",
+            "contents": "Legacy rou-format cold migration — UNCHANGED.",
+            "parseMoment": "M1 drain, ONLY when stats.rou0 exists (never on current installs); pre-existing latent exception, untouched.",
+            "callShape": "No-arg, self-contained LS RMW; try/catch'd inside drainF12.",
+            "cacheLifecycle": "One-shot, never cached.",
+            "sizeBudget": "1475B built (legacy-only path)."
+          },
+          {
+            "file": "ext18.js",
+            "contents": "DELETE — dead payload: no loadExt(18) call site exists; 869B of flash in every install.",
+            "parseMoment": "n/a (never parsed).",
+            "callShape": "n/a.",
+            "cacheLifecycle": "n/a.",
+            "sizeBudget": "−869B .fea payload, free win."
+          }
+        ],
+        "endWindowPlan": "BEFORE (master, typical route session, from the 08b/forensics model): 1× evalFile ext11 = ~2.06-2.07KB contiguous arena (JSalloc:2070 class), whose arena+compiled body then OCCUPY the heap for the rest of the window (08b reading: the parse succeeded and likely ate the hole the store buffer needed) + 2× getObject (stats, s<g>) + 2-3× setObject (pS<g> if dirty, stats, s<g>), EACH charging a whole-store contiguous access buffer ≈ 2.23KB (JSalloc:2230 = data.jsn 2213B+17) ⇒ 5-6 sequential ≥2KB contiguous asks, ~11.3-13.4KB cumulative transient demand, zero reserved headroom, no rescue path once one ask fails. AFTER (staged path = any session with ≥1 committed route, i.e. every session that has a fold to persist): parse bytes in window = 0 (fS11 cached since commit-tick+1; ext22 never parsed at end — even D2's sibling call is deleted); read asks = 0 (statsRAM/tRAM RAM handoff from the drain); write asks = 2-3 × ~2.23KB (unavoidable — END is the only persistence moment; keys/sizes unchanged, order now stats→s<g>→pS<g> so the companion-critical key persists first) — and immediately before the first ask a 3072B contiguous hole is released (pause-armed reserve, carved from deLoad's ~13KB the moment it was freed). Net: ask count 5-6 → 2-3, compile-family demand 2.07KB → 0, largest single ask unchanged at ~2.23KB but now smaller than the pre-cut hole. FALLBACK LADDER (never grows the window): staging failed → end parses ext11 as today, minus the 2 reads (RAM still valid) = today−2 asks; staging AND drain both failed → ext11's fallback reads fire = today's window byte-for-byte. Routeless dirty-only sessions (sysDirty/slotsDirty, no commit): no staging happened → fallback parse + 2-3 writes ≈ today−2 reads... reads skipped whenever the drain succeeded, which is the normal case. The whole-store ask SIZE itself is only reducible by the store diet — composes directly (every data.jsn byte cut shrinks all remaining asks AND the required reserve margin).",
+        "residentEstimate": 6724,
+        "estimateArithmetic": "MEASURED, not estimated: master 7784B (repo working tree = master) → D2 base rebuilt this session from /tmp/.../scratchpad/d2app and reproduced at exactly 6375B (moves: EDIT cluster 906B→ext21, buildSummary+gradeName ~1000B→ext22, wCm→ext14, stepG/setOutputs dedups; foldRoutes kept resident) → my moment-shift machinery applied on top and rebuilt: 6710B, +14B for the onLoad RAM-null parity refinement ⇒ FINAL 6724B (build-app.js 'Build successful'; deploy-grade validateFile=true; output-lint clean; blob dispatcher 1369B < 1874B compile cliff, D2 was 1089B; no bare-input in blob). The +349B over D2 decomposes (minified): read-retention (statsRAM/tRAM at drain + pendSlots refresh) ~65B; pendStage staging (globals+evaluate branch+commit arm) ~60B; pause reserve + continue release + onLoad resets ~120B; finishSession resv-release + cached-call + RAM handoff args ~55B; M7 recap build + real-numbers sr fallback ~50B. Anchoring vs the corpse ladder: 6724B sits between the measured 7784B (fails at corpse #1) and 6302B (#2-3) rungs ⇒ ~2-corpse tolerance. OPTIONAL flagged step to ~6.47KB (NOT built, estimate −250B net): fold the project-editing eid5/6 action bodies into ext21 as ops 4/5 (~900B built satellite) — take it only AFTER the ext21 645B band checkpoint is green on-watch, since it pushes an interactive press parse deeper into the unproven band. I deliberately did NOT move foldRoutes (−370B available) out of residence: the pause fold is the storm-free safety valve and must not depend on any parse having succeeded.",
+        "uxDeltas": [
+          "None in any clean path: identical screens, controls, flick behavior, outputs, recap rows, and companion-visible values (stats current at sync immediately after save — write moment unchanged, write order now persists the companion-critical stats key FIRST).",
+          "Failure-path only (new vs master): if the one-shot M7 recap parse fails post-save, the recap shows a single Sends/Routes row with REAL session numbers instead of up to 4 rows — strictly better than master's equivalent failure (0/0 default row), but master's resident buildSummary could not fail this way; cosmetic-only by construction.",
+          "Failure-path only (inherited from D2 base): EDIT/quickfix action presses no-op with natural press-again retry if a corpse-heap parse fails at overlay entry.",
+          "Niche behavioral note (documented, not user-visible in normal use): companion edits made to stats.* DURING a running exercise are overwritten by the end save (statsRAM snapshot from enable), where master's fresh end-read would have kept them; between-session companion edits — the actual use case — are unaffected."
+        ],
+        "risks": [
+          {
+            "risk": "Staged ext11 parse (1070B at commit-tick+1) is above the 803B weak-positive / inside the unproven M4/M8 band — the design's central bet.",
+            "mitigation": "One-shot per session, try/catch'd, re-armed per commit; end-window fallback = today's exact path, so failure is never worse than master.",
+            "onWatchCheckpoint": "Probe build + 3-app log protocol: verify 'evalFile ext11.js from ui' exactly one tick after the FIRST commit, zero relMemCb burst, grade flicks stay fluid through ticks T+1/T+2; repeat with a late-session (≥45min churn) first commit; archive log after every test (2000-line ring)."
+          },
+          {
+            "risk": "Headroom reserve is hypothesis-grade: allocator may not backfill the freed 3072B hole with the LS store buffer, and string/duk_tval overhead could mis-size it.",
+            "mitigation": "Reserve is additive (design works without it — asks still drop 5-6→2-3); sized 3072B > store 2213B+overhead with margin; try/catch'd; never held while climbing (freed on continue).",
+            "onWatchCheckpoint": "Reproduce the 08b scenario: 1h+ session with MAPS churn + Weather/Movement co-resident, single late commit, pause→end within 3-5s, ≥6 clean ends (02.07 anatomy bar); watch pause moments for new JsTotMem/relMem lines when the reserve builds; if an end storm still fires at JSalloc≈2230 with the reserve armed, double it or drop the element."
+          },
+          {
+            "risk": "Steady occupancy grows: statsRAM+tRAM (~1.5-2.5KB live object graph) + fS11 compiled body held to END, at a 97-99% heap baseline — could raise mid-session co-app relMem churn or eviction pressure.",
+            "mitigation": "Objects allocated early on a fresh heap (small-alloc class, fragmentation-tolerant per the hybrid-drain finding); fS11 residency REPLACES the end parse arena it eliminates.",
+            "onWatchCheckpoint": "Compare relMemCb / 'JsTotMem' WRN counts of a 1h probe session against master-era clean logs (07b/07d); abort criterion = any NEW mid-session WRN/storm class; fallback ladder if hot: drop statsRAM retention first (keep tRAM; end then does 1 read — still −1 parse −1 read vs master)."
+          },
+          {
+            "risk": "Third drain read (s<gs>) adds one whole-store ask to the enable window — the c76deac storm class on corpse heaps.",
+            "mitigation": "Restores the months-proven ext12-era read set; caught by the existing pendF12 3-tick backoff; presses stay blocked until drained (existing guard).",
+            "onWatchCheckpoint": "07k-style toggle-spam: ≥5 rapid enable/disable cycles then enable-and-hold — backoff must engage and self-heal, no ASSERT, no stuck enable beyond the known 45s self-heal."
+          },
+          {
+            "risk": "ext11 rewrite (signature, param-or-read fallback, write reorder) is mechanically transplanted but NOT yet oracle-verified; a silent divergence corrupts lifetime stats.",
+            "mitigation": "Body is verbatim master math with only param-override + write order changed; fallback branches make v/t sourcing explicit.",
+            "onWatchCheckpoint": "BEFORE any deploy (hard gate, off-watch): extend tools/tests/stats-endwrite-equiv + drain-inline-equiv to the new signature and run 60k-trial lockstep vs master ext11 across dirty-bit/system-switch/routeless matrices; then one on-watch session per path: normal, system-switch, routeless-dirty, instant-start→end."
+          },
+          {
+            "risk": "M7 recap parse (1037B) exceeds the ext9 precedent (~600B) and runs in a heap-state-unknown moment; also fires only when the user opens the recap.",
+            "mitigation": "Cosmetic-only by construction — persistence completed before M7; throw → real-numbers resident row; no LS touched.",
+            "onWatchCheckpoint": "Short session → save → open recap immediately: all 4 rows render, no log warnings in the ExSaving window; repeat after a 1h session (the heap-unknown case)."
+          },
+          {
+            "risk": "ext21 645B press parse (inherited D2 element) is in the unproven band on-watch.",
+            "mitigation": "Cached per visit, released at exit/pause/end, no-op+retry on throw; oracle already green off-watch.",
+            "onWatchCheckpoint": "Dedicated EDIT session: 10+ action presses incl. DEL and quickfix, log-clean; only after this is green consider the optional ext21-op4/5 growth step."
+          },
+          {
+            "risk": "Inherited unchanged (explicitly NOT owned by this design): s1-s7 first-end 14-field grow-rewrite landmine and lifetime store growth raising every end ask — the store-diet design must kill these; my reserve sizing must be re-checked after any store reshape.",
+            "mitigation": "Compose with Designer A's store diet; reserve margin today = 3072 vs 2230 observed ask (+842B growth headroom).",
+            "onWatchCheckpoint": "After composing with the store diet: one first-end-on-new-system session (the historical storm class) must end clean; re-verify reserve > data.jsn+64B at every release."
+          }
+        ],
+        "momentRuleAudit": "M1 (enable window) — COMPLIANT: zero evalFile in Load/onLoad/first ticks; the hybrid inline drain mechanism is untouched; the single addition is a third plain getObject (s<gs>) INSIDE the proven drain, restoring the exact read set (stats/s<gs>/pS<gs>) the deleted ext12 ran for months; all reads remain behind the existing try/catch → pendF12=4 backoff; NO writes; NO new tick/timer deferral in the enable window (pendStage can only be armed by a route commit, which requires user action long after bootstrap; the evaluate else-if chain guarantees pendF12/pendSlots/skipP drain first). Latent ext13 legacy exception inherited unchanged. M2 (mounts) — COMPLIANT: no mount gains any allocation; goState untouched beyond D2's fE=null (a free); onExerciseContinue adds only resv=null (a free) BEFORE the remount; setup→ready confirm stays mount-only; the pendSlots read stays one tick after the mount and now also refreshes tRAM in the same already-budgeted read moment. M3 (fluid paths) — COMPLIANT: eid1/2/7/8 handlers and the per-tick setOutputs render are byte-identical to the D2 base; pendStage never gates onEvent (only pendF12/pendSlots do, as in master); zero per-press allocation added anywhere. M4 (action presses) — COMPLIANT with flags: ext14 (318B, proven class) and ext21 (645B, unproven band → checkpoint) parse at presses, cached-per-visit, released at exit/pause/end, every call try/catch'd no-op with natural press-again retry, no timers; call shapes are flat/by-ref with no inner fns and no output writes from exts. M5 (pause) — COMPLIANT: pause work = deLoad + f10/fE frees + RESIDENT foldRoutes (all proven) + ONE resident heap allocation (the reserve string — same allocation class as foldRoutes' acc; explicitly NOT a parse, NOT an LS read, NOT an LS write); nothing at pause assumes the session ends (resume frees the reserve, f10 re-parses lazily, fS11 simply stays cached); no parse was placed at pause despite the temptation — the no-precedent gap is respected. M6 (end window) — COMPLIANT, the core deliverable: the window LOSES its parse (staged at M8) and both reads (M1 handoff) in the normal path; D2's end-sibling ext22 parse — the explicitly killed 'add another end ext' idea — is deleted; nothing new is added; write count/keys/sizes unchanged (2-3 setObject) with companion-critical stats written first; every fallback path is ≤ today's window; the reserve release shrinks nothing but pre-cuts a hole larger than the largest remaining ask. M7 (getSummaryOutputs) — used exactly as the evidence graded it: cosmetic-only recap build on the months-proven ext9 precedent, AFTER persistence completes, try/catch'd, degrading to a resident row; NEVER persistence, no LS. M8 (route commit) — COMPLIANT+: ext10 unchanged at its proven 229B/lifecycle; the end-satellite staging piggybacks the commit MOMENT on the tick AFTER it (pendSlots choreography), one-shot per session with per-commit retry — this is the evidence phase's nominated 'route-commit piggyback' carrier, and its 1070B band question is the design's one gated experiment. CALL-SHAPE RULES — all satisfied: no per-call inner fns anywhere, by-ref mutation throughout (eBag/projSlot/routesA/B/statsRAM), object-graph returns only at rare moments (ext10 per-commit, ext22 once post-save), no ext writes outputs (main.js literal slot writes untouched), ext parse budgets all ≤1.6KB flat, dispatcher 1369B < 1874B, outputs unchanged/float32-safe, every press-time and staged evalFile try/catch'd with retry-by-natural-repetition and zero timers."
+      },
+      {
+        "name": "C — CAPSULE STORE: freeze the file, fold the ops",
+        "architecture": "PHILOSOPHY: the 08b forensics proved the end-window killer is the whole-store-FILE access buffer (JSalloc ~= data.jsn size +17-25B), charged on EVERY localStorage op, and that key-level splitting changes nothing — only (a) total file bytes and (b) op count matter. This design attacks both, then reuses the measured D2 satellite work for P-DIET since the two problems are independent failure families.\n\nP-END: STORE REDESIGN (data.json 2213B -> 2016B shipped, growth-frozen)\n1. DROP dead stats fields (measured 114B): buckets, pyramid, avgHr, avgMaxHr, avgHrr, activeHrr, peakSession, bestSessionHmRecent. Four of these are manifest variables that no shipped build has ever written (always 0/\"\"): remove the store keys AND the 4 manifest variable entries in the same release — a coordinated, documented contract change, not a silent break. avgHrr/activeHrr/peakSession/buckets are in no contract at all.\n2. DROP p8_*/p9_* slot mirrors (measured 100B): they are in NEITHER settings nor variables (companion never sees them); slot grades for systems 8/9 already live in the projSlot vector (indices 15-19), which persists via the new q capsule. fillSlots falls back to projSlot[15..19] for gs>=8 at drain. Zero behavior change.\n3. q CAPSULE — pS<g> folded INTO stats as one pre-shipped string (105B, replaces pS0 142B + nine future +142B pS-create landmines): stats.q = ten ';'-joined systems of five ','-joined packed slot numbers, v = (att*1000+snd)*1e7 + bestTime*100 + (grade+1), empty slot = 0. Max (9999*1000+999)*1e7+8639900+42 ~= 1.0e14 < 2^53, exact in float64 (LS-internal, never crosses the float32 output transit). Saturation caps att<=9999/snd<=999 (absurd lifetimes; matches the packedBreak saturation precedent). KILLS the pS<g> setObject op at end AND the pS getObject at enable (drain reads stats ONLY: enable-window LS reads drop 2 -> 1, directly helping the c76deac-class enable-read exposure).\n4. x CAPSULE — per-system history archive as one pre-shipped stats string (225B): ten ';'-joined systems of 'th,lsg,bo5,lpg,mtg,sap,bhm,lps,mtp'. This lets s0..s9 stay PERMANENTLY at their shipped 5-field contract shape ({totalRoutes,totalSends,sendPct,sessions,peakGrade|totalHeight}) — ext11 never again grows an s<g> from 5 to 14 fields, killing the +180B first-end-on-new-system landmine on all 9 systems while preserving full per-system history (zero feature loss). s0 shrinks 257B -> 77B.\n5. sy MARKER (+8B): stats.sy = 'system these stat fields belong to', written only by ext11. stats.system is companion-writable, so it cannot serve as the self-consistency marker. When sy === gradeSystem (typical), stats' own 14 fields ARE the previous state and the s<g> read is skipped entirely; when sy !== g (system switched on watch or from phone), main.js normalizes sv once from s<g> + x[g] before calling ext11 (rare path, resident). Legacy 14-field s<g> objects self-heal: the switched-read prefers s<g>'s own fields when present, so pre-migration multi-system history flows into x[g] losslessly at that system's next end.\n6. OP FOLD: end chain goes from 2 reads + 3 writes (5 whole-file buffers) to 1 read + 2 writes typical (3 buffers); routeless-but-dirty sessions 1R+1W; unchanged sessions keep the existing zero-op early return; the s<g> write is additionally skipped when that system had no routes and no history change.\n7. LAZY v3 MIGRATION at first end (writes are only legal at end; c76deac bans enable writes): drainF12 keeps a legacy-compat read branch (sv.q undefined -> read old pS<gs>) for the one session between update and first end. finishSession reads stats once (resident), and iff sv.q === undefined parses ext16 (~420B, once ever per watch) which reshapes sv in RAM (seed q/x, delete dead keys and p8/p9 mirrors) and neuters pS0 to a scalar 0 (one extra write, once). Every write in the migration end SHRINKS the file (2213 -> ~2040) — the safe rewrite class; growth transients stay 0 per the 299100c doctrine. Fresh installs ship the new data.json and never migrate. x/q ship as STRINGS, so the VS-Code array-drop gotcha is avoided by construction; the pS0 neuter value is a scalar.\n\nP-DIET: SATELLITE LAYOUT (independent of P-END per evidence; adopted from measured D2)\n8. ext21 (D2, built + 60k-trial lockstep green): EDIT overlay engine + DEL + BREAK quickfix, entry-parsed at the eid5 press, cached per visit (fE), released at exit/pause/end, eBag reused 6-slot vector by-ref. Extended with the action-side of the PROJ overlay (eid6 slot-step, eid5 exit; the dy handler STAYS resident — M3 fluid) -> ~825B.\n9. ext10 v2: gradeName + buildSummary ride the PROVEN route-commit parse (M8) as op-dispatched extensions of the existing commit engine (~1200B flat). The pause fold calls the ALREADY-CACHED f10 (op1) to build the summary — a session with routes has always parsed f10 by then; a session without routes needs no summary; the frDirty-at-pause case already parses f10 at end today (commitDirty), so NO new parse moment exists at pause or end. onExercisePause reorders to fold BEFORE f10=null. This answers the open gradeName+buildSummary placement question without touching the end window (ext22 stays dead per M6). foldRoutes, recalcBse, cycleSlot/toggleMode, setOutputs, drain stay resident (pinned).\n10. ext18 deleted (869B dead .fea payload, no call site). ext12 remains deleted. ext13 updated to emit capsule shape (rou-era cold path, unreachable on current stores).\n\nFallback ladder if the R1 probe fails: ext10v2-lite = commit + gradeName only (780B, inside the weak-803 band), buildSummary resident (~6950B resident); worst case all-resident summary (~7350B, still below master). The heap-hole reservation experiment (hold ~2.2KB from onLoad, free before the first end op) remains an orthogonal, explicitly-hypothesis add-on and is NOT load-bearing here.",
+        "extLayout": [
+          {
+            "file": "ext10.js v2 (route-commit + gradeName + buildSummary)",
+            "contents": "Op-dispatched: op0 = existing per-route commit engine (slot stats, bestSend, packed-record emit); op1 = summary build (gradeName tables + fb-array assembly from the acc vector, replaces resident buildSummary/gradeName and dead ext22).",
+            "parseMoment": "M8 route commit: lazy evalFile on the FIRST commitDirty per segment (tick after a route press; re-fires after every pause since f10 is freed there). Proven moment at 229B, 7 parses/session clean in 07b; 1200B is the unproven 950-1600 band — gated by risk R1 probe.",
+            "callShape": "op0: by-ref projSlot mutation, flat array return with one rare small record (existing proven shape, per-commit frequency). op1: acc vector + gradeSystem in, returns <=4-element fb object array ONCE per fold (pause/end) — rare-moment object return, ext9/ext10 precedent; zero per-call inner functions.",
+            "cacheLifecycle": "Cached as f10 from first commit; onExercisePause reordered to run foldRoutes (which calls f10 op1) BEFORE f10=null; re-parses lazily at the next commit after continue; nulled at end after finishSession's fold. Guard: fold with nR===0 keeps the pause-built lastSummaryCache instead of rebuilding (f10 may be null).",
+            "sizeBudget": "<=1300B flat (target ~1200B); hard ceiling 1.6KB parse rule; measured at build gate via unzip -p .fea ext10.js | wc -c"
+          },
+          {
+            "file": "ext11.js v2 (end RMW on the capsule store)",
+            "contents": "Pure RMW on the stats object PASSED IN by finishSession (no internal stats read): +=-style total updates (self-consistent prev state via sy marker), slot-mirror write + purge (d&2), active* quartet, q-capsule encode from projSlot, x-capsule splice for the active system, sy=g, setObject(stats), conditional 5-field setObject(s<g>) matching the shipped shape exactly (peakGrade for g<=7, totalHeight for 8/9).",
+            "parseMoment": "M6 end teardown only, after deLoad + fold, exactly as today (proven-conditional moment; the parse has never been the failing alloc across 10 storm events).",
+            "callShape": "(sv, accVector, projGradeIdx, projSlot, climbMode, gradeSystem, dirtyBits) — by-ref sv mutation, two literal setObject calls, no return, no inner functions, no output writes (main.js writes outputs literally).",
+            "cacheLifecycle": "Never cached — single call per session, context discarded by firmware ~1s later (JS will discard).",
+            "sizeBudget": "HARD GATE <=1100B flat (today 1056B; arena ask stays in the ~2.1KB class — M6 'window may not grow'). If the build exceeds it, the switched-normalize stays in main.js (already planned) and field-name lists are shared/shortened until it fits; exceeding the gate blocks deploy."
+          },
+          {
+            "file": "ext16.js (once-ever v3 store migration)",
+            "contents": "RAM reshape of the passed sv: seed q ('0,0,0,0,0'x10) and x ('0,-1,-1,-1,-1,0,0,0,0'x10) capsules, seed x[old-system] and q[old-system] from the old stats fields + legacy pS<gs>, delete the 8 dead keys and p8_*/p9_* mirrors, set sy; then setObject('pS0', 0) to neuter the legacy vector key.",
+            "parseMoment": "M6, ONLY when sv.q === undefined — fires exactly once per watch lifetime (the first end after the update), never on fresh installs (new data.json ships the capsules). This is a once-ever controlled exception to 'no new end ext', not a permanent window occupant; the permanent window is strictly smaller than today's.",
+            "callShape": "by-ref sv mutation + one literal setObject; flat loops, no inner functions, no return.",
+            "cacheLifecycle": "Uncached, single call ever; try/catch'd — on throw the session falls back to legacy-shape passthrough (ext11 gates capsule ops on sv.q presence) and retries next end.",
+            "sizeBudget": "<=450B flat (arena ~0.9KB, charged only in the one migration end, on a file that shrinks during that same end)"
+          },
+          {
+            "file": "ext13.js v2 (rou-era cold migration, updated)",
+            "contents": "Existing legacy rou*/climbProjStats migration rewritten to emit the capsule shapes (q/x/sy, 5-field s<g>) directly so a rou-era store never passes through the intermediate v2 shape.",
+            "parseMoment": "Inside the onLoad drain IFF sv.rou0 exists — the shipped, accepted latent M1 exception; unreachable on fresh flashes and on every current-era store including the user's watch.",
+            "callShape": "No args; internal getObject/setObject burst (pre-existing accepted cold path, writes at enable are legal ONLY here by grandfathered precedent and only for genuine rou-format stores).",
+            "cacheLifecycle": "Uncached, at most once per legacy store lifetime.",
+            "sizeBudget": "<=1.55KB flat (today 1475B; stays under the 1.6KB parse rule)"
+          },
+          {
+            "file": "ext14.js (D2 318B version, save-as-project + wCm fold)",
+            "contents": "BREAK eid4 save-as-project: claims the first free slot, seeds its stats, tags the just-finished route (wCm fold from D2).",
+            "parseMoment": "M4 action press (eid4 in BREAK) — the months-proven 217-229B class; 318B sits just above it, inside the measured-safe D2 build (weak band starts at 645).",
+            "callShape": "by-ref projGradeIdx/projSlot mutation, flat [grade, slot] return or null; no inner functions.",
+            "cacheLifecycle": "Uncached per press (as today — rare event), try/catch'd with press-again retry.",
+            "sizeBudget": "<=330B flat"
+          },
+          {
+            "file": "ext21.js (D2 satellite, extended: EDIT + quickfix + PROJ action ops)",
+            "contents": "EDIT overlay engine (eid4 result cycle SEND->FAIL->DEL, DEL execution with slot/height bookkeeping, cursor nav), BREAK eid5 quickfix, plus the PROJ overlay action side (eid6 slot-step text/state, eid5 exit). The fluid dy handlers of BOTH overlays stay resident in main.js (M3).",
+            "parseMoment": "M4 overlay-entry press (eid5 from READY, both overlay flavors): pre-warmed at entry (probe-C moment, no template swap), lazy press-retry on throw. 645B measured D2 / ~825B extended — the unproven 650-950 band, gated by risk R2 probe.",
+            "callShape": "Reused 6-slot eBag vector by-ref + routesA/routesB/projSlot by-ref; flat primitive results via eBag[5]; zero per-call inner functions, zero object returns (60000-trial lockstep oracle green in D2).",
+            "cacheLifecycle": "Cached as fE per overlay visit; released at overlay exit, pause, and end (C10 lifecycle); every call site try/catch'd graceful no-op with natural press-again retry, no timers.",
+            "sizeBudget": "<=950B flat (target ~825B; if the PROJ extension pushes past 950, ship the 645B EDIT-only version and keep PROJ actions resident at +~220B resident)"
+          },
+          {
+            "file": "ext18.js — DELETED",
+            "contents": "Dead payload: 869B ships in the current .fea with zero loadExt(18) call sites (grade-name slice provider from a superseded design).",
+            "parseMoment": "Never (that is the point) — deleting it removes 869B from the installed .fea at zero risk.",
+            "callShape": "n/a",
+            "cacheLifecycle": "n/a",
+            "sizeBudget": "0 (removed)"
+          },
+          {
+            "file": "ext22.js — NOT SHIPPED (dead per M6) / ext12.js — remains deleted",
+            "contents": "ext22 (D2's 1037B end-summary ext) is explicitly killed: its content lives in ext10v2 op1, parsed at M8 instead of M6. ext12 stays deleted (hybrid inline onLoad drain is untouchable).",
+            "parseMoment": "Never.",
+            "callShape": "n/a",
+            "cacheLifecycle": "n/a",
+            "sizeBudget": "0"
+          }
+        ],
+        "endWindowPlan": "BEFORE (master, byte-identical to the build that bootlooped in 08b): ext11 parse 1056B = one ~2.07KB contiguous compile arena (JSalloc:2070 class), THEN 4-5 whole-file LS buffers at 2230B each (getObject stats, getObject s<g>, conditional setObject pS<g>, setObject stats, setObject s<g>; store 2213B shipped +17 organic). Total contiguous churn ~11.0-13.2KB across 5-6 asks; max single ask 2230B. PLUS three live in-window GROWTH landmines (the quasi-deterministic storm class): +180B s<g> 5->14-field grow on the first end of any non-default system, +142B pS<g> file-key CREATION on the first project end per system, unbounded companion projNames growth. Store trajectory is structurally rising (2123 -> 2213 already; a multi-system project user trends toward ~2.9KB — the 02.07 legacy store stormed at exactly its own 2933B size).\n\nAFTER (steady state): finishSession does 1 resident getObject(stats) at ~2033B buffer (2016B shipped +17), then ext11v2 parse <=1100B (arena <=~2.15KB, hard build gate) doing exactly 2 setObject at ~2033B each; typical total ~8.2KB across 4 asks (-35% churn, one fewer ~2.2KB-class ask); max single ask ~2.15KB arena / ~2.03KB store (store ask -8.8%). Switched-system sessions add one rare s<g> read (5 asks — still below today's typical). Routeless-but-dirty ends: 1R+1W. Unchanged sessions: existing zero-op early return, now extended with per-key change detection. ZERO in-window growth writes remain: every shape is pre-shipped and every write is a same-size-class rewrite (only string digit growth, ~+1-2B/field, the same organic class as the observed +17/+21). The demand CURVE is the real win: shipped 2016B, realistic heavy-lifetime ~2100-2150B (extreme all-10-systems-maxed bound: 2798B), versus today's structurally unbounded 2213 -> 2900B+ trajectory. Pause window unchanged (deLoad + resident foldRoutes + cached-f10 summary call, no LS, no parse).\n\nMIGRATION END (once per watch, first end after update): 1R at legacy 2230B ask + ext16 parse (~420B, ~0.9KB arena) + pS0-neuter write + ext11 parse + 2W, on a file that SHRINKS from 2213B to ~2040B during the same end. Protocol requirement: the first post-update session is a deliberate SHORT one (2 minutes, 1 route) so the biggest legacy-sized asks land on a fresh, unchurned heap.",
+        "residentEstimate": 6550,
+        "estimateArithmetic": "Anchors: master built blob 7784B (measured, unzip -p climbl01-q.fea main.js | wc -c); D2 variant BUILT+MEASURED 6375B with ext21+ext22 both externalized (net -1409B for EDIT cluster 906B + gradeName 533B + buildSummary ~400B bodies minus ~430B glue: eBag, fE cache mgmt, try/catch call sites, loadExt(22) site). Chain for this design: 7784 START; -656 EDIT cluster -> ext21 (D2-measured class: -906 body, +250 glue); -813 gradeName+buildSummary -> ext10v2 op1 (-933 bodies per inventory [533 gradeName + ~400 buildSummary-sans-foldRoutes, consistent with ext22's 1037B], +120 glue: op dispatch, pause f10-call + nR>0 guard, reorder); -220 PROJ-overlay action ops -> ext21 extension (-300 of the 505B project-editing cluster [dy handler ~150B stays resident, fluid-pinned], +80 glue); +410 capsule-store resident glue (drain q-decode +130, legacy pS-read kept as compat fallback +15 net vs deletion, fillSlots gs>=8 fallback +40, finishSession sv read/pass +60, switched-normalize rare path +180, ext16 gate line +55; the pendSlots path is untouched); +45 misc (sy handling, change-detect skips). TOTAL: 7784 - 656 - 813 - 220 + 410 + 45 = 6550B. Honest band 6400-6700 (glue estimates carry +-150B; every step is build-measured before deploy against the corpse ladder: 7784B fails at corpse #1, 6302B at ~#2-3). Store math (python-measured on constructed JSON): new data.json 2008B + 8B sy = 2016B vs 2213B today (-197B, -8.9%); components: dead fields -114, p8/p9 mirrors -100, pS0 -> q capsule -142+105, s0 slim -180, x capsule +225, sy +8, misc commas ±. Extreme-lifetime bound 2798B (all 10 systems at max digit width) vs today's unbounded landmine trajectory.",
+        "uxDeltas": [
+          "Companion: 4 always-dead tiles removed (Send Pyramid, Avg HR, Avg Max HR, Best Recent Session Height) — no shipped build has ever written them (permanently 0/empty); removed from data.json AND manifest variables in the same release as a documented contract change. All live stats, settings paths (stats.system, stats.p0_1..p7_5, projNames0..7) and per-system tiles are byte-for-byte preserved.",
+          "Watch screens, flows, button semantics, summary rows, stats math: NONE (zero feature loss; ext21/ext10v2 are behavior-identical externalizations — D2's 60k-trial lockstep oracle pattern extends to the capsule encode/decode via the existing stats-endwrite-equiv and drain-inline-equiv harnesses).",
+          "Latency (imperceptible class, listed for honesty): first route commit per segment parses ~1200B instead of 229B on a non-interactive tick moment; EDIT/PROJ overlay entry gains a one-time ~825B parse per visit (D2-designed, pre-warmed at the entry press).",
+          "Saturation: per-slot lifetime attempts cap at 9999 (was ~unbounded int, display already capped at 16700) and sends at 999 in the packed q capsule — unreachable in real use, same class as the shipped packedBreak saturation."
+        ],
+        "risks": [
+          {
+            "risk": "ext10v2 ~1200B parse at route commit (M8) is in the UNPROVEN 950-1600B band (proven 229B, weak 803B) and re-fires after every pause.",
+            "mitigation": "Flat file, zero inner fns, cached per segment; fallback ladder pre-built: ext10v2-lite = commit+gradeName only (780B, weak band) with buildSummary resident (~6950B), worst case all-resident (~7350B, still under master).",
+            "onWatchCheckpoint": "Dedicated probe build FIRST (this is the exact probe the evidence phase called for): 3-app protocol, session with >=5 routes and >=2 pause/continue cycles; watch the commit ticks for JSalloc/RelMem lines; archive the log ring immediately; only then promote to the full build."
+          },
+          {
+            "risk": "ext21 at 645-825B parses at an action press — the unproven 650-950 band (one weak-positive at 803B whose CALL, not parse, was the ext20 killer).",
+            "mitigation": "Allocation-light call shape already oracle-proven off-watch (eBag by-ref, flat results); pre-warm at entry so action presses hit the cache; try/catch + press-again everywhere; if the PROJ extension breaches 950B, ship the measured 645B EDIT-only version.",
+            "onWatchCheckpoint": "Overlay torture session: enter/exit EDIT and PROJ x20 mid-session, eid4 result-cycle spam, BREAK quickfix presses, one deliberate corpse-heap toggle before entry to verify the graceful no-op + retry path; freeze-taxonomy watch (THROW/HANG/EVICT), >=60s hands-off-cable if anything freezes."
+          },
+          {
+            "risk": "ext11v2 size creep past 1056-1100B would GROW the end-window compile arena — violating the M6 no-growth law the whole design serves.",
+            "mitigation": "Hard build gate <=1100B (unzip -p .fea ext11.js | wc -c) wired into the pre-deploy checklist; the switched-normalize and migration already live outside ext11 to protect the budget; identifier-diet before any feature spill.",
+            "onWatchCheckpoint": "3 short-session clean ends, then the 08b re-test scenario: 1h+ session with MAPS style/tile churn, Weather+Movement co-resident, single route committed ~T-7s, pause then end within 3s — must complete ExSaving with zero relMemCb storm; archive log."
+          },
+          {
+            "risk": "The one-time migration end does its first LS ops at the LEGACY 2230B ask (same size as the 08b fatal ask) plus an extra ext16 parse.",
+            "mitigation": "Migration is shrink-only (every write reduces the file), fires once, and is user-schedulable; ext16 <=450B; drain compat branch means a failed migration retries at the next end harmlessly.",
+            "onWatchCheckpoint": "Controlled post-update protocol: first session deliberately 2 minutes / 1 route on a fresh boot, >=60s hands-off after save; verify next enable is clean, companion stats intact, and (via a follow-up build check or log JSalloc value at any later event) that the store now measures ~2040B."
+          },
+          {
+            "risk": "Capsule decode/encode corruption (truncated q/x strings, foreign writes) could poison projSlot or history.",
+            "mitigation": "Drain decode fully try/catch'd with zero/-1 defaults (existing pendF12 backoff pattern); ext11 gates capsule ops on field presence; lockstep oracles extended: drain-inline-equiv + stats-endwrite-equiv must replay old-vs-new semantics over the migration boundary and 60k randomized sessions.",
+            "onWatchCheckpoint": "Sim corrupt-store matrix (empty q, short q, garbage x) then on-watch: fresh-flash enable, legacy-store enable, and post-migration enable all clean; slots and history verified on the READY/PROJ screens."
+          },
+          {
+            "risk": "Companion interop: settings written from the phone (slot grades, projNames, system) between sessions must survive the new shapes; sy-marker must correctly flag phone-side system switches.",
+            "mitigation": "slotsDirty gating unchanged; stats rewrite is read-object pass-through so unknown/companion keys survive; sy is app-only by construction so a phone system switch forces the s<g>+x normalize path.",
+            "onWatchCheckpoint": "Round-trip test: edit a P-slot grade, a projName, and the grade system from the companion; sync; run a session; end; verify slots show the phone edits, the end write preserves them, and the new system's history seeded correctly from s<g>."
+          },
+          {
+            "risk": "Residual 08b exposure: the design cuts the ask ~9% and the op exposure ~35-40%, but a sufficiently fragmented heap after 1h of co-app churn can still fail a ~2KB contiguous ask — prevention is probabilistic, not absolute, and a fatal storm remains unrecoverable in code.",
+            "mitigation": "This design is compatible with the orthogonal heap-hole reservation experiment (hold ~2.2KB from onLoad, free in finishSession before the first LS op) — explicitly flagged HYPOTHESIS, to be probed separately, never load-bearing here.",
+            "onWatchCheckpoint": "P-END is not declared closed until the long-session matrix passes: 30min and 60min sessions with map churn + both co-apps, ends at 3s and 10s pause gaps, all logs archived; any storm re-opens the reservation probe as the next lever."
+          },
+          {
+            "risk": "fillSlots gs>=8 fallback and the drain q-decode change the bootstrap path that instant-start depends on (M1 is untouchable).",
+            "mitigation": "Mechanism unchanged (plain getObject + small allocations, one FEWER read than today); decode is a flat split/divide loop, no evalFile, no writes; lockstep oracle covers it.",
+            "onWatchCheckpoint": "Re-run the master-validation trio on the new build: instant-start, rapid enable/disable toggles, sport-switch — all must match the 07i/07j clean signatures, plus one hangboard session with configured slots ending and restoring across re-enable."
+          }
+        ],
+        "momentRuleAudit": "M1 (enable/onLoad/first ticks): COMPLIANT, strictly improved. No evalFile added anywhere in the enable window; the hybrid inline getObject drain is untouched in mechanism; enable LS reads drop from 2 (stats + pS<gs>) to 1 (stats, with q/x decoded from the object already in hand) — reduced exposure to the c76deac enable-read storm class. The ext13 latent cold-migration exception is preserved unchanged (unreachable on current stores). No tick/timer-deferred work added; pendF12/pendSlots/skipP choreography byte-identical. Drain writes remain banned; the v3 migration deliberately does NOT write at drain.\nM2 (mount moments): COMPLIANT. Zero new allocation at any template swap or overlay mount; the setup->ready confirm stays mount-only; pendSlots keeps exactly its single stats re-read one tick after the mount (an earlier design draft added a second read there — rejected; the switched-system s<g> read lives in the end window instead, where it replaces a read that always happened today).\nM3 (fluid paths): COMPLIANT. eid1/2/7/8 handlers, cycleSlot, toggleMode, recalcBse, per-tick setOutputs render all stay resident and lock-free; EDIT/PROJ dy handlers stay resident even though their action siblings move to ext21; inside the EDIT overlay, eid1/2 hit the entry-cached fE (no parse, no per-press allocation, by-ref eBag).\nM4 (action presses): COMPLIANT with two declared band probes. ext14 at 318B (just above the 229B proven class, D2-built); ext21 at 645-825B and the graceful-degradation rules (try/catch, no-op, press-again, no timers, cached-per-visit C10 lifecycle) are followed exactly; call shapes are the anti-ext20 discipline (reused vectors, flat returns, zero inner fns). Both carry explicit on-watch checkpoints before promotion.\nM5 (pause): COMPLIANT. No parse at pause — the summary build calls the ALREADY-CACHED f10 (guaranteed by construction: routes imply a prior commit parse; no routes imply no summary; frDirty defers to end exactly as today). No LS read, no LS write at pause (eP-WAL precedent honored); deLoad + resident foldRoutes unchanged; f10 release reordered to after the fold. The fb-array build is a once-per-pause rare-moment allocation, not interactive-frequency.\nM6 (end window): COMPLIANT — the design's center of mass. Permanent window SHRINKS: ops 5->3 (max 4 switched), store buffer 2230->~2033B, parse arena gated <=today's class, all in-window growth writes eliminated (the s<g>-grow and pS-create landmines are dead; every write is a same-size-class rewrite of a pre-shipped key). No permanent second end ext (ext22 confirmed dead); ext16 is a once-ever, shrink-only, user-scheduled migration exception with its own protocol.\nM7 (getSummaryOutputs): COMPLIANT. Stays RAM-only (lastSummaryCache); no work, no LS, no parse planned there — the moment is end-adjacent teardown per the forensics and is treated as dead for design.\nM8 (route commit): DECLARED EXCEPTION-BY-PROBE. The proven 229B parse grows to ~1200B flat — above the weak-803 point, inside the 1.6KB flat cap, at the exact moment the evidence phase nominated for the fatter-satellite probe. Cache lifecycle (per segment, freed at pause) and call shapes unchanged. This is the single rule-band extension the design asks for, it is probe-gated with a pre-built fallback ladder, and it is what buys the end window its permanent closure to growth."
+      }
+    ]
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Beweise"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Design"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "beweis:end-forensik",
+      "phaseIndex": 1,
+      "phaseTitle": "Beweise",
+      "agentId": "a0946fca82349dd5b",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1783503673993,
+      "queuedAt": 1783503671363,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Repo: /home/skyfi/Documents/suuntoapps/climb-logger (SuuntoPlus app climbl01, Suunto Vertical 2, Duktape,\n3 zapps share ~133KB heap at 97-99% baseline). Design target base = branch master (blob 7784B). The user's watch\ncurrently runs master.\n\n== MISSION ==\nDesign the COMPLETE ext-file placement/splitting architecture for this app, answering two coupled problems:\n(P-DIET) shrink the RESIDENT main.j…",
+      "lastProgressAt": 1783504617025,
+      "tokens": 136898,
+      "toolCalls": 27,
+      "durationMs": 943031,
+      "resultPreview": "{\"findings\":[{\"claim\":\"The failing JSalloc chunk at every end storm tracks the localStorage STORE FILE size, never the ext11 parse size (1056-1082B built): 08b JSalloc:2230 vs data.jsn 2213B (+17); c76deac JSalloc:2056 vs its shipped data.jsn 2035B (+21) at an ENABLE-time pure READ with ext11 untouched; the 03.07-06.07 cluster 2070/2071/2073 matches one stable era store; 06.07 grow-write storms 21…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "beweis:momentkarte",
+      "phaseIndex": 1,
+      "phaseTitle": "Beweise",
+      "agentId": "a5fa515c316b6d7f3",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1783503673345,
+      "queuedAt": 1783503671363,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Repo: /home/skyfi/Documents/suuntoapps/climb-logger (SuuntoPlus app climbl01, Suunto Vertical 2, Duktape,\n3 zapps share ~133KB heap at 97-99% baseline). Design target base = branch master (blob 7784B). The user's watch\ncurrently runs master.\n\n== MISSION ==\nDesign the COMPLETE ext-file placement/splitting architecture for this app, answering two coupled problems:\n(P-DIET) shrink the RESIDENT main.j…",
+      "lastProgressAt": 1783504663380,
+      "tokens": 99036,
+      "toolCalls": 28,
+      "durationMs": 990034,
+      "resultPreview": "{\"moments\":[{\"moment\":\"1. Enable / Load-script (firmware compiles main.js; getUserInterface; runs BEFORE any app code)\",\"parseBudget\":\"NO evalFile ever (M1). The main.js COMPILE is itself the allocation: failed chunk requests 1964/2392/2095/2348B during 'Load script'. Corpse ladder (blob size vs leaked-corpse tolerance): 7784B fails at corpse #1, 6302B at ~#2-3, 4060B at #5, 266B decomp probe surv…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "design:A-minimal-motion",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a8bbbf0495fd34587",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1783504666984,
+      "queuedAt": 1783504664676,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "A-minimal-motion: byte-parity end choreography, consolidate…",
+      "promptPreview": "Repo: /home/skyfi/Documents/suuntoapps/climb-logger (SuuntoPlus app climbl01, Suunto Vertical 2, Duktape,\n3 zapps share ~133KB heap at 97-99% baseline). Design target base = branch master (blob 7784B). The user's watch\ncurrently runs master.\n\n== MISSION ==\nDesign the COMPLETE ext-file placement/splitting architecture for this app, answering two coupled problems:\n(P-DIET) shrink the RESIDENT main.j…",
+      "lastProgressAt": 1783506678837,
+      "tokens": 195543,
+      "toolCalls": 66,
+      "durationMs": 2011853,
+      "resultPreview": "{\"name\":\"A-minimal-motion: byte-parity end choreography, consolidated single-read store, name-slice satellites at route-commit\",\"architecture\":\"PHILOSOPHY: the 08b bootloop was an LS-buffer failure (JSalloc:2230 = store file 2213B+17), not a parse failure — so this design keeps the proven end choreography move-for-move (pause-fold -> deLoad -> ONE sequential ext11 parse -> RMW) and attacks only it…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "design:B-moment-shift",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a38041f8b74b25f40",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1783504666437,
+      "queuedAt": 1783504664677,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Designer B — MOMENT-SHIFT \"Stage-Left\": commit-staged end s…",
+      "promptPreview": "Repo: /home/skyfi/Documents/suuntoapps/climb-logger (SuuntoPlus app climbl01, Suunto Vertical 2, Duktape,\n3 zapps share ~133KB heap at 97-99% baseline). Design target base = branch master (blob 7784B). The user's watch\ncurrently runs master.\n\n== MISSION ==\nDesign the COMPLETE ext-file placement/splitting architecture for this app, answering two coupled problems:\n(P-DIET) shrink the RESIDENT main.j…",
+      "lastProgressAt": 1783506075622,
+      "tokens": 156717,
+      "toolCalls": 26,
+      "durationMs": 1409183,
+      "resultPreview": "{\"name\":\"Designer B — MOMENT-SHIFT \\\"Stage-Left\\\": commit-staged end satellite + drain read-shift + pause headroom reserve + M7 recap (probe built+measured 6724B)\",\"architecture\":\"PHILOSOPHY: the end window keeps ONLY what physically cannot leave it — the whole-store setObject writes (END is the only persistence moment on this watch: drain writes proven non-persistent, mid-session/pause writes pro…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "design:C-store-redesign",
+      "phaseIndex": 2,
+      "phaseTitle": "Design",
+      "agentId": "a8549b7a42068aac1",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1783504666368,
+      "queuedAt": 1783504664678,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "C — CAPSULE STORE: freeze the file, fold the ops",
+      "promptPreview": "Repo: /home/skyfi/Documents/suuntoapps/climb-logger (SuuntoPlus app climbl01, Suunto Vertical 2, Duktape,\n3 zapps share ~133KB heap at 97-99% baseline). Design target base = branch master (blob 7784B). The user's watch\ncurrently runs master.\n\n== MISSION ==\nDesign the COMPLETE ext-file placement/splitting architecture for this app, answering two coupled problems:\n(P-DIET) shrink the RESIDENT main.j…",
+      "lastProgressAt": 1783505704982,
+      "tokens": 119066,
+      "toolCalls": 19,
+      "durationMs": 1038613,
+      "resultPreview": "{\"name\":\"C — CAPSULE STORE: freeze the file, fold the ops\",\"architecture\":\"PHILOSOPHY: the 08b forensics proved the end-window killer is the whole-store-FILE access buffer (JSalloc ~= data.jsn size +17-25B), charged on EVERY localStorage op, and that key-level splitting changes nothing — only (a) total file bytes and (b) op count matter. This design attacks both, then reuses the measured D2 satell…"
+    }
+  ],
+  "totalTokens": 707260,
+  "totalToolCalls": 166
+}
