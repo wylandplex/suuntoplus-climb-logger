@@ -388,7 +388,15 @@ function dump(ls) {
   }
   for (let n = 0; n < 10; n++) {
     const k = 's' + n, s = o[k];
-    if (s && !(s.sessions | 0) && !(s.totalRoutes | 0)) delete o[k];
+    if (s && !(s.sessions | 0) && !(s.totalRoutes | 0)) { delete o[k]; continue; }
+    if (s) {
+      // growth-freeze divergence (Stufe 1, 2026-07-08): NEW ext11 physically omits record fields
+      // the read snapshot lacked (write-set = read-set ∪ the 5 totals — a virgin system's first
+      // end no longer grows the store +180B, the 08b storm class). Absent ≡ default by ext11's
+      // own restore ternaries, so the compare materializes defaults on BOTH flows.
+      for (const f of REC_M1) if (s[f] === undefined) s[f] = -1;
+      for (const f of REC_0) if (s[f] === undefined) s[f] = 0;
+    }
   }
   if (o.stats) {
     delete o.stats.mig;  // the OLD pipeline's migration tail set stats.mig=1 for any mig!==1 input; the NEW ext12 no longer touches mig. Not a real-state field (data.json ships mig:1) — ignore it.
@@ -564,6 +572,30 @@ console.log('strict fuzz: ' + RUNS + ' randomized multi-session runs deep-equal 
   assert.strictEqual(nd.s7.sessions, 1, 'companion-virgin: first session');
   assert.strictEqual(nd.s0.totalRoutes, 1, 'origin system intact');
   console.log('fix-case: virgin-system companion switch starts clean under the new flow OK');
+}
+
+// ---------------------------------------------------------------- growth-freeze (Stufe 1)
+// The 08b bootloop forensics: the end-window killer is the whole-store-file buffer, and GROW-
+// rewrites are the deterministic storm class. A virgin system's first end used to grow s<g>
+// 5→14 fields (+~180B) INSIDE the end window; frozen ext11 writes only read-set ∪ totals.
+{
+  const shipped = () => JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
+  const P0 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
+  const ls = mkLS(shipped());
+  const size = () => Object.entries(ls.raw).reduce((a, [k, v]) => a + k.length + v.length, 0);
+  const before = size();
+  bind(NEW.ext11, ls)([1, 2, 0, 0, 0, 0, 30], [-1, -1, -1, -1, -1], P0.slice(), 0, 3, 0);
+  const grow = size() - before;
+  assert.deepStrictEqual(Object.keys(ls.getObject('s3')).sort(),
+    ['peakGrade', 'sendPct', 'sessions', 'totalHeight', 'totalRoutes', 'totalSends'],
+    'virgin-system snapshot = shipped keyset + totalHeight only');
+  assert.ok(grow <= 40, 'virgin-system first end grows the store <=40B (was ~+180B), got +' + grow);
+  const ls0 = mkLS(shipped());
+  bind(NEW.ext11, ls0)([1, 1, 0, 0, 0, 0, 10], [-1, -1, -1, -1, -1], P0.slice(), 0, 0, 0);
+  assert.strictEqual(Object.keys(ls0.getObject('s0')).length, 14, '14-field snapshot keeps all fields');
+  const shippedBytes = JSON.stringify(shipped()).length;
+  assert.ok(shippedBytes < 2100, 'shipped store after the diet stays <2100B, got ' + shippedBytes);
+  console.log('growth-freeze: virgin end +' + grow + 'B (<=40), s0 stays 14-field, store ' + shippedBytes + 'B OK');
 }
 
 console.log('stats-endwrite-equiv: ALL OK');
