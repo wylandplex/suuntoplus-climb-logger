@@ -16,10 +16,9 @@ var packB = function(d, hr) { return Math.min(86399, Math.max(0, Math.round(d)))
 var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
 var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
 var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
-var rDur   = function(i) { return Math.floor(routesB[i] / 1000); };
 var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), rCm(i), routesA[i] % 1e4); };
-var wSend  = function(i, v) { routesA[i] = packA(rGrade(i), v, rCm(i), routesA[i] % 1e4); };
-var wCm    = function(i, v) { routesA[i] = packA(rGrade(i), rSend(i), v, routesA[i] % 1e4); };
+// rDur/wSend/wCm deleted (Stufe 2): their only callers (toggleRes / edDel / the save-as-project tag)
+// moved into ext21/ext14, which mutate routesA/routesB by-ref (P4) with the same digit arithmetic inline.
 var lastResult = 0;
 
 var rSec = 0;
@@ -103,6 +102,9 @@ var encGrade = function(idx) {
 // wMode = the chg(4)+literal modeSub write, 7 sites. o stays a param — the PROPERTY access
 // is literal (.modeSub), which is what the deploy build checks (same proven shape as wGL).
 var slotG = function() { return projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); };
+
+// Shared wrap-around grade step (dedup: evReady dy, evBreak dy, evEdit flick — all fluid, all resident).
+var stepG = function(v, dy) { var L = GRADE_LENS[gradeSystem]; return ((v + dy) % L + L) % L; };
 
 // fillSlots (hybrid): slots come straight from the stats object — the projAll
 // 50-value all-systems cache is GONE (~0.5KB RAM + the 10x5 drain loop saved). Accepted
@@ -246,6 +248,7 @@ var goState = function(s, output) {
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
   if (tChanged) unload('_cm');
+  fE = null;  // C10: any state change releases the cached satellite (overlay exit, BREAK exit, mounts) — zero-alloc assignment, mount-safe
   if (s === 1) dwell = 1;
   pubF = 1;  // force a FULL republish on this template mount — the freshly-mounted template must read every Output, not just the ones changed since the last publish (setOutputs clears pubF when done)
   if (output) setOutputs(output);
@@ -291,11 +294,11 @@ var toggleMode = function() {
 };
 
 var saveAsProject = function(output) {
-  var r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projSlot, routesA, sessionsNo);
+  var r;
+  try { r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projSlot, routesA, sessionsNo); } catch (e) { return; }  // C11: corpse-heap parse fail = no-op, press again
   if (r) {
     currentGrade = r[0]; climbMode = r[1];
-    if (routesA.length > 0) wCm(routesA.length - 1, r[1]);  // tag the just-finished route with its new project slot
-    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats (projGradeIdx already updated via by-ref; the projAll mirror is gone — hybrid)
+    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats AND tagged routesA[last] by-ref (wCm moved into ext14)
     goState(0, output);
   }
 };
@@ -307,17 +310,24 @@ var recalcBse = function() {
   }
 };
 
-// Set route i's result to v (1/0) + mirror the change into its project slot's in-memory stats.
-var toggleRes = function(i, v) {
-  wSend(i, v);
-  var c = rCm(i);
-  if (c > 0) {
-    var p = c - 1;
-    if (v) { projSlot[p + 5]++; var d = rDur(i); if (d > 0 && (projSlot[p + 10] === 0 || d < projSlot[p + 10])) projSlot[p + 10] = d; }
-    else if (projSlot[p + 5] > 0) projSlot[p + 5]--;
-    psDirty = 1;
-  }
+// SATELLITE ext21 (Stufe 2): the EDIT/quickfix ACTION bodies (result cycle, DEL execution, quickfix
+// toggle — old toggleRes + edDel). Parsed via the M9 GATE: the entry/first-use press arms pendE, the
+// NEXT evaluate tick parses (outside the firmware press context) while onEvent+onLap are gated —
+// gate-until-done, no timers (the pendSlots pattern generalized, user license 2026-07-08). Cached in
+// fE for the visit (P2/f10 pattern), released on EVERY goState + pause + end (C10 — the idle/corpse
+// state carries no extra bytes). Call shape is the anti-ext20: flat body (zero per-call inner fns),
+// by-ref mutation of rA/rB/projSlot/eBag, no object returns (C5). eBag is a PRE-ALLOCATED reused
+// vector: [editIdx, editDelMark, sessionH, routeNumber, psDirty, res]. MAIN keeps all output writes
+// literal via setOutputs after the call (C7). A callE throw = graceful no-op + press-again lazy
+// retry (C11).
+var fE = null, eBag = [0, 0, 0, 0, 0, 0], pendE = 0;
+var callE = function(op, i) {
+  eBag[0] = i; eBag[1] = editDelMark; eBag[2] = sessionH; eBag[3] = routeNumber; eBag[4] = psDirty; eBag[5] = 0;
+  (fE || (fE = loadExt(21)))(op, eBag, routesA, routesB, projSlot);
+  if (op < 3) editIdx = eBag[0];  // op3 (BREAK quickfix) must not clobber the overlay cursor
+  editDelMark = eBag[1]; sessionH = eBag[2]; routeNumber = eBag[3]; psDirty = eBag[4];
   recalcBse();
+  return eBag[5];
 };
 
 // EDIT overlay bottom-line indicator: "EDIT i/n " via setText into ready.html's #edr node — safe
@@ -328,34 +338,14 @@ var pushEd = function() {
   setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
 };
 
-// Execute a pending DEL mark (old evEdit semantics: the delete happens on nav/exit, not on the mark).
-var edDel = function() {
-  if (!editDelMark) return;
-  editDelMark = 0;
-  if (editIdx < routesA.length) {
-    var dSend = rSend(editIdx), dCm = rCm(editIdx), dHt = routesA[editIdx] % 1e4;
-    if (dCm > 0) {
-      var dp = dCm - 1;
-      if (projSlot[dp] > 0) projSlot[dp]--;
-      if (dSend && projSlot[dp + 5] > 0) projSlot[dp + 5]--;
-      if (projSlot[dp] <= 0) { projSlot[dp] = projSlot[dp + 5] = projSlot[dp + 10] = 0; projSlot[dp + 15] = -1; }
-      psDirty = 1;
-    }
-    if (dHt > 0) sessionH = Math.max(0, sessionH - dHt);
-    routesA.splice(editIdx, 1); routesB.splice(editIdx, 1);
-    recalcBse();
-    if (routeNumber > 1) routeNumber--;
-    if (editIdx >= routesA.length && routesA.length > 0) editIdx = routesA.length - 1;
-  }
-};
-
-// EDIT overlay (state 5) — OLD controls preserved: eid1/2 grade ±1 (free routes), eid4 result cycle
-// SEND->FAIL->DEL, eid6 previous route (executes a DEL mark), eid5 exit (executes a DEL mark).
-// Rendering rides the READY template: big grade = selected route (packedGL), header #N = route number
-// (modeSub), #edr line = i/n + result. ready.html gates its lap() on vState!==5, so eid6 stays lap-free.
+// EDIT overlay (state 5) — OLD controls preserved: eid1/2 grade ±1 (free routes, RESIDENT — C3),
+// eid4 result cycle SEND->FAIL->DEL, eid6 previous route (executes a DEL mark), eid5 exit (executes
+// a DEL mark). Action bodies live in ext21 via callE; a throw = graceful no-op + press-again retry
+// (C11), EXCEPT eid5 exit which must never trap the user: on throw the armed DEL is dropped and the
+// exit proceeds (the route stays FAIL — recoverable in a later EDIT visit).
 var evEdit = function(output, eid) {
   if (eid === 5 || eid === 6) {
-    edDel();
+    if (editDelMark) { try { callE(2, editIdx); } catch (e) { if (eid === 6) return; editDelMark = 0; } }
     if (eid === 6 && routesA.length > 0) {
       editIdx = (editIdx - 1 + routesA.length) % routesA.length;
       setOutputs(output); pushEd();
@@ -367,14 +357,11 @@ var evEdit = function(output, eid) {
   }
   if (routesA.length === 0) return;  // empty editor: stay (old behavior); exit via eid 5/6
   if (eid === 4) {
-    if (editDelMark) { editDelMark = 0; toggleRes(editIdx, 1); }
-    else if (rSend(editIdx)) toggleRes(editIdx, 0);
-    else editDelMark = 1;
+    try { callE(1, editIdx); } catch (e) { return; }
     setOutputs(output); pushEd();
   } else if (eid === 1 || eid === 2) {
     if (!rCm(editIdx)) {
-      var Le = GRADE_LENS[gradeSystem];
-      wGrade(editIdx, ((rGrade(editIdx) + (eid === 1 ? 1 : -1)) % Le + Le) % Le);
+      wGrade(editIdx, stepG(rGrade(editIdx), eid === 1 ? 1 : -1));
       if (rSend(editIdx)) recalcBse();
       setOutputs(output); pushEd();
     }
@@ -416,8 +403,7 @@ var startClimb = function(output) {
 var evReady = function(output, eid, dy) {
   if (dy) {
     if (climbMode === 0) {
-      var L = GRADE_LENS[gradeSystem];
-      currentGrade = ((currentGrade + dy) % L + L) % L;  // modulo, not clamp — ±3 flicks wrap (matches evBreak)
+      currentGrade = stepG(currentGrade, dy);  // modulo, not clamp — ±3 flicks wrap (matches evBreak)
     } else if (dy === 1 || dy === -1) {
       cycleSlot(dy);
     }
@@ -431,6 +417,7 @@ var evReady = function(output, eid, dy) {
       editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
       goState(5, output);
       pushEd();
+      if (!fE) pendE = 1;  // M9 gate: satellite pre-warm on the NEXT tick (outside the press context), inputs gated until parsed — no timer, gate-until-done
     }
   } else if (eid === 4) {
     toggleMode();
@@ -448,8 +435,7 @@ var evBreak = function(output, eid, dy) {
       cycleSlot(dy);
       pushMode(output);
     } else if (climbMode === 0) {
-      var L = GRADE_LENS[gradeSystem];
-      lastGradeIdx = ((lastGradeIdx + dy) % L + L) % L;
+      lastGradeIdx = stepG(lastGradeIdx, dy);
       currentGrade = lastGradeIdx;
       // !frDirty: while the just-finished route is still pending (not yet pushed by commitDirty),
       // routes[len-1] is the PREVIOUS route — editing it here corrupts it. The pending route picks
@@ -465,10 +451,10 @@ var evBreak = function(output, eid, dy) {
     // Quick-fix: up-long in BREAK toggles the LAST committed route's result SEND<->FAIL (feedback =
     // the hdrRes green/orange band). !frDirty mirrors the wGrade guard (a pending route is fixed by
     // frSend at commit, not by editing routes[len-1], which would hit the PREVIOUS route).
-    var li = routesA.length - 1;
-    lastResult = rSend(li) ? 0 : 1;
-    toggleRes(li, lastResult);
-    setOutputs(output);
+    // Satellite cached -> toggle inline; cold -> M9 gate: pendE=2 parses AND executes on the next
+    // tick (inputs gated meanwhile), the hdrRes flip lands <=1s later via that tick's setOutputs.
+    if (fE) { try { lastResult = callE(3, routesA.length - 1); } catch (e) { return; } setOutputs(output); }
+    else pendE = 2;
   } else if (eid === 4) {
     saveAsProject(output);
   } else if (eid === 6 && !frDirty) {
@@ -503,14 +489,13 @@ var evProjSetup = function(output, eid, dy) {
     if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
     slotsDirty = 1;
-    gradeV = slotG(); wGL(output);
+    setOutputs(output);  // state-6 branch republishes slotG via wGL — dedups the explicit writes (zero-alloc, C3-safe)
   } else if (eid === 5) {
     setText("#edr", "");
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
-    gradeV = slotG(); wGL(output);
-    wMode(output, -(pStep + 1));
+    setOutputs(output);
     setText("#edr", "SLOT " + (pStep + 1) + "/5");
   }
 };
@@ -533,6 +518,7 @@ function evaluate(input, output) {
   if (isPaused) return;
   if (pendF12) { if (pendF12 > 1) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 4; } } }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169)
   else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { pendSlots = 1; } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM
+  else if (pendE) { var pE = pendE; pendE = 0; try { if (pE === 2) { lastResult = callE(3, routesA.length - 1); } else fE = fE || loadExt(21); } catch (e) { fE = null; } }  // M9 gate drain: parse the satellite (and run a gated quickfix) OUTSIDE the press context; on throw the gate opens and action presses lazy-retry (C11, no timers)
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
   if (state === 1) {
@@ -618,7 +604,7 @@ var finishSession = function(input) {
   try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
   if ((!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst (acc, not routesA, is the route tally now: routesA may already be folded+freed at pause)
   try { deLoad(); } catch (e) {}
-  f10 = null;
+  f10 = null; fE = null;
   try {
     loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, 0, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));  // ext11 reads a[0]=sends, a[1]=routes, a[6]=height from the folded accumulator
   } catch (e) {}
@@ -632,9 +618,10 @@ function onExerciseEnd(input, _output) {
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
   // Fallback guard: pendF12 only when the onLoad drain threw (corpse heap, #169); pendSlots for
-  // the 1-tick window after a system switch (stale slots must not drive startClimb/packedAct).
-  // A press must never force bootstrap/LS work.
-  if (pendF12 || pendSlots) return;
+  // the 1-tick window after a system switch (stale slots must not drive startClimb/packedAct);
+  // pendE for the 1-tick M9 satellite warm-up (gate-until-done — the user license that replaces
+  // synchronous press-context parses). A press must never force bootstrap/LS/parse work.
+  if (pendF12 || pendSlots || pendE) return;
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
@@ -653,7 +640,7 @@ function onEvent(_input, output, eventId) {
 
 function onExercisePause(input, _output) {
   isPaused = 1; deLoad();  // de-load active.html (the ~13KB template — the biggest RAM chunk)
-  f10 = null;              // free the cached ext10 parse (re-parses on the next route after a continue)
+  f10 = null; fE = null;   // free the cached ext parses (re-parse on next use after a continue)
   if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
 }
 function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }
@@ -671,7 +658,7 @@ function onLap(_input, output) {
   // if onEvent already finished the route, finishRoute cleared the flag and the drain no-ops; only a genuine
   // external lap survives, finished as SEND. READY/BREAK transitions are safe synchronously (the app emits
   // no lap() there: evL only laps when lapState is 0+eid6 or ===1).
-  if (pendF12 || pendSlots) return;  // fallback guard, symmetric with onEvent
+  if (pendF12 || pendSlots || pendE) return;  // fallback guard, symmetric with onEvent
   if (state === 1) extLapPending = 1;            // CLIMB -> defer SEND-finish (drained in evaluate)
   else if (state === 0) startClimb(output);      // READY -> start first climb
   else if (state === 2 && !frDirty) startClimb(output);  // BREAK -> start next climb (skip READY)
