@@ -67,11 +67,6 @@
       "type": "int"
     },
     {
-      "shownName": "Send Pyramid",
-      "path": "stats.pyramid",
-      "type": "string"
-    },
-    {
       "shownName": "Current System Routes",
       "path": "stats.totalRoutes",
       "type": "int"
@@ -122,11 +117,6 @@
       "type": "int"
     },
     {
-      "shownName": "Best Recent Session Height [m]",
-      "path": "stats.bestSessionHmRecent",
-      "type": "int"
-    },
-    {
       "shownName": "Longest Project Sessions",
       "path": "stats.longestProjectSes",
       "type": "int"
@@ -164,16 +154,6 @@
     {
       "shownName": "Active Project Best Time [s]",
       "path": "stats.activeBest",
-      "type": "int"
-    },
-    {
-      "shownName": "Avg HR [bpm]",
-      "path": "stats.avgHr",
-      "type": "int"
-    },
-    {
-      "shownName": "Avg Max HR [bpm]",
-      "path": "stats.avgMaxHr",
       "type": "int"
     },
     {
