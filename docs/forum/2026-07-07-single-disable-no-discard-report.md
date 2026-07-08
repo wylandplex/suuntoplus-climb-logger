@@ -1,14 +1,16 @@
-**Suggested title:** Vertical 2: re-enabling a single SuuntoPlus app mid-activity can freeze the watch — JS context of the disabled app is never discarded
+**Suggested title:** Vertical 2: repeatedly toggling a SuuntoPlus app in the enable/disable menu freezes the watch — the disabled app's JS context is only discarded when you leave the menu
 
 ## Environment
 
 - Watch: Suunto Vertical 2, firmware **2.53.42** (HW 1424B3)
-- 3 SuuntoPlus apps enabled during the activity (my own app, main.js ~7.8 KB minified, plus Weather and Movement)
-- Reproduced across many sessions over several days; device logs available
+- 3 SuuntoPlus apps enabled (my own app, main.js ~7.8 KB minified, plus Weather and Movement)
+- Device logs available; reproduced across many sessions
 
 ## Symptom
 
-During a recorded activity, if I disable **one** SuuntoPlus app from the options menu and re-enable it a few seconds later, the re-enable intermittently fails (roughly 1 in 6 toggles in my last session): the script load aborts, the firmware force-unloads the *other* enabled zapps trying to free memory, then disables my app — and the watch UI becomes unresponsive for ~45 seconds to a minute. It recovers on its own or with the USB cable. Disabling/re-enabling via other paths (e.g. leaving the menu in between, or after stopping the exercise) never fails.
+The trigger is **repeatedly toggling one app off and on inside the SuuntoPlus enable/disable menu, without leaving that menu**. Do this a few times in a row and the re-enable intermittently fails: the script load aborts, the firmware force-unloads the *other* enabled zapps trying to free memory, then disables my app — and the watch UI becomes unresponsive for ~45 seconds to a minute (it recovers on its own or with the USB cable).
+
+The key observation: **the moment I leave the enable/disable menu, everything is fine again.** Leaving the menu is exactly what triggers the `JS discard` (Evidence 1 below), which frees the leaked contexts — so a toggle followed by a menu exit never fails; only repeated *in-menu* toggling does. I have reproduced this while an activity was recording; the device logs below are from those sessions.
 
 ## Evidence from device logs
 
@@ -125,12 +127,12 @@ Inferred (my best explanation, happy to be corrected):
 
 ## Minimal reproduction
 
-1. Enable 3 SuuntoPlus apps and start any activity.
-2. During the activity: options menu → SuuntoPlus → disable **one** app.
-3. Re-enable the same app within a few seconds, staying in the menu.
-4. Repeat; in my sessions roughly 1 in 6 re-enables ends in the allocation storm / freeze.
+1. Enable 3 SuuntoPlus apps (any activity running).
+2. Open the SuuntoPlus enable/disable menu → disable **one** app, then re-enable it — **without leaving the menu**.
+3. Repeat step 2 a few times, staying in the menu the whole time.
+4. Within a handful of in-menu toggles the re-enable storms / freezes (roughly 1 in 6 in my sessions). Leaving the menu at any point clears it.
 
-Workarounds I found: backing fully out of the menu between disable and re-enable (this triggers the discard), or — after a failed enable — simply toggling again, which has so far always succeeded (e.g. the 22:09:02 enable above: zero allocation failures, ~45 s after the fatal one, with nothing else changed).
+Workarounds I found: leave the enable/disable menu between toggles (this triggers the discard and never fails), or — after a failed enable — simply toggle again, which has so far always succeeded (e.g. the 22:09:02 re-enable above: zero allocation failures, ~45 s after the fatal one, with nothing else changed).
 
 ## Questions
 
