@@ -30,7 +30,10 @@
     <!-- CLIMB — climb time + pulse, big and uncluttered. Grade lives in the colored header; height/avg/max are BREAK-only. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
-      <div class="sp-d-l p-hc" style="top:calc(36% - 50%e);">
+      <!-- Duration anchored at BREAK's 30% (NOT 36%): CLIMB<->BREAK must not shift the big timer.
+           The HR row was already unified to BREAK's 53% and the H-row to 73%; the timer was the last
+           un-aligned element, so it jumped 6% on every lap. sc1/sc2 now share the identical geometry. -->
+      <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
