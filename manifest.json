@@ -39,6 +39,9 @@
     },
     {
       "name": "packedAct"
+    },
+    {
+      "name": "packedBreak"
     }
   ],
   "template": [

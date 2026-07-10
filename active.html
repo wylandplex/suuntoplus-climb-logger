@@ -30,7 +30,10 @@
     <!-- CLIMB — climb time + pulse, big and uncluttered. Grade lives in the colored header; height/avg/max are BREAK-only. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
-      <div class="sp-d-l p-hc" style="top:calc(36% - 50%e);">
+      <!-- Duration anchored at BREAK's 30% (NOT 36%): CLIMB<->BREAK must not shift the big timer.
+           The HR row was already unified to BREAK's 53% and the H-row to 73%; the timer was the last
+           un-aligned element, so it jumped 6% on every lap. sc1/sc2 now share the identical geometry. -->
+      <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
@@ -59,6 +62,19 @@
 
       <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
+      </div>
+
+      <!-- BREAK tally RESTORED (old break screen, feat/restore-break-screen): session sends/routes +
+           best-send grade. packedBreak decode in LOCKSTEP with main.js setOutputs (state-2 pack) and
+           tools/tests/output-pack-equiv.js: sends = floor(x/64)%64, routes = x%64, best = dG(floor(x/4096)-1).
+           Trophy F200 labels the best send; dG is defined in this template's onLoad. Only sc2 subscribes
+           packedBreak, so it rides the BREAK-visible mount only. -->
+      <div class="p-hc sp-vertical-center" style="top:calc(64% - 20.5px);">
+        <span class="f-ico" style="padding-right:6px">&#xF200;</span>
+        <span class="sp-b-s" style="padding-right:14px"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => dG(Math.floor(x/4096)-1)" default="--" /></span>
+        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(Math.floor(x/64)%64)" default="0" /></span>
+        <span class="sp-b-s f-num">/</span>
+        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(x%64)" default="0" /></span>
       </div>
 
       <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
