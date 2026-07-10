@@ -57,6 +57,15 @@ var sessionsNo = 1;
 // path is LS-free; the END does the RMW directly via ext11 (see finishSession). The eP/WAL
 // variant (pause write + next-enable replay) was FALSIFIED on-watch 2026-07-03 — do not re-add.
 var pendF12 = 1;   // bootstrap pending: 1 = attempt on the next tick, >1 = backoff countdown after a failed attempt. Normally cleared INSIDE onLoad (inline drain, no evalFile); the tick path is the OOM fallback only.
+// S2 storm caps: every retrying parse/LS path gets a hard attempt bound — on a corpse heap each
+// attempt costs a RelMem burst, and an unbounded retry loop IS the storm (the P4 stg() loop
+// re-attempted every 3s for 13 minutes; a cable pulse did not stop it). After the cap the app
+// runs DEGRADED but alive: defaults + open guards instead of a self-inflicted allocation storm.
+var dfTries = 0;   // drainF12 attempts (cap 3) — then defaults stay, guards open, stOk stays 0
+var stOk = 0;      // 1 = bootstrap drain succeeded. 0 at end = READ-ONLY session: never ext11-RMW a
+                   // store we never read (grow-rewrite/clobber landmine) — skip the save, show NOT SAVED.
+var slTries = 0;   // post-switch fillSlots attempts (cap 3) — then climbMode=0: START must never stay silently refused
+var exFail = 0;    // ext10 parse/call failures (cap 3) — then routes commit DEGRADED inline (no slot stats)
 var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes pS<gs>)
 var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
 var sysDirty = 0;  // grade system changed (persist even on a routeless session)
@@ -119,16 +128,17 @@ var fillSlots = function(sv, sys) {
 // LOCKSTEP oracle: tools/tests/drain-inline-equiv.js proves equivalence with the deleted ext12.js.
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
+  dfTries++;  // count the ATTEMPT (before anything that can throw) — cap enforced at the call sites
   var L = localStorage, sv = L.getObject("stats") || {}, i;
   // stats.rou0 = genuine rou-format legacy data -> COLD ext13 migration (rare), then re-read.
   if (sv.rou0 !== undefined) { try { loadExt(13)(); sv = L.getObject("stats") || {}; } catch (e) {} }
-  gradeSystem = sv.system >= 0 && sv.system <= 9 ? sv.system | 0 : 0;
+  if (!sysDirty) gradeSystem = sv.system >= 0 && sv.system <= 9 ? sv.system | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
   fillSlots(sv, gradeSystem);
   var Z = L.getObject("pS" + gradeSystem);
   if (Z) for (i = 0; i < 20; i++) projSlot[i] = Z[i] !== undefined ? Z[i] : i < 15 ? 0 : -1;
   currentGrade = DEFAULT_IDX[gradeSystem];
   sessionsNo = (sv.sessions | 0) + 1;
-  pendF12 = 0;
+  pendF12 = 0; stOk = 1;
   if (autoSkip && sv.sessions > 0 && sv.showSetupOnStart === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
 };
 
@@ -380,21 +390,38 @@ var commitDirty = function() {
   // no params since the hrMax cut (#171 exts-1): input.M was only read for ext10's dead arg 5.
   // (Historic minifier gotcha `input || {}` is moot without the param — see minifier-bare-input.)
   if (frDirty) {
-    frDirty = 0;
     lastHrAvg = hrCnt > 0 ? hrSum / hrCnt : 0;
     lastDuration = rSec;  // no input.D fallback: a sub-second route (rSec=0) logged a firmware-LAP duration (wrong unit/scope -> ~99999s, displayed 1666:39, poisoned project bestTime). Honest 0:00 instead.
-    var r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, 0,
-      frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode. arg 5 (m) is DEAD in ext10 — literal 0 keeps the positional harness (stats-endwrite-equiv) intact; hrMax tracking removed (#171)
-    if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
-    if (!f3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) {} }  // warm the name slice at the proven commit moment (M8) so buildSummary needs no END-window parse (M6)
-    bestSendIdx = r[0];
-    if (r[2]) {
+    var r = 0;
+    if (exFail < 3) {
+      try {
+        r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, 0,
+          frSend, lastClimbMode, bestSendIdx, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode. arg 5 (m) is DEAD in ext10 — literal 0 keeps the positional harness (stats-endwrite-equiv) intact; hrMax tracking removed (#171)
+      } catch (e) {
+        if (++exFail < 3) return;  // S2 cap: frDirty stays armed -> retried next evaluate tick (bounded, <=3 attempts; worst case ~3s of the BREAK eid4/6 gate). Pre-S2 this path LOST the route silently.
+      }
+    }
+    frDirty = 0;  // cleared only after the parse gauntlet resolved (success or cap) — no BREAK softlock, no silent route loss
+    if (r) {
+      exFail = 0;  // success re-arms the per-route budget: 3 isolated recovered hiccups across a long session must not degrade every later route (a true storm never resets — after 3 straight fails no success ever runs)
+      if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
+      if (!f3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) {} }  // warm the name slice at the proven commit moment (M8) so buildSummary needs no END-window parse (M6). SUCCESS branch only: the degraded path must not add parse attempts on a heap that just refused one (S2 doctrine) — buildSummary falls back to a nameless row.
+      bestSendIdx = r[0];
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
       routesA.push(packA(rec[0], rec[1], rec[2], rec[3]));
       routesB.push(packB(rec[4], rec[5]));
-      if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
-      sessionH += lastHeight || 0;
+    } else {
+      // DEGRADED inline commit (S2, exFail cap): heap too fragmented for the ext10 parse — the route
+      // still lands in the session arrays/summary/best-send tally. The WHOLE slot subsystem is skipped
+      // consistently: no projSlot update, psDirty stays unset, AND cm packs as 0 (free-mode tag) —
+      // a cm>0 tag without the matching attempt/send increments would let a later ext21 op mutate
+      // phantom slot stats and re-arm psDirty for the end-write.
+      if (frSend && lastGradeIdx > bestSendIdx) bestSendIdx = lastGradeIdx;
+      routesA.push(packA(lastGradeIdx, frSend, 0, lastHeight));
+      routesB.push(packB(lastDuration, lastHrAvg));
     }
+    if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
+    sessionH += lastHeight || 0;
     hrSum = hrCnt = rSec = 0;
     // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
   }
@@ -488,7 +515,7 @@ var evSetup = function(output, eid, dy) {
     gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
     wMode(output, gradeSystem);
   } else if (eid === 6) {
-    if (sysChg) { sysChg = 0; pendSlots = 1; }  // slots load one tick AFTER the mount (never AT it); a plain confirm must not clobber in-session slot edits
+    if (sysChg) { sysChg = 0; pendSlots = 1; slTries = 0; }  // slots load one tick AFTER the mount (never AT it); a plain confirm must not clobber in-session slot edits. Fresh switch = fresh retry budget (S2 cap)
     goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
   }
 };
@@ -526,8 +553,8 @@ function onLoad(_input, output) {
 
 function evaluate(input, output) {
   if (isPaused) return;
-  if (pendF12) { if (pendF12 > 1) pendF12--; else { try { drainF12(1); } catch (e) { pendF12 = 4; } } }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169)
-  else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { pendSlots = 1; } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM
+  if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { try { drainF12(1); } catch (e) { pendF12 = 4; } } else pendF12 = 0; }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169). CAP 3 (S2): then give up — defaults stay live, guards open, stOk stays 0 (read-only session, NOT-SAVED row at end)
+  else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { if (++slTries < 3) pendSlots = 1; else { climbMode = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; } } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM. CAP 3 (S2): then free mode AND wipe the slot vector to the unconfigured sentinel — it still holds the DEPARTED system's grade indices (possibly >= GRADE_LENS[new system]); the gate must never open over cross-system slots
   else if (pendE) { var pE = pendE; pendE = 0; try { if (pE === 2) { lastResult = callE(3, routesA.length - 1); } else fE = fE || loadExt(21); } catch (e) { fE = null; } }  // M9 gate drain: parse the satellite (and run a gated quickfix) OUTSIDE the press context; on throw the gate opens and action presses lazy-retry (C11, no timers)
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   if (input.Asc !== undefined) curAsc = input.Asc;
@@ -608,11 +635,21 @@ var endRoute = function() {
 // never nested, every LS access a REWRITE of a drain-seeded key. Stats are in LS the moment the
 // activity saves, so the companion sync right after a session is current.
 var finishSession = function(input) {
-  if (pendF12) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting
+  if (pendF12 && dfTries < 3) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting. S2: the belt respects the attempt cap — a 4th RelMem burst in the end window buys nothing the first 3 didn't
   if (state === 1) endRoute();
+  if (frDirty && exFail < 2) exFail = 2;  // S2: the end window gets NO further ticks to re-drive the bounded retry, and the pause already nulled f10 (cold parse guaranteed) — pre-seed the budget so a single throw falls THROUGH to the degraded inline commit instead of returning with the route still armed (silent loss)
   try { commitDirty(); } catch (e) {}
   try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
   if ((!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst (acc, not routesA, is the route tally now: routesA may already be folded+freed at pause)
+  if (!stOk) {  // S2 READ-ONLY session: the bootstrap drain never succeeded, so an ext11 RMW would
+    // grow-rewrite a store we never read (clobber + landmine class). Skip the save entirely —
+    // psDirty/slotsDirty/sysDirty never reach ext11 — and say so on the summary instead of losing data silently.
+    try {  // this path only exists on a proven-hostile heap: the row allocation itself may throw — the read-only return must survive it
+      var ns = [{ id: 'ns', name: 'NOT SAVED', format: 'Count_Fourdigits', value: 0 }];
+      lastSummaryCache = lastSummaryCache ? ns.concat(lastSummaryCache).slice(0, 4) : ns;
+    } catch (e) {}
+    return;
+  }
   try { deLoad(); } catch (e) {}
   f10 = null; fE = null; f3 = null;  // buildSummary already ran in foldRoutes above (name read) — release all cached parses before the ext11 RMW / disable
   try {
