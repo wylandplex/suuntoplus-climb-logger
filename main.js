@@ -12,7 +12,6 @@ var routeNumber = 1;
 var routesA = [], routesB = [];
 // Space-capsule project state: routes are packed, project slot stats are one flat 20-number vector.
 var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, Math.max(0, Math.round(h))); };
-var packB = function(d, hr) { return Math.min(86399, Math.max(0, Math.round(d))) * 1000 + (hr > 0 ? hr : 0); };
 var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
 var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
 var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
@@ -97,14 +96,10 @@ function getUserInterface() {
   return { template: currentTemplate };
 }
 
-var encGrade = function(idx) {
-  return gradeSystem * 100 + idx;
-};
-
 // #171 dedups: slotG = the PROJ-SETUP slot-grade read (OFF sentinel when unset), 3 sites;
 // wMode = the chg(4)+literal modeSub write, 7 sites. o stays a param — the PROPERTY access
 // is literal (.modeSub), which is what the deploy build checks (same proven shape as wGL).
-var slotG = function() { return projGradeIdx[pStep] >= 0 ? encGrade(projGradeIdx[pStep]) : encGrade(50); };
+var slotG = function() { return projGradeIdx[pStep] >= 0 ? gradeSystem * 100 + projGradeIdx[pStep] : gradeSystem * 100 + 50; };
 
 // Shared wrap-around grade step (dedup: evReady dy, evBreak dy, evEdit flick — all fluid, all resident).
 var stepG = function(v, dy) { var L = GRADE_LENS[gradeSystem]; return ((v + dy) % L + L) % L; };
@@ -140,10 +135,6 @@ var drainF12 = function(autoSkip) {
   sessionsNo = (sv.sessions | 0) + 1;
   pendF12 = 0; stOk = 1;
   if (autoSkip && sv.sessions > 0 && sv.showSetupOnStart === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
-};
-
-var loadProjectStats = function() {
-  for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;
 };
 
 // Project-slot cycle (climbMode 1..5): step by ±1, clamp-wrapping over the 5 slots,
@@ -205,11 +196,11 @@ var pushMode = function(o) {
 var setOutputs = function(output) {
   lockF = state === 5 && (editIdx >= routesA.length || rCm(editIdx) > 0) ? 1 : 0;
   if (chg(1, state)) output.vState = state;
-  lastGradeV = lastGradeIdx >= 0 ? encGrade(lastGradeIdx) : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
+  lastGradeV = lastGradeIdx >= 0 ? gradeSystem * 100 + lastGradeIdx : -1;  // no wGL() here: every state path below republishes packedGL (4/5/6 explicitly, else via writeG) — a wGL now would just be overwritten, an extra publish per tick
   var rh = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;  // CLIMB = live route height; BREAK = the finished climb's frozen height (lastHeight); menus = session total
   if (chg(2, rh)) output.routeHeight = rh;
   if (state === 5) {
-    gradeV = editIdx < routesA.length ? encGrade(rGrade(editIdx)) : encGrade(50);  // big grade display = selected route
+    gradeV = editIdx < routesA.length ? gradeSystem * 100 + rGrade(editIdx) : gradeSystem * 100 + 50;  // big grade display = selected route
     wMode(output, editIdx + 1);                 // header #N = route number
     lastGradeV = -1; wGL(output);
   } else if (state === 6) {
@@ -217,7 +208,7 @@ var setOutputs = function(output) {
     wMode(output, -(pStep + 1));  // header renders negatives as "P1".."P5" — the slot being configured
     lastGradeV = -1; wGL(output);
   } else if (state === 4) {
-    gradeV = encGrade(DEFAULT_IDX[gradeSystem]);
+    gradeV = gradeSystem * 100 + DEFAULT_IDX[gradeSystem];
     wMode(output, gradeSystem);
     lastGradeV = -1; wGL(output);
   } else {
@@ -248,7 +239,7 @@ var setOutputs = function(output) {
   // 0 elsewhere (the row lives on sc2 only). DECODE LOCKSTEP: active.html sc2 + output-pack-equiv.js.
   var pBrk = 0;
   if (state === 2) {
-    var bse = bestSendIdx >= 0 ? encGrade(bestSendIdx) : -1, snd = 0, bi;
+    var bse = bestSendIdx >= 0 ? gradeSystem * 100 + bestSendIdx : -1, snd = 0, bi;
     for (bi = 0; bi < routesA.length; bi++) if (rSend(bi)) snd++;
     pBrk = (bse + 1) * 4096 + Math.min(63, snd) * 64 + Math.min(63, routesA.length);
   }
@@ -272,18 +263,8 @@ var goState = function(s, output) {
   if (output) setOutputs(output);
 };
 
-// De-load: tear down the heavy active.html (frees its ~1.3-2KB onLoad G-table + 3-screen DOM + evals) and
-// mount the near-empty saving.html, WITHOUT touching `state`. Fired at onExercisePause so the freed memory is
-// reclaimed well before the onExerciseEnd save burst (the watch always pauses before ending). Deliberately does
-// NOT go through goState(): setting state to 7 would skip onExerciseEnd's state===1 pending-CLIMB flush and lose
-// an in-progress route. currentTemplate is decoupled from state (getUserInterface returns currentTemplate), so
-// swapping the template alone is safe and reversible on resume.
-var deLoad = function() {
-  if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }
-};
-
 var writeG = function(o, idx) {
-  gradeV = encGrade(idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
+  gradeV = gradeSystem * 100 + (idx === undefined ? currentGrade : projGradeIdx[idx] >= 0 ? projGradeIdx[idx] : 50);
   wGL(o);
 };
 
@@ -294,31 +275,6 @@ var finishRoute = function(send, output) {
   frDirty = 1; frSend = send;
   routeNumber++;
   goState(2, output);
-};
-
-var toggleMode = function() {
-  if (climbMode > 0) {
-    climbMode = 0;
-  } else {
-    climbMode = 1;
-    for (var p = 0; p < 5; p++) {
-      if (projGradeIdx[p] >= 0) {
-        climbMode = p + 1;
-        currentGrade = projGradeIdx[p];
-        break;
-      }
-    }
-  }
-};
-
-var saveAsProject = function(output) {
-  var r;
-  try { r = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projSlot, routesA, sessionsNo); } catch (e) { return; }  // C11: corpse-heap parse fail = no-op, press again
-  if (r) {
-    currentGrade = r[0]; climbMode = r[1];
-    psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats AND tagged routesA[last] by-ref (wCm moved into ext14)
-    goState(0, output);
-  }
 };
 
 var recalcBse = function() {
@@ -409,7 +365,7 @@ var commitDirty = function() {
       bestSendIdx = r[0];
       var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
       routesA.push(packA(rec[0], rec[1], rec[2], rec[3]));
-      routesB.push(packB(rec[4], rec[5]));
+      routesB.push(Math.min(86399, Math.max(0, Math.round(rec[4]))) * 1000 + (rec[5] > 0 ? rec[5] : 0));  // packB inlined (S3)
     } else {
       // DEGRADED inline commit (S2, exFail cap): heap too fragmented for the ext10 parse — the route
       // still lands in the session arrays/summary/best-send tally. The WHOLE slot subsystem is skipped
@@ -418,7 +374,7 @@ var commitDirty = function() {
       // phantom slot stats and re-arm psDirty for the end-write.
       if (frSend && lastGradeIdx > bestSendIdx) bestSendIdx = lastGradeIdx;
       routesA.push(packA(lastGradeIdx, frSend, 0, lastHeight));
-      routesB.push(packB(lastDuration, lastHrAvg));
+      routesB.push(Math.min(86399, Math.max(0, Math.round(lastDuration))) * 1000 + (lastHrAvg > 0 ? lastHrAvg : 0));  // packB inlined (S3)
     }
     if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
     sessionH += lastHeight || 0;
@@ -456,7 +412,15 @@ var evReady = function(output, eid, dy) {
       if (!fE) pendE = 1;  // M9 gate: satellite pre-warm on the NEXT tick (outside the press context), inputs gated until parsed — no timer, gate-until-done
     }
   } else if (eid === 4) {
-    toggleMode();
+    // toggleMode inlined (S3 single-site merge): free <-> first configured project slot
+    if (climbMode > 0) {
+      climbMode = 0;
+    } else {
+      climbMode = 1;
+      for (var p = 0; p < 5; p++) {
+        if (projGradeIdx[p] >= 0) { climbMode = p + 1; currentGrade = projGradeIdx[p]; break; }
+      }
+    }
     pushMode(output);
   } else if (eid === 6) {
     startClimb(output);
@@ -477,7 +441,7 @@ var evBreak = function(output, eid, dy) {
       // routes[len-1] is the PREVIOUS route — editing it here corrupts it. The pending route picks
       // up the corrected lastGradeIdx on push, so skip the array write until it's committed.
       if (routesA.length > 0 && !frDirty) wGrade(routesA.length - 1, lastGradeIdx);
-      lastGradeV = encGrade(lastGradeIdx);
+      lastGradeV = gradeSystem * 100 + lastGradeIdx;
       writeG(output);  // publishes packedGL with the new gradeV + lastGradeV
       if (lastResult) {
         recalcBse();
@@ -492,7 +456,14 @@ var evBreak = function(output, eid, dy) {
     if (fE) { try { lastResult = callE(3, routesA.length - 1); } catch (e) { return; } setOutputs(output); }
     else pendE = 2;
   } else if (eid === 4) {
-    saveAsProject(output);
+    // saveAsProject inlined (S3): M4 press-parse via ext14 (PROVEN moment); a throw = graceful no-op, press again (C11)
+    var r14;
+    try { r14 = loadExt(14)(climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, projSlot, routesA, sessionsNo); } catch (e) { return; }
+    if (r14) {
+      currentGrade = r14[0]; climbMode = r14[1];
+      psDirty = 1; slotsDirty = 1;  // ext14 seeded a slot + its stats AND tagged routesA[last] by-ref (wCm moved into ext14)
+      goState(0, output);
+    }
   } else if (eid === 6 && !frDirty) {
     goState(0, output);
   }
@@ -510,9 +481,9 @@ var evSetup = function(output, eid, dy) {
     currentGrade = DEFAULT_IDX[gradeSystem];
     f3 = null;   // drop the stale-system name slice (reloads for the new system at the next commit); switch is pre-routes so no summary needs it in between
     sysChg = 1;  // hybrid: slots load ONCE at the eid6 confirm (per-press LS reads would stall the fluid dy scroll; SETUP shows no slots)
-    loadProjectStats(gradeSystem);
+    for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;  // loadProjectStats inlined (S3): blank slot stats for the new system (persisted pS<g> drains at the next session)
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
-    gradeV = encGrade(DEFAULT_IDX[gradeSystem]); wGL(output);
+    gradeV = gradeSystem * 100 + DEFAULT_IDX[gradeSystem]; wGL(output);
     wMode(output, gradeSystem);
   } else if (eid === 6) {
     if (sysChg) { sysChg = 0; pendSlots = 1; slTries = 0; }  // slots load one tick AFTER the mount (never AT it); a plain confirm must not clobber in-session slot edits. Fresh switch = fresh retry budget (S2 cap)
@@ -551,17 +522,18 @@ function onLoad(_input, output) {
 }
 
 
-function evaluate(input, output) {
-  if (isPaused) return;
+// U3 tick (S3 dispatcher split): the full evaluate body as ONE module fn — the lifecycle
+// dispatcher keeps only the isPaused thin-arm and hands over primitives (h, asc). `output` rides
+// as a bare positional arg down the whole chain (deploy-build output tracking, proven multi-hop).
+var tick = function(output, h, asc) {
   if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { try { drainF12(1); } catch (e) { pendF12 = 4; } } else pendF12 = 0; }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169). CAP 3 (S2): then give up — defaults stay live, guards open, stOk stays 0 (read-only session, NOT-SAVED row at end)
   else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { if (++slTries < 3) pendSlots = 1; else { climbMode = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; } } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM. CAP 3 (S2): then free mode AND wipe the slot vector to the unconfigured sentinel — it still holds the DEPARTED system's grade indices (possibly >= GRADE_LENS[new system]); the gate must never open over cross-system slots
   else if (pendE) { var pE = pendE; pendE = 0; try { if (pE === 2) { lastResult = callE(3, routesA.length - 1); } else fE = fE || loadExt(21); } catch (e) { fE = null; } }  // M9 gate drain: parse the satellite (and run a gated quickfix) OUTSIDE the press context; on throw the gate opens and action presses lazy-retry (C11, no timers)
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
-  if (input.Asc !== undefined) curAsc = input.Asc;
+  if (asc !== undefined) curAsc = asc;
   if (state === 1) {
     rSec++;
-    var h = input.H;
-    if (h >= 0.5 && h <= 4) {  // valid HR band: input.H is Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg
+    if (h >= 0.5 && h <= 4) {  // valid HR band: h is input.H in Hz (0.5-4 Hz = 30-240 bpm); rejects off-band dropout noise + glitch spikes from the route avg
       hrSum += h; hrCnt++;
     }
   }
@@ -576,6 +548,11 @@ function evaluate(input, output) {
   commitDirty();
   setOutputs(output);
   dwell = 0;
+};
+
+function evaluate(input, output) {
+  if (isPaused) return;
+  tick(output, input.H, input.Asc);
 }
 
 // End-window helpers live at top level so their bytecode stays out of the lifecycle dispatcher.
@@ -619,13 +596,6 @@ var foldRoutes = function() {
   buildSummary();
 };
 
-var endRoute = function() {
-  lastGradeIdx = currentGrade; lastClimbMode = climbMode;
-  lastHeight = Math.max(0, Math.round(curAsc - startAsc));
-  frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
-  routeNumber++;
-};
-
 // PROVEN save choreography, transplanted 1:1 after the eP/WAL falsification (both crash logs
 // anchored at the pause-window flash write; the enable replay nested evalFile-in-evalFile — two
 // no-gos the validated builds never committed). The anatomy that ran clean on EVERY validated
@@ -634,9 +604,14 @@ var endRoute = function() {
 // then ONE flat sub-envelope parse (ext11, 1049B) does the RMW directly — sequential,
 // never nested, every LS access a REWRITE of a drain-seeded key. Stats are in LS the moment the
 // activity saves, so the companion sync right after a session is current.
-var finishSession = function(input) {
+var finishSession = function() {
   if (pendF12 && dfTries < 3) { try { drainF12(0); } catch (e) {} }  // belt: an instant start->end session must still bootstrap before persisting. S2: the belt respects the attempt cap — a 4th RelMem burst in the end window buys nothing the first 3 didn't
-  if (state === 1) endRoute();
+  if (state === 1) {  // endRoute inlined (S3 single-site merge): close the running climb into the pending-commit slot
+    lastGradeIdx = currentGrade; lastClimbMode = climbMode;
+    lastHeight = Math.max(0, Math.round(curAsc - startAsc));
+    frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
+    routeNumber++;
+  }
   if (frDirty && exFail < 2) exFail = 2;  // S2: the end window gets NO further ticks to re-drive the bounded retry, and the pause already nulled f10 (cold parse guaranteed) — pre-seed the budget so a single throw falls THROUGH to the degraded inline commit instead of returning with the route still armed (silent loss)
   try { commitDirty(); } catch (e) {}
   try { foldRoutes(); } catch (e) {}  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
@@ -650,20 +625,16 @@ var finishSession = function(input) {
     } catch (e) {}
     return;
   }
-  try { deLoad(); } catch (e) {}
+  try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) {}  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW
   f10 = null; fE = null; f3 = null;  // buildSummary already ran in foldRoutes above (name read) — release all cached parses before the ext11 RMW / disable
   try {
     loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, 0, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));  // ext11 reads a[0]=sends, a[1]=routes, a[6]=height from the folded accumulator
   } catch (e) {}
 };
 
-function onExerciseEnd(input, _output) {
-  if (finalized) return; finalized = 1;
-  finishSession(input);
-}
 
-function onEvent(_input, output, eventId) {
-  if (isPaused) return;
+// U4 evK (S3 dispatcher split): the full onEvent body as ONE module fn (guards, dy, state mux).
+var evK = function(output, eventId) {
   // Fallback guard: pendF12 only when the onLoad drain threw (corpse heap, #169); pendSlots for
   // the 1-tick window after a system switch (stale slots must not drive startClimb/packedAct);
   // pendE for the 1-tick M9 satellite warm-up (gate-until-done — the user license that replaces
@@ -683,19 +654,39 @@ function onEvent(_input, output, eventId) {
   else if (state === 5) evEdit(output, eventId);
   else if (state === 4) evSetup(output, eventId, dy);
   else if (state === 6) evProjSetup(output, eventId, dy);
+};
+
+function onEvent(_input, output, eventId) {
+  if (isPaused) return;
+  evK(output, eventId);
 }
 
-function onExercisePause(input, _output) {
-  isPaused = 1; deLoad();  // de-load active.html (the ~13KB template — the biggest RAM chunk)
-  f10 = null; fE = null;   // free the cached ext parses (re-parse on next use after a continue)
-  if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
-}
-function onExerciseContinue(_input, _output) { isPaused = 0; if (currentTemplate === "saving") { goState(state); dwell = 0; } }
+// U2 lifeK (S3 dispatcher split): pause/continue/end/summary bodies behind ONE module fn.
+// op 0 = pause, 1 = continue, 2 = end (finalized-guarded by the dispatcher arm), 3 = summary rows.
+var lifeK = function(op) {
+  if (op === 0) {
+    isPaused = 1;
+    if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }  // deLoad inlined (S3): tear down the heavy template (frees ~13KB DOM/G-table) WITHOUT touching state — currentTemplate is decoupled (getUserInterface serves it), so the swap is safe and reversible on continue
+    f10 = null; fE = null;   // free the cached ext parses (re-parse on next use after a continue)
+    if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
+  } else if (op === 1) {
+    isPaused = 0;
+    if (currentTemplate === "saving") { goState(state); dwell = 0; }
+  } else if (op === 2) {
+    finishSession();
+  } else {
+    // Recap is served from RAM. No localStorage and no evalFile in the summary path.
+    return lastSummaryCache || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
+  }
+};
 
-function getSummaryOutputs(input, output) {
-  // Recap is served from RAM. No localStorage and no evalFile in the summary path.
-  return lastSummaryCache || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
+function onExercisePause(_input, _output) { lifeK(0); }
+function onExerciseContinue(_input, _output) { lifeK(1); }
+function onExerciseEnd(_input, _output) {
+  if (finalized) return; finalized = 1;
+  lifeK(2);
 }
+function getSummaryOutputs(_input, _output) { return lifeK(3); }
 
 function onLap(_input, output) {
   // A watch lap ADVANCES the phase READY->CLIMB->BREAK->CLIMB->... for BOTH external laps (auto-lap / a lap
