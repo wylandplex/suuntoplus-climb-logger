@@ -15,9 +15,15 @@
 //                                           gate never entered the onEvent/onLap guard chains, and
 //                                           the satellite stays flat + under the 1.6KB parse band.
 //
-// ext22 call ABI (frozen for S6/S7): (o, S, rA, rB, pv)
+// ext22 call ABI: (o, S, rA, rB, pv, A)
 //   o  = the io/output vector            S  = resident scalar bag (see main.js pub())
 //   rA/rB = packed route arrays          pv = publish cache; pv[0] = force-republish flag
+//   A  = the folded session accumulator `acc` (NULLABLE — null until the first foldRoutes()).
+//        MANDATORY for any SESSION-WIDE count: foldRoutes() runs at PAUSE and at END and it EMPTIES
+//        routesA/routesB into acc. So rA is only the UN-FOLDED TAIL, never the whole session. Counting
+//        rA alone made packedBreak report 0/0 right after a pause (bug found 2026-07-11, repro:
+//        3 sends -> pause -> continue -> 4th send showed "1/1" instead of "4/4"). Session total =
+//        acc + rA. acc = [sends, routes, height, dur, hrSum, hrCnt, bestEnc, peakCount].
 // S layout: 0 state, 1 editIdx, 2 editDelMark, 3 gradeSystem, 4 lastGradeIdx, 5 pStep,
 //   6 routeNumber, 7 climbMode, 8 lastHeight, 9 sessionH, 10 bestSendIdx, 11 lastResult,
 //   12 currentGrade, 13 curAsc, 14 startAsc, 15 projGradeIdx(ref), 16 projSlot(ref),
@@ -38,7 +44,7 @@ var IDX = {};
 OUTS.forEach(function (nm, k) { IDX[nm] = OFF + k; });
 
 var TPL = [
-  'function(o,S,rA,rB,pv){',
+  'function(o,S,rA,rB,pv,A){',
   'var st=S[0],gs=S[3],P=S[15],Q=S[16],F=pv[0],g,m,v,i;',
   'var lk=st===5&&(S[1]>=rA.length||Math.floor(rA[S[1]]/1e4)%10>0)?1:0;',
   'if(F||pv[1]!==st){o[@vState@]=st;pv[1]=st}',
@@ -57,7 +63,10 @@ var TPL = [
   'else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;',
   'if(F||pv[5]!==pA){o[@packedAct@]=pA;pv[5]=pA}',
   'var pB=0;',
-  'if(st===2){var bs=S[10]>=0?gs*100+S[10]:-1,sn=0;for(i=0;i<rA.length;i++)if(Math.floor(rA[i]/1e5)%10)sn++;pB=(bs+1)*4096+Math.min(63,sn)*64+Math.min(63,rA.length)}',
+  // SESSION totals = folded (A) + un-folded tail (rA). rA alone is NOT the session: foldRoutes()
+  // empties it into acc at PAUSE and at END. bs stays on S[10] (bestSendIdx survives the fold, and
+  // recalcBse now re-seeds itself from acc[6]).
+  'if(st===2){var bs=S[10]>=0?gs*100+S[10]:-1,sn=A?A[0]:0,rn=A?A[1]:0;for(i=0;i<rA.length;i++){rn++;if(Math.floor(rA[i]/1e5)%10)sn++}pB=(bs+1)*4096+Math.min(63,sn)*64+Math.min(63,rn)}',
   'if(F||pv[8]!==pB){o[@packedBreak@]=pB;pv[8]=pB}',
   'var hg=st===1?g:st===2?lg:-1;',
   'if(F||pv[6]!==hg){o[@hdrGrade@]=hg;pv[6]=hg}',

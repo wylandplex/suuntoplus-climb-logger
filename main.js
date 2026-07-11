@@ -166,7 +166,7 @@ var cycleSlot = function(dy) {
 // names resolve only in compiled main.js; regenerate via tools/gen-out-idx.js on ANY in[]/out[] edit).
 // Resident glue:
 //   pub(o) = marshal the scalars into the persistent S-bag (numeric stores, zero alloc) and call
-//            fP(o, S, routesA, routesB, pv). On a call throw: drop fP, re-arm the stager (pvT counts
+//            fP(o, S, routesA, routesB, pv, acc). On a call throw: drop fP, re-arm the stager (pvT counts
 //            parse AND call failures, cap 3; a clean call resets it — S2 doctrine), fall through to
 //            FBW. routesA/routesB ride per call (foldRoutes REPLACES them); projGradeIdx/projSlot/
 //            DEFAULT_IDX are identity-stable (element writes only) and live in the S-bag as refs.
@@ -199,7 +199,7 @@ var pub = function(o) {
     S[0] = state; S[1] = editIdx; S[2] = editDelMark; S[3] = gradeSystem; S[4] = lastGradeIdx;
     S[5] = pStep; S[6] = routeNumber; S[7] = climbMode; S[8] = lastHeight; S[9] = sessionH;
     S[10] = bestSendIdx; S[11] = lastResult; S[12] = currentGrade; S[13] = curAsc; S[14] = startAsc;
-    try { fP(o, S, routesA, routesB, pv); pvT = 0; return; }
+    try { fP(o, S, routesA, routesB, pv, acc); pvT = 0; return; }  // acc rides along: routesA is only the UN-FOLDED tail (foldRoutes empties it at pause/end), so every session-wide count in ext22 must add the folded half
     catch (e) {
       fP = null;
       pv[0] = 1;  // MANDATORY (S5-review C1): FBW is about to write the crown into the output STORE while the pv cache still holds ext22's last values. Without the force flag the next warm publish would compare against that stale cache, find "no change", and SUPPRESS the correction — the store would stay stuck on FBW's value forever.
@@ -238,7 +238,11 @@ var finishRoute = function(send, output) {
 };
 
 var recalcBse = function() {
-  bestSendIdx = -1;
+  // SEED from the folded half, then scan the un-folded tail. routesA is NOT the session: foldRoutes()
+  // empties it into acc at PAUSE/END. Rescanning routesA alone reset bestSendIdx to -1 after any pause
+  // (same fold-blindness as the old packedBreak count). acc[6] is the folded best ENCODED as
+  // gradeSystem*100+idx, so %100 recovers the raw index the rGrade comparison below expects.
+  bestSendIdx = acc && acc[6] >= 0 ? acc[6] % 100 : -1;
   for (var i = 0; i < routesA.length; i++) {
     if (rSend(i) && rGrade(i) > bestSendIdx) bestSendIdx = rGrade(i);
   }

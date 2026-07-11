@@ -1,4 +1,4 @@
-function(o,S,rA,rB,pv){
+function(o,S,rA,rB,pv,A){
 var st=S[0],gs=S[3],P=S[15],Q=S[16],F=pv[0],g,m,v,i;
 var lk=st===5&&(S[1]>=rA.length||Math.floor(rA[S[1]]/1e4)%10>0)?1:0;
 if(F||pv[1]!==st){o[5]=st;pv[1]=st}
@@ -17,7 +17,7 @@ if(st===0&&S[7]>0){i=S[7]-1;pA=Q[i+15]===P[i]?Math.min(Q[i]||0,16700)*1000+Math.
 else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;
 if(F||pv[5]!==pA){o[8]=pA;pv[5]=pA}
 var pB=0;
-if(st===2){var bs=S[10]>=0?gs*100+S[10]:-1,sn=0;for(i=0;i<rA.length;i++)if(Math.floor(rA[i]/1e5)%10)sn++;pB=(bs+1)*4096+Math.min(63,sn)*64+Math.min(63,rA.length)}
+if(st===2){var bs=S[10]>=0?gs*100+S[10]:-1,sn=A?A[0]:0,rn=A?A[1]:0;for(i=0;i<rA.length;i++){rn++;if(Math.floor(rA[i]/1e5)%10)sn++}pB=(bs+1)*4096+Math.min(63,sn)*64+Math.min(63,rn)}
 if(F||pv[8]!==pB){o[9]=pB;pv[8]=pB}
 var hg=st===1?g:st===2?lg:-1;
 if(F||pv[6]!==hg){o[6]=hg;pv[6]=hg}
