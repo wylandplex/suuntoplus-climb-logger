@@ -244,8 +244,10 @@ var recalcBse = function() {
   }
 };
 
-// SATELLITE ext21 (Stufe 2): the EDIT/quickfix ACTION bodies (result cycle, DEL execution, quickfix
-// toggle — old toggleRes + edDel). Parsed via the M9 GATE: the entry/first-use press arms pendE, the
+// SATELLITE ext21 (Stufe 2): the EDIT ACTION bodies (result cycle = arm 1, DEL execution = arm 2).
+// Arm 3 (the BREAK quickfix) has no caller since the quickfix was cut — it stays in the ext, which is
+// free (parsed after enable, dropped before disable, never in the leaked corpse).
+// Parsed via the M9 GATE: the entry/first-use press arms pendE, the
 // NEXT evaluate tick parses (outside the firmware press context) while onEvent+onLap are gated —
 // gate-until-done, no timers (the pendSlots pattern generalized, user license 2026-07-08). Cached in
 // fE for the visit (P2/f10 pattern), released on EVERY goState + pause + end (C10 — the idle/corpse
@@ -419,14 +421,11 @@ var evBreak = function(output, eid, dy) {
         recalcBse();
       }
     }
-  } else if (eid === 5 && !frDirty && routesA.length > 0) {
-    // Quick-fix: up-long in BREAK toggles the LAST committed route's result SEND<->FAIL (feedback =
-    // the hdrRes green/orange band). !frDirty mirrors the wGrade guard (a pending route is fixed by
-    // frSend at commit, not by editing routes[len-1], which would hit the PREVIOUS route).
-    // Satellite cached -> toggle inline; cold -> M9 gate: pendE=2 parses AND executes on the next
-    // tick (inputs gated meanwhile), the hdrRes flip lands <=1s later via that tick's setOutputs.
-    if (fE) { try { lastResult = callE(3, routesA.length - 1); } catch (e) { return; } pub(output); }
-    else pendE = 2;
+  // eid 5 (TOP-long) is FREE in BREAK: the quick-fix (last route SEND<->FAIL) is gone — the EDIT
+  // overlay (READY -> TOP-long) already does that for ANY route, so the shortcut was pure duplicate
+  // resident code. TOP-long here becomes the STATS overlay entry (next commit); it is a no-op until
+  // then. callE arm 3 + the pendE=2 gated variant died with it — pendE survives for the EDIT
+  // pre-warm (eid 5 in evReady) and STAYS in the L1 guard chain.
   } else if (eid === 4) {
     // saveAsProject inlined (S3): M4 press-parse via ext14 (PROVEN moment); a throw = graceful no-op, press again (C11)
     var r14;
@@ -499,7 +498,7 @@ function onLoad(_input, output) {
 var tick = function(output, h, asc) {
   if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { try { drainF12(1); } catch (e) { pendF12 = 4; } } else pendF12 = 0; }  // OOM fallback only (onLoad normally drained already): failed attempts back off 3 ticks — every attempt on a corpse heap costs a RelMem burst (#169). CAP 3 (S2): then give up — defaults stay live, guards open, stOk stays 0 (read-only session, NOT-SAVED row at end)
   else if (pendSlots) { pendSlots = 0; try { fillSlots(localStorage.getObject("stats") || {}, gradeSystem); } catch (e) { if (++slTries < 3) pendSlots = 1; else { climbMode = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; } } }  // post-switch slot load, one calm tick after the ready mount; retry next tick on OOM. CAP 3 (S2): then free mode AND wipe the slot vector to the unconfigured sentinel — it still holds the DEPARTED system's grade indices (possibly >= GRADE_LENS[new system]); the gate must never open over cross-system slots
-  else if (pendE) { var pE = pendE; pendE = 0; try { if (pE === 2) { lastResult = callE(3, routesA.length - 1); } else fE = fE || loadExt(21); } catch (e) { fE = null; } }  // M9 gate drain: parse the satellite (and run a gated quickfix) OUTSIDE the press context; on throw the gate opens and action presses lazy-retry (C11, no timers)
+  else if (pendE) { pendE = 0; try { fE = fE || loadExt(21); } catch (e) { fE = null; } }  // M9 gate drain: parse the EDIT satellite OUTSIDE the press context; on throw the gate opens and action presses lazy-retry (C11, no timers). pendE is now 1-valued only (the quickfix's pendE=2 arm is gone), so the pE branch collapsed.
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
   else if (pendV) { pendV = 0; try { fP = loadExt(22); } catch (e) { if (++pvT < 3) pendV = 1; } }  // S5 pendV stager: parse the PUB satellite on the calm tick AFTER the skipP mount (pendSlots choreography; on the no-skip path this IS the proven ext12 first-tick-drain moment). Capped (S2 doctrine); until warm, pub() publishes the crown via FBW — never gate onEvent/onLap on pendV
   if (asc !== undefined) curAsc = asc;

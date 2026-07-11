@@ -64,20 +64,11 @@
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <!-- BREAK tally RESTORED (old break screen, feat/restore-break-screen): session sends/routes +
-           best-send grade. packedBreak decode in LOCKSTEP with main.js setOutputs (state-2 pack) and
-           tools/tests/output-pack-equiv.js: sends = floor(x/64)%64, routes = x%64, best = dG(floor(x/4096)-1).
-           Trophy F200 labels the best send; dG is defined in this template's onLoad. Only sc2 subscribes
-           packedBreak, so it rides the BREAK-visible mount only. -->
+      <!-- Session tally (best send + sends/routes) MOVED OFF the BREAK screen -> STATS overlay, reached
+           with TOP-long (eid 5). packedBreak is still packed by ext22 and stays in manifest out[] for
+           that screen; nothing on the always-mounted cluster subscribes it any more, so the three
+           packedBreak <eval> bindings leave the hot template. The route row moves up into the freed slot. -->
       <div class="p-hc sp-vertical-center" style="top:calc(64% - 20.5px);">
-        <span class="f-ico" style="padding-right:6px">&#xF200;</span>
-        <span class="sp-b-s" style="padding-right:14px"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => dG(Math.floor(x/4096)-1)" default="--" /></span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(Math.floor(x/64)%64)" default="0" /></span>
-        <span class="sp-b-s f-num">/</span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(x%64)" default="0" /></span>
-      </div>
-
-      <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
         <span class="sp-b-s" style="padding-right:3px">H</span>
         <span class="sp-b-s f-num" style="padding-right:14px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
         <span class="sp-b-s" style="padding-right:3px">AVG</span>
