@@ -59,7 +59,12 @@ var TPL = [
   'if(F||pv[3]!==v){o[@packedGL@]=v;pv[3]=v}',
   'if(F||pv[4]!==m){o[@modeSub@]=m;pv[4]=m}',
   'var pA=-1;',
-  'if(st===0&&S[7]>0){i=S[7]-1;pA=Q[i+15]===P[i]?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):0}',
+  // packedAct max = 16,700*1,000+999 = 16,700,999 < 2^24 (16,777,216): exact in float32.
+  'if(st===0&&S[7]>0){i=S[7]-1;pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):0}',
+  // #188: PROJ-SETUP publishes the stats of the slot BEING EDITED (S[5]=pStep, NOT S[7]=climbMode).
+  // An OFF / unconfigured slot must stay at -1 (=> ready.html renders blank), NOT 0 — 0 decodes to a
+  // FAKE "0T 0S" on a slot that has no stats at all. -1 is safe: the pill codes are -2..-5.
+  'else if(st===6){i=S[5];pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):-1}',
   'else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;',
   'if(F||pv[5]!==pA){o[@packedAct@]=pA;pv[5]=pA}',
   'var pB=0;',

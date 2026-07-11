@@ -19,9 +19,31 @@
   <div id="climblogger">
 
 
-    <!-- vState → aV (the applyVis pattern): <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. Both trackers (vState→aV, hdrRes→hC) share ONE 0-dim holder div. -->
+    <!-- vState → aV (the applyVis pattern): <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. The two trackers plus the HR-zone color binding share ONE 0-dim holder div. -->
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
-    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /></div>
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval hidden input="/Activity/Zones/HeartRate/CurrentZone" outputFormat="HeartRateZone" onValueChanged="setStyle('#hr-zone-ring','custom-in-bounds-color',targetData==1?'#36E4FF':targetData==2?'#6EE76D':targetData==3?'#FFDD33':targetData==4?'#FF9F33':targetData==5?'#FF5640':'#666');control('#hr-zone-ring','REFRESH');" /></div>
+
+    <!-- Shared HR-zone ring (#189). CurrentZone is 0/invalid or 1..5, so ubound=5 maps the active zone
+         to 0..100% of one full-face arc. Authored ONCE outside sc1/sc2 (active.html only ever renders
+         CLIMB or BREAK) so it cannot double-render or jump — same rule as the HR and height rows.
+
+         SIZED IN %, NOT px — DO NOT "FIX" THIS BACK TO PIXELS. The toolchain does NOT scale px per
+         display: `width:452px` is emitted as <pixel>452</pixel> BYTE-IDENTICALLY into the q, s, m, n, l
+         and o builds (verified in the built active.xml), so it is right on exactly one screen and wrong
+         on the other five. Percentages compile to <proportion>, which the renderer adapts — which is why
+         the entire rest of this template is proportional.
+
+         The ARC LEVEL is data-bound (input + ubound) and always works. The COLOUR is applied at runtime
+         by the hidden HeartRateZone eval above (setStyle + control REFRESH). That colour path is NOT yet
+         confirmed on-watch: setStyle is documented for CSS properties, but `custom-in-bounds-color` is a
+         custom range property, and this codebase has been bitten before by markup the validator accepts
+         and the watch silently ignores (see the #hdr background setStyle no-op below, and the dead
+         onLongPressStart-on-div). Worst case it degrades to a grey ring that still shows the zone LEVEL.
+         If it stays grey on-watch, switch to the PROVEN pattern used by the #hg/#ho header bands:
+         pre-build one ring per zone colour and toggle `visibility` — the one setStyle known to work. -->
+    <range id="hr-zone-ring" ubound="5" input="/Activity/Zones/HeartRate/CurrentZone"
+      arcStart="0" arcStop="1"
+      style="custom-in-bounds-color:#666;custom-stroke-width:12px;stroke-linecap:round;width:98%;height:98%;top:1%;left:calc(50% - 50%e);"/>
 
     <!-- READY lives in its own ready.html now (idle-split): this template mounts ONLY at
          READY->CLIMB and carries just the CLIMB/BREAK pair (zero per-lap swaps via aV). -->

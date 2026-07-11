@@ -574,6 +574,25 @@ console.log('strict fuzz: ' + RUNS + ' randomized multi-session runs deep-equal 
   console.log('fix-case: virgin-system companion switch starts clean under the new flow OK');
 }
 
+// fix-case 3 (#187): project stats belong to the slot. A stale historical grade tag must not blank
+// cloud stats; at end-save a configured slot adopts its final grade without losing stats, while an
+// OFF slot is the one operation that frees attempts/sends/bestTime.
+{
+  const P = [7, 8, 0, 0, 0, 2, 3, 0, 0, 0, 45, 50, 0, 0, 0, 4, 5, -1, -1, -1];
+  const pgi = [9, -1, -1, -1, -1];
+  const ls = mkLS();
+  const save = bind(NEW.ext11, ls);
+  save([0, 0, 0, 0, 0, 0, 0], pgi, P, 1, 0, 0);
+  assert.strictEqual(ls.getObject('stats').activeTries, 7, 'stale grade tag must not gate cloud tries');
+  assert.strictEqual(ls.getObject('stats').activeSends, 2, 'stale grade tag must not gate cloud sends');
+  assert.strictEqual(ls.getObject('stats').activeBest, 45, 'stale grade tag must not gate cloud best');
+  save([0, 0, 0, 0, 0, 0, 0], pgi, P, 1, 0, 2);
+  const stored = ls.getObject('pS0');
+  assert.deepStrictEqual([stored[0], stored[5], stored[10], stored[15]], [7, 2, 45, 9], 're-grade keeps stats and adopts final grade');
+  assert.deepStrictEqual([stored[1], stored[6], stored[11], stored[16]], [0, 0, 0, -1], 'OFF wipes and frees the slot');
+  console.log('fix-case: #187 slot-owned re-grade/adopt and OFF wipe OK');
+}
+
 // ---------------------------------------------------------------- growth-freeze (Stufe 1)
 // The 08b bootloop forensics: the end-window killer is the whole-store-file buffer, and GROW-
 // rewrites are the deterministic storm class. A virgin system's first end used to grow s<g>
