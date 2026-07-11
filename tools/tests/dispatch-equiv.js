@@ -29,7 +29,7 @@ var os = require('os');
 
 var ROOT = path.join(__dirname, '..', '..');
 var SENT = -424242;  // "this output slot has not been written yet" — never 0, which is a legal value
-var ORACLE_REF = process.env.ORACLE_REF || 'b6f11d8';  // bumped per stage: each stage diffs against its predecessor's commit (S5 = review-fixed ext22-PUB)
+var ORACLE_REF = process.env.ORACLE_REF || '0a98ed2';  // bumped per stage: each stage diffs against its predecessor's commit (0a98ed2 = BREAK-screen diet: tally off sc2, quickfix cut). The only intended divergence from b6f11d8 was FLT E (the quickfix scenario); eid 5 in BREAK is now inert — see edit-satellite-equiv scenario 2.
 
 function findBuild() {
   var g = cp.execSync("ls -d /home/skyfi/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1").toString().trim();
