@@ -135,9 +135,14 @@ console.log('  ' + NAMES.map(function (n) { return n + '->o[' + IDX[n] + ']'; })
 // ---- B) value oracle (fuzz) --------------------------------------------------------
 console.log('[B] value oracle vs the S4 resident semantics');
 var seed = 12345;
-function rnd(n) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; }
+// Math.imul, NOT a float multiply: seed*1103515245 loses the low bits to float64 rounding, and the
+// resulting LCG correlates hard with the modulus (the first cut of this harness generated 8954/9000
+// EMPTY route arrays — the whole route-dependent half of the satellite went untested). The high bits
+// are the good ones, so shift before the modulo. Coverage is printed below and asserted.
+function rnd(n) { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return (seed >>> 15) % n; }
 var STATES = [0, 1, 2, 4, 5, 6];
 var cases = 0, mism = 0;
+var cov = { states: {}, systems: {}, emptyR: 0, nonemptyR: 0, staleCursor: 0, offSlot: 0, cmOn: 0, delMark: 0, bestNone: 0 };
 for (var it = 0; it < 9000; it++) {
   var gs = rnd(10), L = GRADE_LENS[gs];
   var nR = rnd(5) === 0 ? 0 : rnd(8);
@@ -163,6 +168,14 @@ for (var it = 0; it < 9000; it++) {
   ext22(io, bag(s), rA, rB, pv);
   var got = named(io), exp = refFull(s);
   cases++;
+  cov.states[s.state] = (cov.states[s.state] || 0) + 1;
+  cov.systems[gs] = (cov.systems[gs] || 0) + 1;
+  if (nR) cov.nonemptyR++; else cov.emptyR++;
+  if (nR && s.editIdx >= nR) cov.staleCursor++;
+  if (pgi.indexOf(-1) >= 0) cov.offSlot++;
+  if (s.climbMode > 0) cov.cmOn++;
+  if (s.editDelMark) cov.delMark++;
+  if (s.bestSendIdx < 0) cov.bestNone++;
   for (var ni = 0; ni < NAMES.length; ni++) {
     var nm = NAMES[ni];
     if (got[nm] !== exp[nm]) {
@@ -173,6 +186,15 @@ for (var it = 0; it < 9000; it++) {
   chk(pv[0] === 0, 'pv[0] not cleared after a full publish');
 }
 console.log('  ' + cases + ' fuzzed states x ' + NAMES.length + ' outputs, mismatches=' + mism);
+console.log('  coverage: states ' + JSON.stringify(cov.states) + ' systems ' + JSON.stringify(cov.systems));
+console.log('  routes empty/nonempty ' + cov.emptyR + '/' + cov.nonemptyR + ', stale EDIT cursors ' + cov.staleCursor +
+  ', OFF slots ' + cov.offSlot + ', project mode ' + cov.cmOn + ', DEL armed ' + cov.delMark + ', bestSend none ' + cov.bestNone);
+// the fuzz must not silently collapse onto one corner (the first cut generated 8954/9000 empty route arrays)
+STATES.forEach(function (st) { chk((cov.states[st] || 0) > 300, 'fuzz coverage: state ' + st + ' generated only ' + (cov.states[st] || 0) + 'x'); });
+for (var g9 = 0; g9 < 10; g9++) chk((cov.systems[g9] || 0) > 300, 'fuzz coverage: grade system ' + g9 + ' generated only ' + (cov.systems[g9] || 0) + 'x');
+chk(cov.nonemptyR > 3000 && cov.emptyR > 500, 'fuzz coverage: route-array split is lopsided (' + cov.emptyR + ' empty / ' + cov.nonemptyR + ' nonempty)');
+chk(cov.staleCursor > 200, 'fuzz coverage: only ' + cov.staleCursor + ' stale/out-of-range EDIT cursors over a NONEMPTY route array');
+chk(cov.offSlot > 500 && cov.cmOn > 1000 && cov.delMark > 1000 && cov.bestNone > 500, 'fuzz coverage: an edge dimension (OFF slot / project mode / DEL mark / no best send) is starved');
 
 // ---- C) change-detection -----------------------------------------------------------
 console.log('[C] publish-on-change');
@@ -339,6 +361,72 @@ chk(h.trace.filter(function (x) { return x === 'parseTHROW22'; }).length === 3, 
 h.ev(6); h.tick(); h.tick(); h.ev(6); h.tick();      // a route on the cold app
 h.end();
 chk(h.store.stats && h.store.stats.totalRoutes >= 1, 'permanently-cold session did not persist its routes');
+
+// ---- F) INVARIANT: an overlay (state 5/6) exists only while the publisher does -----------
+// The S5 review (Codex, 2026-07-11) found the hole this section now guards: the cold-ENTRY refusal
+// alone is not enough, because fP can also be lost while an overlay is ALREADY open (a call-throw,
+// or a pause). FBW then publishes the READY/project crown into the EDIT screen — and, worse, the pv
+// cache still holds ext22's correct EDIT value, so the next WARM publish finds "no change" and
+// SUPPRESSES the correction: the wrong grade sticks forever while the buttons keep editing the real
+// route. Fixes under test: (1) pub() folds state 5/6 -> 0 whenever it has no publisher, (2) a call
+// throw forces pv[0]=1 so a full republish overwrites whatever FBW wrote, (3) the pause folds too.
+console.log('[F] overlay <=> publisher invariant (the S5-review blocker)');
+function warmEdit(seedStore) {           // -> instance parked in a warm EDIT overlay with 1 route
+  var i = makeInstance(seedStore);
+  i.ui(); i.load(); i.tick(); i.tick();  // warm
+  i.ev(6); i.tick(); i.tick(); i.ev(6); i.tick();  // route 1 -> BREAK
+  i.ev(6); i.tick();                     // -> READY
+  i.ev(5); i.tick();                     // EDIT (warm entry) + pendE drain
+  return i;
+}
+var x = warmEdit(RETURN);
+chk(x.io[IDX.vState] === 5, 'F0: warm EDIT did not open');
+chk(x.io[IDX.modeSub] === 1, 'F0: EDIT header is not the route number #1 (' + x.io[IDX.modeSub] + ') — the frame is not really an EDIT frame');
+chk(x.io[IDX.packedAct] === -2, 'F0: EDIT pill is not SEND (' + x.io[IDX.packedAct] + ')');
+x.faults.call22 = 1;
+x.clear(); x.tick();                     // idle tick: the publisher CALL throws
+chk(x.io[IDX.vState] === 0, 'F1: a lost publisher did not fold the EDIT overlay back to READY (vState=' + x.io[IDX.vState] + ')');
+chk(x.io[IDX.packedGL] < 1e6, 'F1: the folded frame still carries the EDIT lock flag');
+x.clear(); x.tick();                     // stager re-parses -> warm again
+chk(x.n22() === 2, 'F2: the stager did not re-parse after the call-throw');
+// THE REGRESSION: without pv[0]=1 on the throw, the stale cache would suppress this write and the
+// store would stay on FBW's crown forever.
+chk(x.io[IDX.packedGL] !== SENT, 'F3: the warm republish after a call-throw was SUPPRESSED by the stale pv cache (the blocker)');
+var st0 = { state: 0, gradeSystem: 2, climbMode: 0, currentGrade: 5, lastGradeIdx: 5, routeNumber: 2, lastHeight: 0, sessionH: 0, curAsc: 0, startAsc: 0, projGradeIdx: [5, 11, -1, 28, 0] };
+chk(x.io[IDX.packedGL] === refCrown(st0).packedGL, 'F3: post-fold packedGL=' + x.io[IDX.packedGL] + ' expected ' + refCrown(st0).packedGL + ' (READY free-mode)');
+chk(x.io[IDX.packedAct] === -1, 'F3: the non-crown pill did not follow the fold to READY (' + x.io[IDX.packedAct] + ')');
+// presses after the fold must reach evReady (free-mode grade), NOT evEdit (route grade)
+var rA0 = null;
+x.clear(); x.ev(1);
+chk(x.io[IDX.vState] === SENT || x.io[IDX.vState] === 0, 'F4: a press after the fold re-entered an overlay');
+// a PAUSE inside EDIT folds too (the post-continue window must not route presses into a cold overlay)
+var y = warmEdit(RETURN);
+chk(y.io[IDX.vState] === 5, 'F5: warm EDIT did not open (pause case)');
+y.pause(); y.clear(); y.cont();
+chk(y.io[IDX.vState] === 0, 'F5: pause inside EDIT left the overlay open across the continue (vState=' + y.io[IDX.vState] + ')');
+chk(y.io[IDX.packedGL] !== SENT, 'F5: the continue mount published nothing (stale pre-pause store)');
+y.tick();
+chk(y.n22() === 2, 'F6: the post-continue tick did not re-parse the publisher');
+y.clear(); y.ev(5);
+chk(y.io[IDX.vState] === 5, 'F6: EDIT could not be re-entered once warm again');
+// PROJ-SETUP folds identically
+var z = makeInstance(RETURN);
+z.ui(); z.load(); z.tick(); z.tick();     // warm, READY
+z.ev(4);                                  // project mode (slot 1)
+z.ev(5);                                  // PROJ-SETUP overlay
+chk(z.io[IDX.vState] === 6, 'F7: PROJ-SETUP did not open warm');
+z.faults.call22 = 1;
+z.clear(); z.tick();
+chk(z.io[IDX.vState] === 0, 'F7: a lost publisher did not fold PROJ-SETUP back to READY');
+z.clear(); z.tick();
+chk(z.io[IDX.packedAct] !== SENT, 'F7: the warm republish after the PROJ-SETUP fold was suppressed');
+// permanently cold: overlays are unreachable, but the app never TRAPS the user in one
+var w = makeInstance(RETURN);
+w.faults.ext['22'] = 999;
+w.ui(); w.load();
+for (var tw = 0; tw < 12; tw++) w.tick();
+w.clear(); w.ev(5);
+chk(w.io[IDX.vState] === SENT, 'F8: a permanently-cold app opened an overlay');
 
 console.log(fails ? '\n' + fails + ' FAILURE(S)' : '\nALL PASS');
 process.exit(fails ? 1 : 0);

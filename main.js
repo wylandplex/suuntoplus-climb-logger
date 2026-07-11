@@ -195,13 +195,24 @@ var FBW = function(o) {
   o.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;
 };
 var pub = function(o) {
-  S[0] = state; S[1] = editIdx; S[2] = editDelMark; S[3] = gradeSystem; S[4] = lastGradeIdx;
-  S[5] = pStep; S[6] = routeNumber; S[7] = climbMode; S[8] = lastHeight; S[9] = sessionH;
-  S[10] = bestSendIdx; S[11] = lastResult; S[12] = currentGrade; S[13] = curAsc; S[14] = startAsc;
   if (fP) {
+    S[0] = state; S[1] = editIdx; S[2] = editDelMark; S[3] = gradeSystem; S[4] = lastGradeIdx;
+    S[5] = pStep; S[6] = routeNumber; S[7] = climbMode; S[8] = lastHeight; S[9] = sessionH;
+    S[10] = bestSendIdx; S[11] = lastResult; S[12] = currentGrade; S[13] = curAsc; S[14] = startAsc;
     try { fP(o, S, routesA, routesB, pv); pvT = 0; return; }
-    catch (e) { fP = null; if (++pvT < 3) pendV = 1; }
+    catch (e) {
+      fP = null;
+      pv[0] = 1;  // MANDATORY (S5-review C1): FBW is about to write the crown into the output STORE while the pv cache still holds ext22's last values. Without the force flag the next warm publish would compare against that stale cache, find "no change", and SUPPRESS the correction — the store would stay stuck on FBW's value forever.
+      if (++pvT < 3) pendV = 1;
+    }
   }
+  // INVARIANT (S5-review C1): an overlay exists only while the publisher does. FBW cannot compute
+  // the EDIT route grade / lock flag or the PROJ-SETUP slot grade — a cold overlay would show a
+  // plausible-but-WRONG grade while still accepting mutating presses (silent route/slot corruption).
+  // So a lost publisher FOLDS the overlay back to READY. Both overlays live ON the ready template,
+  // so this is a pure state change: no unload, no mount, zero allocation. Entry is refused the same
+  // way (evReady eid5) — together: state 5/6 => fP !== null, which is exactly the domain FBW covers.
+  if (state > 4) { state = 0; pushEd(); }
   FBW(o);
 };
 
@@ -257,8 +268,11 @@ var callE = function(op, i) {
 // because the overlay never swaps the template (DOM is mounted when this runs). The SEND|FAIL|DEL
 // result word moved to the packedAct output (remount-proof; #edr's setText is NOT) — ready.html
 // renders it in the adjacent span, trailing space here keeps the "EDIT i/n WORD" spacing.
+// state-aware (S5): a lost publisher folds the EDIT overlay back to READY inside pub() — every
+// pushEd after such a fold must CLEAR the line instead of re-printing "EDIT i/n" onto the READY
+// screen. That keeps the fold self-cleaning at all call sites (entry, edits, the idle-tick fold).
 var pushEd = function() {
-  setText("#edr", routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
+  setText("#edr", state !== 5 ? "" : routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
 };
 
 // EDIT overlay (state 5) — OLD controls preserved: eid1/2 grade ±1 (free routes, RESIDENT — C3),
@@ -363,11 +377,11 @@ var evReady = function(output, eid, dy) {
     if (climbMode > 0) {                                          // proj-setup overlay (old binding)
       pStep = 0;
       goState(6, output);  // same template — no swap; DOM alive, indicators render immediately
-      setText("#edr", "SLOT " + (pStep + 1) + "/5");
+      if (state === 6) setText("#edr", "SLOT " + (pStep + 1) + "/5");  // the mount publish can lose the publisher and fold us straight back to READY (pub) — don't label an overlay that isn't there
     } else {                                                      // free mode: EDIT overlay (old binding,
       editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
       goState(5, output);
-      pushEd();
+      pushEd();  // state-aware: prints "" if the mount publish folded us back
       if (!fE) pendE = 1;  // M9 gate: satellite pre-warm on the NEXT tick (outside the press context), inputs gated until parsed — no timer, gate-until-done
     }
   } else if (eid === 4) {
@@ -629,9 +643,10 @@ function onEvent(_input, output, eventId) {
 
 // U2 lifeK (S3 dispatcher split): pause/continue/end/summary bodies behind ONE module fn.
 // op 0 = pause, 1 = continue, 2 = end (finalized-guarded by the dispatcher arm), 3 = summary rows.
-var lifeK = function(op) {
+var lifeK = function(op, o) {
   if (op === 0) {
     isPaused = 1;
+    if (state > 4) state = 0;  // S5 (review C1): the pause drops fP, so the overlay must go with it — otherwise the post-continue window (mount, then up to 3 ticks until the stager re-parses) would route presses into evEdit/evProjSetup with a cold, WRONG display behind them. Same invariant as the pub() fold: state 5/6 => fP !== null
     if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }  // deLoad inlined (S3): tear down the heavy template (frees ~13KB DOM/G-table) WITHOUT touching state — currentTemplate is decoupled (getUserInterface serves it), so the swap is safe and reversible on continue
     f10 = null; fE = null; fP = null;   // free the cached ext parses (re-parse on next use after a continue; the publisher re-stages via pendV below)
     if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
@@ -643,7 +658,7 @@ var lifeK = function(op) {
     }
   } else if (op === 1) {
     isPaused = 0;
-    if (currentTemplate === "saving") { goState(state); dwell = 0; }
+    if (currentTemplate === "saving") { goState(state, o); dwell = 0; }  // S5: publish AT the continue mount (o now rides through the trampoline). The freshly mounted template must not read the pre-pause output store — which after the overlay fold above would still say vState=5. FBW covers it cold; goState set pv[0], so the first warm tick full-republishes
   } else if (op === 2) {
     finishSession();
   } else {
@@ -653,7 +668,7 @@ var lifeK = function(op) {
 };
 
 function onExercisePause(_input, _output) { lifeK(0); }
-function onExerciseContinue(_input, _output) { lifeK(1); }
+function onExerciseContinue(_input, output) { lifeK(1, output); }
 function onExerciseEnd(_input, _output) {
   if (finalized) return; finalized = 1;
   lifeK(2);

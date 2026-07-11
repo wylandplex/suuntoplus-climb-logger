@@ -28,6 +28,7 @@ var cp = require('child_process');
 var os = require('os');
 
 var ROOT = path.join(__dirname, '..', '..');
+var SENT = -424242;  // "this output slot has not been written yet" — never 0, which is a legal value
 var ORACLE_REF = process.env.ORACLE_REF || '315c60d';  // bumped per stage: each stage diffs against its predecessor's commit
 
 function findBuild() {
@@ -111,24 +112,29 @@ function makeInstance(blobDir, seed) {
 //   next tick the slot/OFF grade — the candidate is tick-consistent ALWAYS). Per slot and step,
 //   the candidate passes if ANY of:
 //     (a) lockstep:   === oracle[s]
-//     (b) heal-ahead: === oracle at the NEXT tick step (the press value the oracle only reaches
-//                     at its next full publish; never an invented value, never behind)
-//     (c) cold-frozen (non-crown only): while the candidate is COLD (fP unparsed/dropped — from
+//     (b) heal-ahead: === oracle at the NEXT tick step (the press value the oracle only reaches at
+//                     its next full publish; never an invented value, never behind). This also
+//                     covers slots the oracle has not written yet: io starts at an unwritten
+//                     SENTINEL, never 0 — a "0 means virgin" waiver would have excused a real 0.
+//     (c) cold-frozen (NON-CROWN only): while the candidate is COLD (fP unparsed/dropped — from
 //                     the trace: load/pause/end open a window, evalFile-22 closes it, callTHROW-22
 //                     re-opens it) the slot must equal the candidate's OWN previous step — the FBW
 //                     crown writer (packedGL/modeSub/routeHeight/vState) never touches non-crown.
-//     (d) virgin:     the oracle has not yet published a nonzero value for this slot — the
-//                     candidate's FBW may legally publish (correct) values earlier than the oracle.
-//     (e) burst-transient: the step sits INSIDE a multi-press burst (next step is also non-tick) —
-//                     intermediate press states never appear in the oracle stream at all; the
-//                     burst's landing state is bound strictly at the tick that ends it.
+//     (d) burst-transient (NON-CROWN only): the step sits INSIDE a multi-press burst (the next step
+//                     is another press) — intermediate press states never appear in the oracle
+//                     stream at all; the burst's landing state is bound strictly at the closing tick.
+//   The CROWN (io[2..5]) is NEVER waived by (c) or (d): at EVERY step, press or tick, warm or cold,
+//   it must be (a) or (b). That is what makes the FBW fallback provably lockstep with the oracle
+//   (S5 review, Codex 2026-07-11: the earlier model waived crown mismatches inside bursts and
+//   treated 0 as virgin — together they could have certified a frame whose vState said PROJ-SETUP
+//   while its grade came from READY).
 //   ext22 parse moments: evalFile/evalTHROW '22' are legal ONLY on 'tick' steps (the pendV stager),
 //   at most once per step; every fault-free scenario must parse ext22 at least once (stager-alive
 //   guard). ext25 keeps its S4 moment rules. Both are filtered from the trace compare afterwards.
 //   Absolute cold-window values (FBW correctness per state) are pinned by output-map-equiv.js.
 function runScenario(name, seed, steps, blobs) {
   var inst = blobs.map(function (b) { return makeInstance(b, seed); });
-  var io = inst.map(function () { return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; });
+  var io = inst.map(function () { return [0, 0, SENT, SENT, SENT, SENT, SENT, SENT, SENT, SENT]; });  // outputs start UNWRITTEN (io[0]/io[1] are the H/Asc inputs)
   var snaps = [[], []];        // per-step io.slice(2) snapshots per side
   var kinds = [];              // step kind per recorded step
   var colds = [];              // candidate cold-flag AT END of each recorded step
@@ -192,10 +198,6 @@ function runScenario(name, seed, steps, blobs) {
   var nextTick = new Array(rows.length);
   var nt = rows.length - 1;
   for (var q2 = rows.length - 1; q2 >= 0; q2--) { if (kinds[q2] === 'tick') nt = q2; nextTick[q2] = nt; }
-  var firstNZ = [Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
-  for (var q3 = 0; q3 < rows.length; q3++) for (var q4 = 0; q4 < 8; q4++) {
-    if (snaps[0][q3][q4] !== 0 && firstNZ[q4] === Infinity) firstNZ[q4] = q3;
-  }
   for (var r2 = 0; r2 < rows.length; r2++) {
     var row = rows[r2], oa = snaps[0][r2], ob = snaps[1][r2];
     var fail = function (msg) {
@@ -212,9 +214,11 @@ function runScenario(name, seed, steps, blobs) {
       var oc = oa[n2], cb = ob[n2], ont = snaps[0][nextTick[r2]][n2];
       if (cb === oc) continue;                                                   // (a) lockstep
       if (cb === ont) continue;                                                  // (b) heal-ahead to the oracle's next tick
-      if (colds[r2] && n2 >= 4 && cb === (r2 > 0 ? snaps[1][r2 - 1][n2] : 0)) continue;  // (c) cold non-crown frozen
-      if (r2 < firstNZ[n2]) continue;                                            // (d) oracle-virgin slot
-      if (inBurst) continue;                                                     // (e) burst transient (bound at the closing tick)
+      if (oc === SENT) continue;                                                 // (e) the oracle has NEVER written this slot yet (it publishes targeted values at presses and only goes full at its first tick) — there is nothing to compare against. The candidate's crown in that window is pinned ABSOLUTELY by output-map-equiv [D] instead.
+      if (n2 >= 4) {                                                             // waivers exist for the NON-CROWN only
+        if (colds[r2] && cb === (r2 > 0 ? snaps[1][r2 - 1][n2] : SENT)) continue;  // (c) cold-frozen
+        if (inBurst) continue;                                                  // (d) burst transient (bound at the closing tick)
+      }
       return fail((n2 < 4 ? 'CROWN' : 'non-crown') + ' slot io[' + (n2 + 2) + '] = ' + cb + ' matches neither oracle[s]=' + oc + ' nor next-tick=' + ont + (colds[r2] ? ' (cold)' : ''));
     }
   }
@@ -380,7 +384,7 @@ var SCENARIOS = [
     T(1), T(1), T(1),                   // slTries 1,2,3 -> wipe + climbMode=0
     ['fault', 'ls', 0],
     T(1),
-    ['ev', 4],                          // toggleMode with zero configured slots
+    ['ev', 4], T(1),                    // toggleMode with zero configured slots -> the OFF sentinel. The S4 oracle's pushMode published the FREE grade at the press and only flipped to the sentinel at its next tick (its own press/tick inconsistency); the S5 candidate is tick-consistent AT the press. The T(1) binds both at the settled value — the CROWN gets no burst waiver (S5 review), so this delta must be resolved, not excused.
     ['ev', 6],                          // startClimb refused (unconfigured slot)
     ['ev', 4],                          // back to free
     ['ev', 6], T(2), ['ev', 6], T(1),
