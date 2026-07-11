@@ -5,6 +5,10 @@ if(F||pv[1]!==st){o[5]=st;pv[1]=st}
 var lg=S[4]>=0?gs*100+S[4]:-1;
 var rh=st===1?Math.max(0,Math.round(S[13]-S[14])):st===2?S[8]:S[9];
 if(F||pv[2]!==rh){o[4]=rh;pv[2]=rh}
+var cl=st===1?1:0;
+if(F||pv[9]!==cl){o[10]=cl;pv[9]=cl}
+var gl=st===1?S[12]:S[4]>=0?S[4]:S[12];
+if(F||pv[10]!==gl){o[11]=gl;pv[10]=gl}
 if(st===5){g=S[1]<rA.length?gs*100+Math.floor(rA[S[1]]/1e6):gs*100+50;m=S[1]+1;lg=-1}
 else if(st===6){g=P[S[5]]>=0?gs*100+P[S[5]]:gs*100+50;m=-(S[5]+1);lg=-1}
 else if(st===4){g=gs*100+S[17][gs];m=gs;lg=-1}

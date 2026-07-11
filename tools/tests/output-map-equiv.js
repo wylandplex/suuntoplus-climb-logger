@@ -78,6 +78,11 @@ function refFull(s) {
   }
   o.packedGL = lockF * 1e6 + gradeV * 952 + (lastGradeV + 1);
   o.modeSub = ms;
+  // #191 activity graphs. climbing = the on-route binary. gradeLog HOLDS the last route's raw grade
+  // index while off-route (a step graph, not a sawtooth — `climbing` already carries the on/off signal);
+  // before the first route there is no lastGradeIdx, so the selected grade stands in.
+  o.climbing = s.state === 1 ? 1 : 0;
+  o.gradeLog = s.state === 1 ? s.currentGrade : (s.lastGradeIdx >= 0 ? s.lastGradeIdx : s.currentGrade);
   var pAct = -1;
   if (s.state === 0 && s.climbMode > 0) {
     var i = s.climbMode - 1;
@@ -121,7 +126,11 @@ function bag(s) {
     s.climbMode, s.lastHeight, s.sessionH, s.bestSendIdx, s.lastResult, s.currentGrade, s.curAsc,
     s.startAsc, s.projGradeIdx, s.projSlot, DEFAULT_IDX];
 }
-function freshIO() { var a = []; for (var i = 0; i < 10; i++) a.push(SENT); return a; }
+// Size the io vector FROM THE MANIFEST (in[].length + out[].length), never a hardcoded count.
+// It used to be a literal 10, which silently broke the moment #191 added climbing (slot 10) and
+// gradeLog (slot 11): those indices fell off the end, so ioC[10] read `undefined` instead of the
+// SENT sentinel and every "was this slot written?" check reported a phantom write.
+function freshIO() { var a = []; for (var i = 0; i < OFF + NAMES.length; i++) a.push(SENT); return a; }
 function named(io) { var o = {}; NAMES.forEach(function (n) { o[n] = io[IDX[n]]; }); return o; }
 
 var ext22 = vm.runInNewContext('(' + fs.readFileSync(path.join(BLOB, 'ext22.js'), 'utf8') + ')', { Math: Math });

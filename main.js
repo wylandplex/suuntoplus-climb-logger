@@ -70,7 +70,7 @@ var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (
 var sysDirty = 0;  // grade system changed (persist even on a routeless session)
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
-var ROUTE_LIMIT = 35;  // in-session route cap → at the cap, START shows the LIMIT screen (state 3); save+restart resets per-session heap/subscriptions/WB-pool occupancy (a periodic reset valve). packedBreak counts saturate at 63 (exact ≤63 routes, fine ≤35).
+var ROUTE_LIMIT = 35;  // The cap gates on live routesA.length, and foldRoutes() empties routesA at every pause, so the live tail cannot exceed 35 and needs no eviction. Raising this above 50 or removing the pause fold requires re-deriving that invariant. packedBreak counts saturate at 63.
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
@@ -345,7 +345,6 @@ var commitDirty = function() {
       routesA.push(packA(lastGradeIdx, frSend, 0, lastHeight));
       routesB.push(Math.min(86399, Math.max(0, Math.round(lastDuration))) * 1000 + (lastHrAvg > 0 ? lastHrAvg : 0));  // packB inlined (S3)
     }
-    if (routesA.length > 50) { routesA.splice(0, routesA.length - 50); routesB.splice(0, routesB.length - 50); }
     sessionH += lastHeight || 0;
     hrSum = hrCnt = rSec = 0;
     // packedBreak (brkSends/brkRoutes fields) + actT/actS/actB updated by setOutputs (called at end of evaluate).
