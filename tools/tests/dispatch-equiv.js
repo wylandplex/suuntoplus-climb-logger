@@ -28,7 +28,7 @@ var cp = require('child_process');
 var os = require('os');
 
 var ROOT = path.join(__dirname, '..', '..');
-var ORACLE_REF = process.env.ORACLE_REF || '55729f9';
+var ORACLE_REF = process.env.ORACLE_REF || 'e142112';  // bumped per stage: each stage diffs against its predecessor's commit
 
 function findBuild() {
   var g = cp.execSync("ls -d /home/skyfi/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1").toString().trim();
