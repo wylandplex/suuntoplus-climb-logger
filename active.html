@@ -8,7 +8,9 @@
             S=x;
             setStyle('#sc1','visibility',x===1?'VISIBLE':'HIDDEN');
             setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
+            control('#zring','REFRESH');
           }
+          function bx(ctx,x,y,w,h){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w,y+h);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill()}
           function hC(x){if(x===res)return;res=x;control('#zring','REFRESH')}
           var zn=0,mHR=190,res=0;
           function zCalc(h){
@@ -16,8 +18,8 @@
             zn=b<=0?0:b>=Math.round(mHR*0.87)?5:b>=Math.round(mHR*0.82)?4:b>=Math.round(mHR*0.77)?3:b>=Math.round(mHR*0.72)?2:1;
           }
           function zRing(ctx){
-            var cx=ctx.width/2,cy=ctx.width/2,i,a0,a1,on;
-            var br=cx-10,dy=0.16*ctx.width-cy;
+            var W=ctx.width,cx=W/2,cy=W/2,i,a0,a1,on;
+            var br=cx-10,dy=0.16*W-cy;
             if(br>Math.abs(dy)){
               var e=Math.asin(dy/br);
               ctx.beginPath();
@@ -26,6 +28,11 @@
               ctx.fillStyle=res===1?'#266735':res===2?'#85561C':'#1F1F1F';
               ctx.fill();
             }
+            ctx.fillStyle='#262626';
+            if(S===1){bx(ctx,0.72*W,0.18*W,0.15*W,0.12*W);bx(ctx,0.72*W,0.70*W,0.15*W,0.12*W)}
+            else if(S===2){bx(ctx,0.79*W,0.44*W,0.10*W,0.12*W);bx(ctx,0.72*W,0.70*W,0.15*W,0.12*W)}
+            ctx.fillStyle='#1F1F1F';
+            bx(ctx,0.27*W,0.87*W,0.46*W,0.09*W);
             if(typeof buildGenericGauge==='function'){buildGenericGauge(ctx,zn,0,4,1,5);return}
             var sA=3*Math.PI/4,sg=(9*Math.PI/4-sA)/5,g=0.06;
             var zc=['#36E4FF','#6EE76D','#FFDD33','#FF9F33','#FF2A55'];
@@ -95,14 +102,10 @@
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <div style="top:18%;left:72%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF110;</div>
-      </div>
+      <div class="f-ico" style="position:absolute;top:calc(24% - 18.5px);left:calc(72% + 6px);color:#fff;">&#xF110;</div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div style="top:70%;left:72%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF200;</div>
-      </div>
+      <div class="f-ico" style="position:absolute;top:calc(76% - 18.5px);left:calc(72% + 6px);color:#fff;">&#xF200;</div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
       <!-- (The H row used to live in here at 73%, duplicated in sc2. It is now ONE shared row at 80%
@@ -129,14 +132,10 @@
         <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
 
-      <div style="top:44%;left:79%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
-      </div>
+      <div class="f-ico cm-bgc" style="position:absolute;top:calc(50% - 18.5px);left:calc(79% + 6px);">&#xE338;</div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div style="top:70%;left:72%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
-      </div>
+      <div class="f-ico cm-bgc" style="position:absolute;top:calc(76% - 18.5px);left:calc(72% + 6px);">&#xE373;</div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
     </div>
 
@@ -182,7 +181,6 @@
     <!-- Bottom time-bar: a cheap flat-fill backing panel (replaces the removed clip-path diamond, a costly
          per-pixel mask). The 2px top hairline (and BREAK's summary hairline) were dropped in the trim-audit
          — plain rgba rects are cheap, but the accent lines still cost box + measure passes on this mount. -->
-    <div class="p-hc" style="top:87%;width:46%;height:9%;background:rgba(255,255,255,0.12)"></div>
     <!-- left:calc(50% - 50%e) self-centers the row by its own width (exact, panel-independent); top 91.5% =
          the panel's vertical center (87%+9%/2) so the text sits centered in the bar, not riding its top edge. -->
     <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
