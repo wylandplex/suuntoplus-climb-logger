@@ -510,7 +510,7 @@ var evProjSetup = function(output, eid, dy) {
 
 function onLoad(_input, output) {
   finalized = 0;  // new session → re-arm onExerciseEnd
-  lastSummaryCache = null; acc = null; f3 = null;  // reset the session summary + the pause-fold aggregate + the name slice for the new session
+  lastSummaryCache = null; acc = null; f3 = null; sumStale = 0;  // reset the session summary + the pause-fold aggregate + the name slice for the new session
   pubC = {}; pubF = 1;  // re-arm publish-on-change: empty cache + force a full publish on the first setOutputs of the session
   state = 4; currentTemplate = "setup";
   // HYBRID drain at onLoad: unlike the falsified eaae480 experiment this is NOT an evalFile parse
@@ -564,22 +564,30 @@ function evaluate(input, output) {
 // hrSum, hrCnt, peakEnc, peakCount]; reset each session in onLoad. Folding is idempotent per route
 // (a folded batch clears the arrays), so pause->continue->climb->end never double-counts.
 var acc = null;
-var buildSummary = function() {
-  if (!acc || acc[1] === 0) return;
+var sumStale = 0;  // set when foldRoutes folds >=1 route; cleared on a successful recap build — the END rebuilds only when a fold happened since the last build (common flow: the pause already built it -> ZERO extra end-window parse)
+// S4: the recap ROW BUILDER left main.js -> ext25 (row semantics verbatim: sr > highest-send > Avg HR
+// > Height > Climb Time, caller caps to 4 — the watch drops the whole summary above ~4 rows). ONE
+// transient parse per build moment (parse -> call -> drop), by-ref fb, primitive return (anti-ext20).
+// nm is read by the CALLER while the f3 slice cache is warm (the end nulls f3 before parsing).
+// Fail-soft: at pause a fail keeps the stale rows (the end retries with its own budget); at the END
+// it falls back to the sr tally from the resident acc — the recap never goes blank, never storms.
+var sumUp = function(nm, m) {
+  if (m === 2) {  // S2 read-only end: NOT-SAVED banner + the tally from the resident acc — deliberately NO ext25 parse on a heap that just refused 3 LS reads
+    try {
+      var ns = [{ id: 'ns', name: 'NOT SAVED', format: 'Count_Fourdigits', value: 0 }];
+      if (acc && acc[1]) ns.push({ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] });
+      lastSummaryCache = ns;
+    } catch (e) {}
+    return;
+  }
+  if (!sumStale || !acc || !acc[1]) return;
   try {
-    var spNm = acc[6] >= 0 && f3 ? f3(acc[6] % 100) : "";  // f3 warmed at commit (M8); a missing slice (parse threw on a corpse heap) just drops the Highest-Send row — cosmetic (C11)
-    // The watch drops the WHOLE post-exercise summary above ~4 rows (reference.html: "one might face
-    // the limit at around 4 or 5 summary outputs") — a 5th row (Avg HR appears only when HR was worn,
-    // which is why a LONG ride with real HR showed nothing while a short no-HR session did). Cap to 4,
-    // priority sr > highest-send > Avg HR > Height > Climb Time (Climb Time drops first — it overlaps
-    // the watch's native total duration).
-    var fb = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }];
-    if (spNm) fb.push({ id: 'b', name: 'Highest Send', format: 'Count_Fourdigits', value: acc[7], postfix: '* ' + spNm });
-    if (acc[5]) fb.push({ id: 'a', name: 'Avg HR', format: 'HeartRate_Fourdigits', value: acc[4] / acc[5] });
-    if (acc[2]) fb.push({ id: 'h', name: 'Height', format: 'Count_Fourdigits', value: Math.round(acc[2]), postfix: 'm' });
-    if (acc[3]) fb.push({ id: 'd', name: 'Climb Time', format: 'Duration_FourdigitsFixed', value: acc[3] });
-    lastSummaryCache = fb.slice(0, 4);
-  } catch (e) {}
+    var fb = [];
+    loadExt(25)(fb, acc, nm);
+    lastSummaryCache = fb.slice(0, 4); sumStale = 0;
+  } catch (e) {
+    if (m) try { lastSummaryCache = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }]; } catch (e2) {}
+  }
 };
 var foldRoutes = function() {
   if (!acc) acc = [0, 0, 0, 0, 0, 0, -1, 0];
@@ -592,8 +600,7 @@ var foldRoutes = function() {
     if (dd > 0) acc[3] += dd;
     if (rr > 0) { acc[4] += rr; acc[5]++; }
   }
-  if (nR) { routesA = []; routesB = []; }  // FREE the packed route arrays now that they are folded
-  buildSummary();
+  if (nR) { routesA = []; routesB = []; sumStale = 1; }  // FREE the packed route arrays now that they are folded; the recap is rebuilt at the next proven moment (pause post-deLoad / end pre-ext11)
 };
 
 // PROVEN save choreography, transplanted 1:1 after the eP/WAL falsification (both crash logs
@@ -619,14 +626,13 @@ var finishSession = function() {
   if (!stOk) {  // S2 READ-ONLY session: the bootstrap drain never succeeded, so an ext11 RMW would
     // grow-rewrite a store we never read (clobber + landmine class). Skip the save entirely —
     // psDirty/slotsDirty/sysDirty never reach ext11 — and say so on the summary instead of losing data silently.
-    try {  // this path only exists on a proven-hostile heap: the row allocation itself may throw — the read-only return must survive it
-      var ns = [{ id: 'ns', name: 'NOT SAVED', format: 'Count_Fourdigits', value: 0 }];
-      lastSummaryCache = lastSummaryCache ? ns.concat(lastSummaryCache).slice(0, 4) : ns;
-    } catch (e) {}
+    sumUp(0, 2);  // NOT-SAVED banner + sr tally (mode 2, alloc-guarded inside) — keeps finishSession lean (top-3!)
     return;
   }
   try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) {}  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW
-  f10 = null; fE = null; f3 = null;  // buildSummary already ran in foldRoutes above (name read) — release all cached parses before the ext11 RMW / disable
+  var nm = sumStale && acc && acc[1] && acc[6] >= 0 && f3 ? f3(acc[6] % 100) : "";  // the Highest-Send name is read while the slice is warm — the caches null NEXT
+  f10 = null; fE = null; f3 = null;  // release all cached parses before the transient recap parse + the ext11 RMW
+  sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
   try {
     loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, 0, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));  // ext11 reads a[0]=sends, a[1]=routes, a[6]=height from the folded accumulator
   } catch (e) {}
@@ -669,6 +675,7 @@ var lifeK = function(op) {
     if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }  // deLoad inlined (S3): tear down the heavy template (frees ~13KB DOM/G-table) WITHOUT touching state — currentTemplate is decoupled (getUserInterface serves it), so the swap is safe and reversible on continue
     f10 = null; fE = null;   // free the cached ext parses (re-parse on next use after a continue)
     if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
+    sumUp(acc && acc[6] >= 0 && f3 ? f3(acc[6] % 100) : "", 0);  // S4 pause recap (R1 CONFIRMED 7/7): one transient ext25 parse post-deLoad; a fail keeps the stale rows
   } else if (op === 1) {
     isPaused = 0;
     if (currentTemplate === "saving") { goState(state); dwell = 0; }

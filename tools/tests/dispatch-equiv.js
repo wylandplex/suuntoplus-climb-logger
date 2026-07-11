@@ -123,8 +123,12 @@ function runScenario(name, seed, steps, blobs) {
       } catch (e) { r = ['UNCAUGHT', String(e.message)]; }  // an uncaught lifecycle throw must at least be IDENTICAL on both sides
       rets.push(r);
     }
-    var a = JSON.stringify({ io: io[0].slice(2), ret: rets[0], tr: inst[0].trace.slice(marks[0]) });
-    var b = JSON.stringify({ io: io[1].slice(2), ret: rets[1], tr: inst[1].trace.slice(marks[1]) });
+    // S4 allowance: ext25 recap parses are legal trace INSERTS (the S3 oracle builds rows resident,
+    // S4+ builds them via a transient ext25 parse at the same moments) — filtered from BOTH sides;
+    // the row VALUES at 'sum' steps and everything else stay hard-compared.
+    var f25 = function (e) { return !((e[0] === 'evalFile' || e[0] === 'evalTHROW') && e[1] === '25'); };
+    var a = JSON.stringify({ io: io[0].slice(2), ret: rets[0], tr: inst[0].trace.slice(marks[0]).filter(f25) });
+    var b = JSON.stringify({ io: io[1].slice(2), ret: rets[1], tr: inst[1].trace.slice(marks[1]).filter(f25) });
     if (a !== b) {
       console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']');
       console.log('    oracle:    ' + a);
