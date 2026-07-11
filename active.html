@@ -10,6 +10,25 @@
             setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
           }
           function hC(x){setStyle('#hg','visibility',x===1?'VISIBLE':'HIDDEN');setStyle('#ho','visibility',x===2?'VISIBLE':'HIDDEN')}
+          var zn=0,mHR=190;
+          function zCalc(h){
+            var b=h>10?Math.round(h):Math.round((h||0)*60);
+            zn=b<=0?0:b>=Math.round(mHR*0.87)?5:b>=Math.round(mHR*0.82)?4:b>=Math.round(mHR*0.77)?3:b>=Math.round(mHR*0.72)?2:1;
+          }
+          function zRing(ctx){
+            if(typeof buildGenericGauge==='function'){buildGenericGauge(ctx,zn,0,4,1,5);return}
+            var cx=ctx.width/2,cy=ctx.width/2,sA=3*Math.PI/4,sg=(9*Math.PI/4-sA)/5,g=0.06,i,a0,a1,on;
+            var zc=['#36E4FF','#6EE76D','#FFDD33','#FF9F33','#FF2A55'];
+            ctx.lineCap='butt';
+            for(i=0;i<5;i++){
+              a0=sA+i*sg+g/2;a1=sA+(i+1)*sg-g/2;on=(zn===i+1);
+              ctx.lineWidth=on?8:4;
+              ctx.strokeStyle=on?zc[i]:'#666666';
+              ctx.beginPath();
+              ctx.arc(cx,cy,(ctx.width-ctx.lineWidth)/2-2,a0,a1,false);
+              ctx.stroke();
+            }
+          }
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
@@ -21,29 +40,36 @@
 
     <!-- vState → aV (the applyVis pattern): <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. The two trackers plus the HR-zone color binding share ONE 0-dim holder div. -->
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
-    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval hidden input="/Activity/Zones/HeartRate/CurrentZone" outputFormat="HeartRateZone" onValueChanged="setStyle('#hr-zone-ring','custom-in-bounds-color',targetData==1?'#36E4FF':targetData==2?'#6EE76D':targetData==3?'#FFDD33':targetData==4?'#FF9F33':targetData==5?'#FF5640':'#666');control('#hr-zone-ring','REFRESH');" /></div>
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval hidden input="/Settings/User/MaxHR" outputFormat="script x => x" default="190" onValueChanged="mHR=Number(targetData)||190;" /></div>
 
-    <!-- Shared HR-zone ring (#189). CurrentZone is 0/invalid or 1..5, so ubound=5 maps the active zone
-         to 0..100% of one full-face arc. Authored ONCE outside sc1/sc2 (active.html only ever renders
-         CLIMB or BREAK) so it cannot double-render or jump — same rule as the HR and height rows.
+    <!-- HR-ZONE RING (#189) — the OFFICIAL 5-segment corona, copied from Suunto's own shipping app
+         (github.com/SuuntoSpace/indoor-climbing, t.html) and the SDK's own html/{s,m}/zone-g.html.
+         Authored ONCE outside sc1/sc2 (this template only ever renders CLIMB or BREAK), so it cannot
+         double-render or jump — same rule as the HR row, the height row and the header.
+         FIRST in the body on purpose: later siblings paint OVER it, so the ring stays on the edge and
+         never covers the dashboard.
 
-         SIZED IN %, NOT px — DO NOT "FIX" THIS BACK TO PIXELS. The toolchain does NOT scale px per
-         display: `width:452px` is emitted as <pixel>452</pixel> BYTE-IDENTICALLY into the q, s, m, n, l
-         and o builds (verified in the built active.xml), so it is right on exactly one screen and wrong
-         on the other five. Percentages compile to <proportion>, which the renderer adapts — which is why
-         the entire rest of this template is proportional.
+         buildGenericGauge(ctx, zone, first, last, cmode, segm) is a runtime builtin — the same call the
+         SDK's stock zone-g.html makes. Suunto's own app still guards it with `typeof` and hand-draws a
+         fallback, so we do exactly that (the fallback is also what the simulator uses).
 
-         The ARC LEVEL is data-bound (input + ubound) and always works. The COLOUR is applied at runtime
-         by the hidden HeartRateZone eval above (setStyle + control REFRESH). That colour path is NOT yet
-         confirmed on-watch: setStyle is documented for CSS properties, but `custom-in-bounds-color` is a
-         custom range property, and this codebase has been bitten before by markup the validator accepts
-         and the watch silently ignores (see the #hdr background setStyle no-op below, and the dead
-         onLongPressStart-on-div). Worst case it degrades to a grey ring that still shows the zone LEVEL.
-         If it stays grey on-watch, switch to the PROVEN pattern used by the #hg/#ho header bands:
-         pre-build one ring per zone colour and toggle `visibility` — the one setStyle known to work. -->
-    <range id="hr-zone-ring" ubound="5" input="/Activity/Zones/HeartRate/CurrentZone"
-      arcStart="0" arcStop="1"
-      style="custom-in-bounds-color:#666;custom-stroke-width:12px;stroke-linecap:round;width:98%;height:98%;top:1%;left:calc(50% - 50%e);"/>
+         WHY NOT <range> + /Activity/Zones/HeartRate/CurrentZone: that was the first attempt. Two reasons
+         it was dropped. (1) Suunto pointedly does NOT read CurrentZone — they subscribe
+         /Settings/User/MaxHR and derive the zone themselves, which is a strong hint CurrentZone is not
+         dependable. (2) It needed setStyle on `custom-in-bounds-color`, a CUSTOM range property that
+         nothing in the SDK or in Suunto's app ever sets — and this codebase has been bitten before by
+         markup the validator accepts and the watch silently ignores (see the #hdr background setStyle
+         no-op below, and the dead onLongPressStart-on-div).
+
+         UNITS — THE TRAP: HR arrives in Hz (0.5-4), MaxHR in BPM. Suunto's app does
+         `Math.round(input.HeartRate * 60)`. zCalc() takes either (h>10 => already BPM) so a unit change
+         cannot silently pin the ring to zone 1. Thresholds are Suunto's: .87/.82/.77/.72 of max, and
+         MaxHR comes from the WATCH's user profile — no app setting needed.
+
+         COST: zero resident main.js. The zone is derived in the TEMPLATE, off the HR eval that this
+         template ALREADY subscribes (no second subscription) — so we get the ring cheaper than Suunto,
+         who spends main.js bytes and an output on it. -->
+    <object type="canvas" id="zring" style="position:absolute;top:0;left:0;width:100%;height:100%;" build="ctx => zRing(ctx);" />
 
     <!-- READY lives in its own ready.html now (idle-split): this template mounts ONLY at
          READY->CLIMB and carries just the CLIMB/BREAK pair (zero per-lap swaps via aV). -->
@@ -109,7 +135,7 @@
          at BREAK's 53% (its summary row @73% constrains it); CLIMB's HR shifts up from 64% to match. -->
     <div class="sp-vertical-center" style="top:calc(53% - 50%e); left:calc(50% - 50%e);">
       <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
-      <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" onValueChanged="zCalc(Number(targetData));control('#zring','REFRESH');" /></span>
     </div>
 
     <!-- Shared route-height row (same trick as the HR row above). It used to be TWO byte-identical rows,
