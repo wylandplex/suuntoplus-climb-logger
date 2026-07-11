@@ -36,7 +36,11 @@ function extStub(n) {
   if (n === 14) return function () { return null; };
   if (n === 17) return function () {};
   if (n === 19) return function () { return {}; };
-  return function () { return null; };
+  // any other ext (25 recap builder, 30-39 name slices, ...): load the REAL shipped file — a no-op
+  // stub silently blanks behavior the tests assert on (S4 lesson: summary rows went empty).
+  try {
+    return new Function('return (' + fs.readFileSync(path.join(__dirname, '..', '..', 'ext' + n + '.js'), 'utf8') + ')')();
+  } catch (e) { return function () { return null; }; }
 }
 
 function makeApp() {

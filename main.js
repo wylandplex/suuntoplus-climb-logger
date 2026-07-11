@@ -576,7 +576,7 @@ var sumUp = function(nm, m) {
     try {
       var ns = [{ id: 'ns', name: 'NOT SAVED', format: 'Count_Fourdigits', value: 0 }];
       if (acc && acc[1]) ns.push({ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] });
-      lastSummaryCache = ns;
+      lastSummaryCache = ns; sumStale = 0;  // the banner is FINAL — nothing may rebuild over it (and nothing may parse for it)
     } catch (e) {}
     return;
   }
@@ -630,7 +630,8 @@ var finishSession = function() {
     return;
   }
   try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) {}  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW
-  var nm = sumStale && acc && acc[1] && acc[6] >= 0 && f3 ? f3(acc[6] % 100) : "";  // the Highest-Send name is read while the slice is warm — the caches null NEXT
+  var nm = "";
+  try { if (sumStale && acc && acc[1] && acc[6] >= 0 && f3) nm = f3(acc[6] % 100); } catch (e) {}  // name read while the slice is warm (caches null NEXT), ALLOC-GUARDED: the slice call string-concats — a corpse-heap throw here must cost only the name row, never the ext11 save below (S4-review C1: unguarded, it aborted the whole end hook)
   f10 = null; fE = null; f3 = null;  // release all cached parses before the transient recap parse + the ext11 RMW
   sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
   try {
@@ -675,7 +676,11 @@ var lifeK = function(op) {
     if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }  // deLoad inlined (S3): tear down the heavy template (frees ~13KB DOM/G-table) WITHOUT touching state — currentTemplate is decoupled (getUserInterface serves it), so the swap is safe and reversible on continue
     f10 = null; fE = null;   // free the cached ext parses (re-parse on next use after a continue)
     if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
-    sumUp(acc && acc[6] >= 0 && f3 ? f3(acc[6] % 100) : "", 0);  // S4 pause recap (R1 CONFIRMED 7/7): one transient ext25 parse post-deLoad; a fail keeps the stale rows
+    if (!finalized) {  // post-end pauses must never rebuild the recap: the mode-2 NOT-SAVED banner is final, and no parse belongs on a possibly-hostile post-end heap (S4-review C5)
+      var pn = "";
+      try { if (sumStale && acc && acc[1] && acc[6] >= 0 && f3) pn = f3(acc[6] % 100); } catch (e) {}  // alloc-guarded like the end arm — a slice-call throw must never escape the pause hook (S4-review C2)
+      sumUp(pn, 0);  // S4 pause recap (R1 CONFIRMED 7/7): one transient ext25 parse post-deLoad; a fail keeps the stale rows
+    }
   } else if (op === 1) {
     isPaused = 0;
     if (currentTemplate === "saving") { goState(state); dwell = 0; }

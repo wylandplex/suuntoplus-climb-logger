@@ -124,9 +124,17 @@ function runScenario(name, seed, steps, blobs) {
       rets.push(r);
     }
     // S4 allowance: ext25 recap parses are legal trace INSERTS (the S3 oracle builds rows resident,
-    // S4+ builds them via a transient ext25 parse at the same moments) — filtered from BOTH sides;
-    // the row VALUES at 'sum' steps and everything else stay hard-compared.
-    var f25 = function (e) { return !((e[0] === 'evalFile' || e[0] === 'evalTHROW') && e[1] === '25'); };
+    // S4+ builds them via a transient ext25 parse) — but ONLY at the licensed moments and at most
+    // once per step. Assert that FIRST (S4-review C3/C6: a blind filter would hide a parse landing
+    // on a mount/fluid/tick moment — the zero-alloc law), then filter for the value comparison.
+    var is25 = function (e) { return (e[0] === 'evalFile' || e[0] === 'evalTHROW') && e[1] === '25'; };
+    var legal25 = st[0] === 'pause' || st[0] === 'end' || st[0] === 'sum';
+    for (var ci = 0; ci < inst.length; ci++) {
+      var n25 = inst[ci].trace.slice(marks[ci]).filter(is25).length;
+      if (n25 && !legal25) { console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']: ext25 parse on a NON-licensed moment (side ' + ci + ')'); return false; }
+      if (n25 > 1) { console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']: ext25 parsed ' + n25 + 'x in one step (side ' + ci + ')'); return false; }
+    }
+    var f25 = function (e) { return !is25(e); };
     var a = JSON.stringify({ io: io[0].slice(2), ret: rets[0], tr: inst[0].trace.slice(marks[0]).filter(f25) });
     var b = JSON.stringify({ io: io[1].slice(2), ret: rets[1], tr: inst[1].trace.slice(marks[1]).filter(f25) });
     if (a !== b) {
@@ -406,6 +414,15 @@ var SCENARIOS = [
     ['ev', 6], T(2), ['ev', 6], T(1),
     ['fault', 'ls', 999],
     ['end'], ['sum']
+  )],
+  ['FLT L ext25 fail-soft: pause keeps stale rows, end falls back to sr-synth', RETURN, seq(
+    ['ui'], ['load'], T(2),
+    ['ev', 6], T(2), ['ev', 6], T(1),   // route 1 committed (f3 warm)
+    ['fault', '25', 999],
+    ['pause'],                          // pause-arm parse fails -> no rows built (never built before)
+    ['sum'],                            // default '/0' row (fail-soft m=0: nothing clobbered)
+    ['cont'], T(1),
+    ['end'], ['sum']                    // end-arm parse fails -> sr-synth tally [sr 1/1]
   )],
 ];
 

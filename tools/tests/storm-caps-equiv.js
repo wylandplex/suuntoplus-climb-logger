@@ -49,7 +49,7 @@ function makeLS(seed) {
 
 // exts are evaluated INSIDE the vm context so ext11/ext13/ext14 see the shimmed localStorage.
 function makeSandboxVmExts(ls) {
-  var ev = { counts: {}, throwing: {} };
+  var ev = { counts: {}, throwing: {}, callThrow: {} };  // throwing = parse-time fault; callThrow = CALL-time fault on the (possibly cached) fn — the warm-slice alloc-fail class parse faults can never reach
   var sandbox = {
     localStorage: ls,
     setText: function () {}, setStyle: function () {}, unload: function () {},
@@ -61,7 +61,8 @@ function makeSandboxVmExts(ls) {
     ev.counts[n] = (ev.counts[n] || 0) + 1;
     if (ev.throwing[n]) throw new Error('JSalloc');
     if (!EXT_SRC[n]) EXT_SRC[n] = fs.readFileSync(path.join(ROOT, 'ext' + n + '.js'), 'utf8');
-    return vm.runInContext('(' + EXT_SRC[n] + ')', sandbox, { filename: 'ext' + n + '.js' });
+    var real = vm.runInContext('(' + EXT_SRC[n] + ')', sandbox, { filename: 'ext' + n + '.js' });
+    return function () { if (ev.callThrow[n]) throw new Error('call-throw-' + n); return real.apply(null, arguments); };
   };
   vm.createContext(sandbox);
   var src = MAIN +
@@ -317,6 +318,51 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
   check(d.cm === 0, 'T5d: degraded route packs cm=0 — no phantom project tag (cm=' + d.cm + ')');
   check(st.psDirty === 0, 'T5d: psDirty stays unset (slot stats untouched)');
   if (fails === f0) pass('T5d degraded project-mode commit — slot subsystem consistently skipped');
+})();
+
+// ---- T6: f3 CALL-throw at pause/end — name row lost, session save intact ------
+// (S4-review C1/C2: the nm reads are alloc-guarded — a warm-slice string-concat throw on a corpse
+// heap must cost only the Highest-Send row, NEVER the ext11 save, and must never escape a hook.)
+(function () {
+  var f0 = fails;
+  var ls = makeLS(RETURNING);
+  var sb = makeSandboxVmExts(ls);
+  sb.__api.onLoad({}, {});
+  tick(sb, 2); press(sb, 6); tick(sb, 2); press(sb, 6); tick(sb, 1);  // route 1 SEND committed, f3 (ext30) warm
+  sb.__ev.callThrow['30'] = true;      // corpse heap: every name-slice CALL alloc-fails from now on
+  var threw = 0;
+  try { sb.__api.onExercisePause({}, {}); } catch (e) { threw = 1; }
+  check(!threw, 'T6: pause hook survives the f3 call-throw');
+  try { sb.__api.onExerciseEnd({}, {}); } catch (e) { threw = 2; }
+  check(!threw, 'T6: end hook survives the f3 call-throw');
+  var st = sb.__st();
+  check(sb.__ev.counts['11'] === 1 && ls.sets > 0, 'T6: ext11 save intact (' + (sb.__ev.counts['11'] || 0) + ')');
+  check(st.sum && st.sum[0].id === 'sr' && st.sum[0].value === 1, 'T6: recap tally present');
+  check(!st.sum.some(function (r) { return r.id === 'b'; }), 'T6: only the name row dropped');
+  if (fails === f0) pass('T6 f3 call-throw — name row lost, session save intact');
+})();
+
+// ---- T7: read-only end — banner FINAL, no post-end parses ---------------------
+// (S4-review C5: mode 2 clears sumStale + the pause arm is finalized-gated — a post-end pause on
+// the stOk=0 hostile heap must neither parse ext25 nor clobber the NOT-SAVED banner.)
+(function () {
+  var f0 = fails;
+  var ls = makeLS(RETURNING);
+  ls.throwing = true;                  // bootstrap dies -> dfTries cap -> stOk=0
+  var sb = makeSandboxVmExts(ls);
+  sb.__api.onLoad({}, {});
+  tick(sb, 14);                        // cap -> guards open on defaults
+  press(sb, 6); press(sb, 6); tick(sb, 2); press(sb, 6); tick(sb, 1);  // SETUP confirm -> READY -> route 1
+  sb.__api.onExerciseEnd({}, {});      // read-only end -> [ns, sr]
+  var st = sb.__st();
+  check(hasNs(st.sum) && st.sum.length === 2 && st.sum[1].id === 'sr', 'T7: NOT-SAVED banner + tally (' + JSON.stringify(st.sum && st.sum.map(function (r) { return r.id; })) + ')');
+  var p25 = sb.__ev.counts['25'] || 0;
+  sb.__api.onExercisePause({}, {});    // post-end pause
+  sb.__api.onExerciseContinue({}, {});
+  st = sb.__st();
+  check((sb.__ev.counts['25'] || 0) === p25, 'T7: no ext25 parse after the end');
+  check(hasNs(st.sum), 'T7: banner survives the post-end pause');
+  if (fails === f0) pass('T7 read-only end — banner final, no post-end parses');
 })();
 
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURE(S)');
