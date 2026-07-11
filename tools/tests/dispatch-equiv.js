@@ -60,7 +60,7 @@ function materializeOracle() {
 function makeInstance(blobDir, seed) {
   var trace = [];
   var store = JSON.parse(JSON.stringify(seed));
-  var faults = { ls: 0, ext: {} };
+  var faults = { ls: 0, ext: {}, call22: 0 };
   var sandbox = {
     localStorage: {
       getItem: function () { return null; },
@@ -83,7 +83,14 @@ function makeInstance(blobDir, seed) {
     if (faults.ext[n] > 0) { faults.ext[n]--; trace.push(['evalTHROW', n]); throw new Error('inject-ext' + n); }
     trace.push(['evalFile', n]);
     var f = path.join(blobDir, 'ext' + n + '.js');
-    return vm.runInContext('(' + fs.readFileSync(f, 'utf8') + ')', sandbox, { filename: 'ext' + n + '.js' });
+    var real = vm.runInContext('(' + fs.readFileSync(f, 'utf8') + ')', sandbox, { filename: 'ext' + n + '.js' });
+    if (n === '22') {  // S5: call-time fault shim — the PUB satellite's CALL can throw (alloc storm), distinct from the parse
+      return function () {
+        if (faults.call22 > 0) { faults.call22--; trace.push(['callTHROW', '22']); throw new Error('inject-call22'); }
+        return real.apply(null, arguments);
+      };
+    }
+    return real;
   };
   vm.createContext(sandbox);
   var src = fs.readFileSync(path.join(blobDir, 'main.js'), 'utf8');
@@ -93,16 +100,48 @@ function makeInstance(blobDir, seed) {
 
 // ---- scenario runner -----------------------------------------------------------
 // Steps: ['ui'] ['load'] ['tick',H,Asc] ['ev',eid] ['lap'] ['pause'] ['cont'] ['end'] ['sum']
-// A step list is run against oracle+candidate; after each step the io outputs, any return
-// value and the traffic slice of that step are compared.
+// A step list is run against oracle+candidate; after each step the returns, the traffic slice
+// and the io outputs are compared.
+//
+// S5 tolerance model (candidate = ext22-PUB build, oracle = S4 resident-setOutputs build):
+//   TICK steps are the STRICT anchor — both sides full-publish there (on-watch every second), so
+//   every io slot must match exactly (modulo the cold rule below). At NON-tick steps the candidate
+//   full-publishes where the oracle did targeted writes and healed at its next setOutputs tick
+//   (the oracle was even internally inconsistent at toggleMode: press showed currentGrade, the
+//   next tick the slot/OFF grade — the candidate is tick-consistent ALWAYS). Per slot and step,
+//   the candidate passes if ANY of:
+//     (a) lockstep:   === oracle[s]
+//     (b) heal-ahead: === oracle at the NEXT tick step (the press value the oracle only reaches
+//                     at its next full publish; never an invented value, never behind)
+//     (c) cold-frozen (non-crown only): while the candidate is COLD (fP unparsed/dropped — from
+//                     the trace: load/pause/end open a window, evalFile-22 closes it, callTHROW-22
+//                     re-opens it) the slot must equal the candidate's OWN previous step — the FBW
+//                     crown writer (packedGL/modeSub/routeHeight/vState) never touches non-crown.
+//     (d) virgin:     the oracle has not yet published a nonzero value for this slot — the
+//                     candidate's FBW may legally publish (correct) values earlier than the oracle.
+//     (e) burst-transient: the step sits INSIDE a multi-press burst (next step is also non-tick) —
+//                     intermediate press states never appear in the oracle stream at all; the
+//                     burst's landing state is bound strictly at the tick that ends it.
+//   ext22 parse moments: evalFile/evalTHROW '22' are legal ONLY on 'tick' steps (the pendV stager),
+//   at most once per step; every fault-free scenario must parse ext22 at least once (stager-alive
+//   guard). ext25 keeps its S4 moment rules. Both are filtered from the trace compare afterwards.
+//   Absolute cold-window values (FBW correctness per state) are pinned by output-map-equiv.js.
 function runScenario(name, seed, steps, blobs) {
   var inst = blobs.map(function (b) { return makeInstance(b, seed); });
   var io = inst.map(function () { return [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; });
+  var snaps = [[], []];        // per-step io.slice(2) snapshots per side
+  var kinds = [];              // step kind per recorded step
+  var colds = [];              // candidate cold-flag AT END of each recorded step
+  var rows = [];               // {s, st, rets, trA, trB}
+  var cold = true;             // candidate starts cold (fP parses at the first stager tick)
+  var sawFault = false, saw22 = false;
   for (var s = 0; s < steps.length; s++) {
     var st = steps[s], rets = [], marks = inst.map(function (i) { return i.trace.length; });
-    if (st[0] === 'fault') {  // ['fault','ls'|extN,count] — arm the injection countdown on BOTH instances
+    if (st[0] === 'fault') {  // ['fault','ls'|'call22'|extN,count] — arm the injection countdown on BOTH instances
+      sawFault = true;
       for (var q = 0; q < inst.length; q++) {
         if (st[1] === 'ls') inst[q].faults.ls = st[2];
+        else if (st[1] === 'call22') inst[q].faults.call22 = st[2];
         else inst[q].faults.ext[st[1]] = st[2];
       }
       continue;
@@ -123,27 +162,63 @@ function runScenario(name, seed, steps, blobs) {
       } catch (e) { r = ['UNCAUGHT', String(e.message)]; }  // an uncaught lifecycle throw must at least be IDENTICAL on both sides
       rets.push(r);
     }
-    // S4 allowance: ext25 recap parses are legal trace INSERTS (the S3 oracle builds rows resident,
-    // S4+ builds them via a transient ext25 parse) — but ONLY at the licensed moments and at most
-    // once per step. Assert that FIRST (S4-review C3/C6: a blind filter would hide a parse landing
-    // on a mount/fluid/tick moment — the zero-alloc law), then filter for the value comparison.
+    // moment assertions (assert FIRST, filter afterwards — a blind filter would hide a parse
+    // landing on a mount/press moment, the zero-alloc law; S4-review C3/C6)
     var is25 = function (e) { return (e[0] === 'evalFile' || e[0] === 'evalTHROW') && e[1] === '25'; };
+    var is22 = function (e) { return (e[0] === 'evalFile' || e[0] === 'evalTHROW' || e[0] === 'callTHROW') && e[1] === '22'; };
     var legal25 = st[0] === 'pause' || st[0] === 'end' || st[0] === 'sum';
     for (var ci = 0; ci < inst.length; ci++) {
-      var n25 = inst[ci].trace.slice(marks[ci]).filter(is25).length;
+      var sl = inst[ci].trace.slice(marks[ci]);
+      var n25 = sl.filter(is25).length;
       if (n25 && !legal25) { console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']: ext25 parse on a NON-licensed moment (side ' + ci + ')'); return false; }
       if (n25 > 1) { console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']: ext25 parsed ' + n25 + 'x in one step (side ' + ci + ')'); return false; }
+      var p22 = sl.filter(function (e) { return is22(e) && e[0] !== 'callTHROW'; }).length;
+      if (p22 && st[0] !== 'tick') { console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']: ext22 parse outside the tick stager (side ' + ci + ')'); return false; }
+      if (p22 > 1) { console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']: ext22 parsed ' + p22 + 'x in one step (side ' + ci + ')'); return false; }
     }
-    var f25 = function (e) { return !is25(e); };
-    var a = JSON.stringify({ io: io[0].slice(2), ret: rets[0], tr: inst[0].trace.slice(marks[0]).filter(f25) });
-    var b = JSON.stringify({ io: io[1].slice(2), ret: rets[1], tr: inst[1].trace.slice(marks[1]).filter(f25) });
-    if (a !== b) {
-      console.log('  FAIL  ' + name + ' step ' + s + ' [' + st + ']');
-      console.log('    oracle:    ' + a);
-      console.log('    candidate: ' + b);
+    // candidate cold-window tracking from its trace slice
+    var cs = inst[1].trace.slice(marks[1]);
+    for (var t2 = 0; t2 < cs.length; t2++) {
+      if (cs[t2][0] === 'evalFile' && cs[t2][1] === '22') { cold = false; saw22 = true; }
+      else if (cs[t2][0] === 'callTHROW' && cs[t2][1] === '22') cold = true;
+    }
+    if (st[0] === 'pause' || st[0] === 'end') cold = true;  // pause/end drop fP (pendV re-arms at pause only)
+    var fX = function (e) { return !is25(e) && !is22(e); };
+    rows.push({ s: s, st: st, rets: rets, trA: inst[0].trace.slice(marks[0]).filter(fX), trB: inst[1].trace.slice(marks[1]).filter(fX) });
+    snaps[0].push(io[0].slice(2)); snaps[1].push(io[1].slice(2));
+    kinds.push(st[0]); colds.push(cold);
+  }
+  // ---- post-hoc compare (needs the oracle's next-tick io for the heal-ahead rule) ----
+  var nextTick = new Array(rows.length);
+  var nt = rows.length - 1;
+  for (var q2 = rows.length - 1; q2 >= 0; q2--) { if (kinds[q2] === 'tick') nt = q2; nextTick[q2] = nt; }
+  var firstNZ = [Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity, Infinity];
+  for (var q3 = 0; q3 < rows.length; q3++) for (var q4 = 0; q4 < 8; q4++) {
+    if (snaps[0][q3][q4] !== 0 && firstNZ[q4] === Infinity) firstNZ[q4] = q3;
+  }
+  for (var r2 = 0; r2 < rows.length; r2++) {
+    var row = rows[r2], oa = snaps[0][r2], ob = snaps[1][r2];
+    var fail = function (msg) {
+      console.log('  FAIL  ' + name + ' step ' + row.s + ' [' + row.st + ']: ' + msg);
+      console.log('    oracle:    ' + JSON.stringify({ io: oa, ret: row.rets[0], tr: row.trA }));
+      console.log('    candidate: ' + JSON.stringify({ io: ob, ret: row.rets[1], tr: row.trB }));
       return false;
+    };
+    if (JSON.stringify(row.rets[0]) !== JSON.stringify(row.rets[1])) return fail('returns differ');
+    if (JSON.stringify(row.trA) !== JSON.stringify(row.trB)) return fail('traffic differs');
+    var isTick = kinds[r2] === 'tick';
+    var inBurst = !isTick && r2 + 1 < rows.length && kinds[r2 + 1] !== 'tick';
+    for (var n2 = 0; n2 < 8; n2++) {
+      var oc = oa[n2], cb = ob[n2], ont = snaps[0][nextTick[r2]][n2];
+      if (cb === oc) continue;                                                   // (a) lockstep
+      if (cb === ont) continue;                                                  // (b) heal-ahead to the oracle's next tick
+      if (colds[r2] && n2 >= 4 && cb === (r2 > 0 ? snaps[1][r2 - 1][n2] : 0)) continue;  // (c) cold non-crown frozen
+      if (r2 < firstNZ[n2]) continue;                                            // (d) oracle-virgin slot
+      if (inBurst) continue;                                                     // (e) burst transient (bound at the closing tick)
+      return fail((n2 < 4 ? 'CROWN' : 'non-crown') + ' slot io[' + (n2 + 2) + '] = ' + cb + ' matches neither oracle[s]=' + oc + ' nor next-tick=' + ont + (colds[r2] ? ' (cold)' : ''));
     }
   }
+  if (!sawFault && !saw22) { console.log('  FAIL  ' + name + ': candidate never parsed ext22 (stager dead?)'); return false; }
   // end-of-scenario: persisted stores must match too
   var sa = JSON.stringify(inst[0].store), sb = JSON.stringify(inst[1].store);
   if (sa !== sb) { console.log('  FAIL  ' + name + ' final store\n    ' + sa + '\n    ' + sb); return false; }
@@ -423,6 +498,52 @@ var SCENARIOS = [
     ['sum'],                            // default '/0' row (fail-soft m=0: nothing clobbered)
     ['cont'], T(1),
     ['end'], ['sum']                    // end-arm parse fails -> sr-synth tally [sr 1/1]
+  )],
+
+  // ---- S5 scenarios (ext22-PUB: cold window, FBW fluidity, stager lifecycle) ----
+  ['S5 cold presses before the first tick (skipP cancel + sysChg confirm)', RETURN, seq(
+    ['ui'], ['load'],
+    ['ev', 1], ['ev', 2],               // SETUP dy while stone-cold (cancels skipP; FBW crown vs oracle targeted writes)
+    ['ev', 6],                          // confirm -> READY mount, still cold (no sysChg: plain confirm)
+    ['ev', 1], ['ev', 7],               // READY grade flicks while cold — fluidity through the cold window
+    T(2),                               // stager tick -> warm + full republish
+    ['ev', 6], T(2), ['ev', 6], T(2),   // route 1 warm
+    ['end'], ['sum']
+  )],
+  ['S5 FLT M permanent ext22 parse fail: whole session on the FBW crown (states 0/1/2/4 only)', RETURN, seq(
+    ['fault', '22', 999],
+    ['ui'], ['load'], T(2),             // stager throws (capped) -> permanent cold
+    ['ev', 1], ['ev', 7], ['ev', 2],    // READY free-mode flicks stay fluid
+    ['ev', 4], T(1),                    // project toggle (slot 1) — FBW proj-branch crown
+    ['ev', 1], ['ev', 2],               // cycleSlot ±1 cold
+    ['ev', 4],                          // back to free mode
+    ['ev', 6], T(3),                    // CLIMB: live routeHeight while cold
+    ['ev', 6], T(2),                    // SEND -> BREAK (commit runs warm-independent: ext10/f3 untouched)
+    ['ev', 1], ['ev', 2],               // BREAK grade corrections cold
+    ['ev', 6], T(1),
+    ['pause'], ['cont'], T(1),
+    ['end'], ['sum']                    // end recap + ext11 RMW identical (fault hits only ext22)
+  )],
+  ['S5 FLT N one-shot ext22 parse fail: 1 cold tick, stager retry warms', RETURN, seq(
+    ['fault', '22', 1],
+    ['ui'], ['load'], T(1),             // skipP tick (cold)
+    T(1),                               // stager attempt 1 THROWS (pvT=1)
+    T(1),                               // stager attempt 2 parses -> warm + full republish
+    ['ev', 6], T(2), ['ev', 6], T(2),
+    ['end'], ['sum']
+  )],
+  ['S5 FLT O call-throw: FBW takeover at the throwing pub, reparse next tick, then permanent-cold tail', RETURN, seq(
+    ['ui'], ['load'], T(2),             // warm
+    ['ev', 6], T(2), ['ev', 6], T(1),   // route 1 (BREAK, warm)
+    ['fault', 'call22', 1],
+    ['ev', 1],                          // BREAK dy: fP call THROWS at the press -> FBW writes the corrected grade, fP dropped
+    T(1),                               // stager reparses -> warm again, full republish resyncs
+    ['ev', 2], T(1),                    // warm correction back
+    ['fault', 'call22', 999],
+    T(1), T(1), T(1), T(1), T(1), T(1), // parse/call-throw alternation burns pvT (3 parses max), then permanent FBW
+    ['ev', 1], ['ev', 2],               // still fluid on the crown
+    ['ev', 6], T(1),                    // BREAK -> READY
+    ['end'], ['sum']
   )],
 ];
 
