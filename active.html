@@ -8,44 +8,8 @@
             S=x;
             setStyle('#sc1','visibility',x===1?'VISIBLE':'HIDDEN');
             setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
-            control('#zring','REFRESH');
           }
-          function bx(ctx,x,y,w,h){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+w,y);ctx.lineTo(x+w,y+h);ctx.lineTo(x,y+h);ctx.closePath();ctx.fill()}
-          function hC(x){if(x===res)return;res=x;control('#zring','REFRESH')}
-          var zn=0,mHR=190,res=0;
-          function zCalc(h){
-            var b=h>10?Math.round(h):Math.round((h||0)*60);
-            zn=b<=0?0:b>=Math.round(mHR*0.87)?5:b>=Math.round(mHR*0.82)?4:b>=Math.round(mHR*0.77)?3:b>=Math.round(mHR*0.72)?2:1;
-          }
-          function zRing(ctx){
-            var W=ctx.width,cx=W/2,cy=W/2,i,a0,a1,on;
-            var br=cx-10,dy=0.16*W-cy;
-            if(br>Math.abs(dy)){
-              var e=Math.asin(dy/br);
-              ctx.beginPath();
-              ctx.arc(cx,cy,br,-Math.PI-e,e,false);
-              ctx.closePath();
-              ctx.fillStyle=res===1?'#266735':res===2?'#85561C':'#1F1F1F';
-              ctx.fill();
-            }
-            ctx.fillStyle='#262626';
-            if(S===1){bx(ctx,0.72*W,0.18*W,0.15*W,0.12*W);bx(ctx,0.72*W,0.70*W,0.15*W,0.12*W)}
-            else if(S===2){bx(ctx,0.79*W,0.44*W,0.10*W,0.12*W);bx(ctx,0.72*W,0.70*W,0.15*W,0.12*W)}
-            ctx.fillStyle='#1F1F1F';
-            bx(ctx,0.27*W,0.87*W,0.46*W,0.09*W);
-            if(typeof buildGenericGauge==='function'){buildGenericGauge(ctx,zn,0,4,1,5);return}
-            var sA=3*Math.PI/4,sg=(9*Math.PI/4-sA)/5,g=0.06;
-            var zc=['#36E4FF','#6EE76D','#FFDD33','#FF9F33','#FF2A55'];
-            ctx.lineCap='butt';
-            for(i=0;i<5;i++){
-              a0=sA+i*sg+g/2;a1=sA+(i+1)*sg-g/2;on=(zn===i+1);
-              ctx.lineWidth=on?8:4;
-              ctx.strokeStyle=on?zc[i]:'#666666';
-              ctx.beginPath();
-              ctx.arc(cx,cy,(ctx.width-ctx.lineWidth)/2-2,a0,a1,false);
-              ctx.stroke();
-            }
-          }
+          function hC(x){setStyle('#hg','visibility',x===1?'VISIBLE':'HIDDEN');setStyle('#ho','visibility',x===2?'VISIBLE':'HIDDEN')}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
@@ -55,38 +19,9 @@
   <div id="climblogger">
 
 
-    <!-- vState → aV (the applyVis pattern): <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. The two trackers plus the HR-zone color binding share ONE 0-dim holder div. -->
+    <!-- vState → aV (the applyVis pattern): <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. Both trackers (vState→aV, hdrRes→hC) share ONE 0-dim holder div. -->
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
-    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval hidden input="/Settings/User/MaxHR" outputFormat="script x => x" default="190" onValueChanged="mHR=Number(targetData)||190;" /></div>
-
-    <!-- HR-ZONE RING (#189) — the OFFICIAL 5-segment corona, copied from Suunto's own shipping app
-         (github.com/SuuntoSpace/indoor-climbing, t.html) and the SDK's own html/{s,m}/zone-g.html.
-         Authored ONCE outside sc1/sc2 (this template only ever renders CLIMB or BREAK), so it cannot
-         double-render or jump — same rule as the HR row, the height row and the header.
-         FIRST in the body on purpose: later siblings paint OVER it, so the ring stays on the edge and
-         never covers the dashboard.
-
-         buildGenericGauge(ctx, zone, first, last, cmode, segm) is a runtime builtin — the same call the
-         SDK's stock zone-g.html makes. Suunto's own app still guards it with `typeof` and hand-draws a
-         fallback, so we do exactly that (the fallback is also what the simulator uses).
-
-         WHY NOT <range> + /Activity/Zones/HeartRate/CurrentZone: that was the first attempt. Two reasons
-         it was dropped. (1) Suunto pointedly does NOT read CurrentZone — they subscribe
-         /Settings/User/MaxHR and derive the zone themselves, which is a strong hint CurrentZone is not
-         dependable. (2) It needed setStyle on `custom-in-bounds-color`, a CUSTOM range property that
-         nothing in the SDK or in Suunto's app ever sets — and this codebase has been bitten before by
-         markup the validator accepts and the watch silently ignores (see the #hdr background setStyle
-         no-op below, and the dead onLongPressStart-on-div).
-
-         UNITS — THE TRAP: HR arrives in Hz (0.5-4), MaxHR in BPM. Suunto's app does
-         `Math.round(input.HeartRate * 60)`. zCalc() takes either (h>10 => already BPM) so a unit change
-         cannot silently pin the ring to zone 1. Thresholds are Suunto's: .87/.82/.77/.72 of max, and
-         MaxHR comes from the WATCH's user profile — no app setting needed.
-
-         COST: zero resident main.js. The zone is derived in the TEMPLATE, off the HR eval that this
-         template ALREADY subscribes (no second subscription) — so we get the ring cheaper than Suunto,
-         who spends main.js bytes and an output on it. -->
-    <object type="canvas" id="zring" style="position:absolute;top:0;left:0;width:100%;height:100%;" build="ctx => zRing(ctx);" />
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /></div>
 
     <!-- READY lives in its own ready.html now (idle-split): this template mounts ONLY at
          READY->CLIMB and carries just the CLIMB/BREAK pair (zero per-lap swaps via aV). -->
@@ -102,10 +37,14 @@
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <div class="f-ico" style="position:absolute;top:calc(24% - 18.5px);left:calc(72% + 6px);color:#fff;">&#xF110;</div>
+      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF110;</div>
+      </div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div class="f-ico" style="position:absolute;top:calc(76% - 18.5px);left:calc(72% + 6px);color:#fff;">&#xF200;</div>
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF200;</div>
+      </div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
       <!-- (The H row used to live in here at 73%, duplicated in sc2. It is now ONE shared row at 80%
@@ -132,10 +71,14 @@
         <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
 
-      <div class="f-ico cm-bgc" style="position:absolute;top:calc(50% - 18.5px);left:calc(79% + 6px);">&#xE338;</div>
+      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
+      </div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div class="f-ico cm-bgc" style="position:absolute;top:calc(76% - 18.5px);left:calc(72% + 6px);">&#xE373;</div>
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
+      </div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
     </div>
 
@@ -144,7 +87,7 @@
          at BREAK's 53% (its summary row @73% constrains it); CLIMB's HR shifts up from 64% to match. -->
     <div class="sp-vertical-center" style="top:calc(53% - 50%e); left:calc(50% - 50%e);">
       <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
-      <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" onValueChanged="zCalc(Number(targetData));control('#zring','REFRESH');" /></span>
+      <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
     </div>
 
     <!-- Shared route-height row (same trick as the HR row above). It used to be TWO byte-identical rows,
@@ -160,18 +103,13 @@
       <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" /></span>
     </div>
 
-    <!-- Shared ROUTE/PROJECT header — TEXT ONLY now. The BAND behind it moved onto the canvas (zRing).
-         WHY: a full-width rectangle and a rim ring are GEOMETRICALLY INCOMPATIBLE on a round face. Any
-         rect touching y=0 has its top corners at distance >= R (233 px) from centre, i.e. OUTSIDE the
-         ring's inner radius (223) — so the ring always cuts through it, at ANY width or height. Insetting
-         cannot fix it; only a shape that follows the circle can. That is exactly why Suunto's own app
-         (SuuntoSpace/indoor-climbing) draws its top banner as a filled CIRCULAR SEGMENT on the canvas
-         instead of as a div. We now do the same: zRing() fills the segment at r = cx-10 (just inside the
-         corona at r=227), coloured by `res` — neutral / green (SEND) / orange (FAIL).
-         The old #hg/#ho pre-built bands + the visibility toggle are GONE with it: hC() now just stores the
-         result and asks the canvas to redraw. Three divs leave the always-mounted tree.
-         The text div stays (it sits well inside the circle and never reaches the rim). -->
-    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%">
+    <!-- Shared ROUTE/PROJECT header — one always-visible band. Was triplicated across sc0/sc1/sc2 with
+         identical content; authored once here (rendered last so it sits above the section tops). Saves
+         2 cm-fg bands + 2 evals + 2 self-size measure-passes from the resident active mount. -->
+    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.12)">
+      <!-- result bands: pre-built green/orange, toggled by hC via the PROVEN visibility mechanism. Runtime setStyle only applies 'visibility' (like aV), NOT 'background' — the old inline setStyle('#hdr','background',rgba) was a silent on-watch no-op. Bands sit BEHIND the text. -->
+      <div id="hg" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(45,175,75,0.5);visibility:HIDDEN"></div>
+      <div id="ho" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(235,140,25,0.5);visibility:HIDDEN"></div>
       <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
         <span><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" /></span>
         <span style="padding-left:16px"><eval input="/Zapp/{zapp_index}/Output/hdrGrade" outputFormat="script x => x < 0 ? '' : dG(x)" default="" /></span>
@@ -181,6 +119,7 @@
     <!-- Bottom time-bar: a cheap flat-fill backing panel (replaces the removed clip-path diamond, a costly
          per-pixel mask). The 2px top hairline (and BREAK's summary hairline) were dropped in the trim-audit
          — plain rgba rects are cheap, but the accent lines still cost box + measure passes on this mount. -->
+    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
     <!-- left:calc(50% - 50%e) self-centers the row by its own width (exact, panel-independent); top 91.5% =
          the panel's vertical center (87%+9%/2) so the text sits centered in the bar, not riding its top edge. -->
     <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
