@@ -29,7 +29,7 @@
 //   12 currentGrade, 13 curAsc, 14 startAsc, 15 projGradeIdx(ref), 16 projSlot(ref),
 //   17 DEFAULT_IDX(ref)
 // pv keys (unchanged from the old chg()): 1 vState, 2 routeHeight, 3 packedGL, 4 modeSub,
-//   5 packedAct, 6 hdrGrade, 7 hdrRes, 8 packedBreak
+//   5 packedAct, 6 hdrGrade, 7 hdrRes, 8 packedBreak, 9 climbing, 10 gradeLog
 // Write order is o-first-then-pv: a mid-call throw can only leave the store NEWER than the
 // cache (rewritten on the next call), never stale-behind-cache.
 
@@ -51,6 +51,16 @@ var TPL = [
   'var lg=S[4]>=0?gs*100+S[4]:-1;',
   'var rh=st===1?Math.max(0,Math.round(S[13]-S[14])):st===2?S[8]:S[9];',
   'if(F||pv[2]!==rh){o[@routeHeight@]=rh;pv[2]=rh}',
+  // Activity graphs (#191): climbing is the on-route binary; gradeLog holds the last route's raw grade
+  // index off-route so the activity reads as a step graph. Before the first route, use the selected grade.
+  // CHANGE-GATED like every other output (pv keys 9/10). A logged output does NOT need re-writing every
+  // tick: the firmware samples the output STORE once a second, and the store retains its last value — so
+  // an unconditional write would just burn 2 extra WB writes per second for no signal. It also broke the
+  // chg-cache invariant that output-map-equiv enforces ("unchanged republish wrote a slot").
+  'var cl=st===1?1:0;',
+  'if(F||pv[9]!==cl){o[@climbing@]=cl;pv[9]=cl}',
+  'var gl=st===1?S[12]:S[4]>=0?S[4]:S[12];',
+  'if(F||pv[10]!==gl){o[@gradeLog@]=gl;pv[10]=gl}',
   'if(st===5){g=S[1]<rA.length?gs*100+Math.floor(rA[S[1]]/1e6):gs*100+50;m=S[1]+1;lg=-1}',
   'else if(st===6){g=P[S[5]]>=0?gs*100+P[S[5]]:gs*100+50;m=-(S[5]+1);lg=-1}',
   'else if(st===4){g=gs*100+S[17][gs];m=gs;lg=-1}',
