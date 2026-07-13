@@ -1,9 +1,9 @@
 {
   "name": "Climb Log",
   "description": "Track your progress on rock & ice.",
-  "version": "3.0",
+  "version": "3.6",
   "author": "skyfi",
-  "modificationTime": 1780930662,
+  "modificationTime": 1783804928,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -26,7 +26,10 @@
       "name": "modeSub"
     },
     {
-      "name": "routeHeight"
+      "name": "routeHeight",
+      "log": true,
+      "shownName": "Route Height",
+      "format": "Ascent_Fourdigits"
     },
     {
       "name": "vState"
@@ -42,6 +45,18 @@
     },
     {
       "name": "packedBreak"
+    },
+    {
+      "name": "climbing",
+      "log": true,
+      "shownName": "Climbing",
+      "format": "Count_Twodigits"
+    },
+    {
+      "name": "gradeLog",
+      "log": true,
+      "shownName": "Grade",
+      "format": "Count_Twodigits"
     }
   ],
   "template": [

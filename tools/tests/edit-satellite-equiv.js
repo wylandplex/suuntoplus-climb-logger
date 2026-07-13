@@ -1,14 +1,15 @@
-// edit-satellite-equiv.js — proves the Stufe-2 EDIT/quickfix SATELLITE (ext21 via callE + the M9
-// pendE gate) is state-equivalent to the master-resident toggleRes/edDel semantics it replaced.
+// edit-satellite-equiv.js — proves the Stufe-2 EDIT SATELLITE (ext21 via callE + the M9 pendE gate)
+// is state-equivalent to the master-resident toggleRes/edDel semantics it replaced.
 //
 // Candidate = the REAL main.js + REAL ext21.js/ext14.js/ext10.js served through evalFile in a vm
 // sandbox, driven through the actual lifecycle (onLoad/evaluate/onEvent) — so the eBag marshalling,
 // the fE cache/release lifecycle and the gate wiring are under test, not just the ext body.
 // Oracle = a frozen reimplementation of master's toggleRes/edDel/eid4-cycle rules (git master).
 //
-// M9 gate contract (user license 2026-07-08): the EDIT-entry press arms pendE=1, the quickfix press
-// with a cold cache arms pendE=2; while pendE is set, onEvent AND onLap are swallowed; the next
-// evaluate tick parses (and for pendE=2 executes the quickfix); gate-until-done, no timers.
+// M9 gate contract (user license 2026-07-08): the EDIT-entry press arms pendE=1; while pendE is set,
+// onEvent AND onLap are swallowed; the next evaluate tick parses; gate-until-done, no timers.
+// pendE is 1-valued since the BREAK quickfix was cut — the old pendE=2 (parse AND execute a gated
+// quickfix on the tick) has no arming site left. Scenario 2 now PROVES that: eid 5 in BREAK is inert.
 //
 // Run: node tools/tests/edit-satellite-equiv.js   (exit non-zero on any mismatch)
 
@@ -103,7 +104,7 @@ function mkOracle(st) {
     }
   };
   o.nav = function () { if (o.A.length > 0) o.idx = (o.idx - 1 + o.A.length) % o.A.length; };
-  o.quick = function () { var li = o.A.length - 1; var v = send(li) ? 0 : 1; setRes(li, v); return v; };
+  // (o.quick removed with the BREAK quickfix — ext21 keeps arm 3, but main has no caller for it.)
   return o;
 }
 
@@ -146,26 +147,30 @@ console.log('[edit-satellite-equiv] ext21/callE/M9-gate vs frozen master semanti
   console.log('  PASS  M9 gate mechanics (entry arm, swallow, tick-parse, release)');
 })();
 
-// ---- scenario 2: gated quickfix (pendE=2 parse+execute on the tick) ----------
+// ---- scenario 2: TOP-long in BREAK is INERT (the quickfix was CUT) -----------
+// The BREAK quickfix (toggle the last route SEND<->FAIL) is gone: the EDIT overlay already does that
+// for ANY route, so the shortcut was duplicate resident code. This scenario is the INVERSE of the old
+// one — it locks in the new contract: eid 5 in BREAK must touch NOTHING. No pendE arm (so it cannot
+// smuggle in a gated parse), no route mutation, no lastResult flip, no state change. The button is
+// reserved for the STATS overlay; until that lands it is a deliberate no-op.
 (function () {
   var app = mkApp();
   app.boot();
   app.climb(1);                                // BREAK, last route SEND, fE null (goState released)
   var o = mkOracle(app.st());
-  app.ev(5);                                   // quickfix press, cold cache
+  var res0 = app.st().lastResult;
+  app.ev(5);                                   // TOP-long in BREAK
   var st = app.st();
-  check(st.pendE === 2, 'quickfix: cold press arms pendE=2, got ' + st.pendE);
-  check(eq(st.routesA, o.A), 'quickfix: nothing mutated inside the press context');
-  app.ev(5);                                   // second press during gate -> swallowed
-  app.tick();                                  // drain: parse + execute
-  var exp = o.quick();
+  check(st.pendE === 0, 'inert: eid5 must NOT arm pendE, got ' + st.pendE);
+  check(eq(st.routesA, o.A), 'inert: eid5 must not mutate routes');
+  check(st.lastResult === res0, 'inert: eid5 must not flip lastResult');
+  check(st.state === 2, 'inert: eid5 must not leave BREAK, got state ' + st.state);
+  app.tick();                                  // the drain must not execute a gated quickfix either
   st = app.st();
-  compare('quickfix-tick', st, o);
-  check(st.lastResult === exp, 'quickfix: lastResult ' + st.lastResult + ' != ' + exp);
-  app.ev(5);                                   // warm cache now -> inline toggle
-  o.quick();
-  compare('quickfix-warm', app.st(), o);
-  console.log('  PASS  gated quickfix (cold=tick-executed, warm=inline)');
+  check(st.pendE === 0, 'inert: the tick must not arm pendE, got ' + st.pendE);
+  check(eq(st.routesA, o.A), 'inert: the following tick must not mutate routes');
+  check(st.lastResult === res0, 'inert: the following tick must not flip lastResult');
+  console.log('  PASS  TOP-long in BREAK is inert (quickfix cut)');
 })();
 
 // ---- scenario 3: randomized op fuzz vs oracle (incl. project-tagged route) ---

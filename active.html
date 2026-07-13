@@ -47,14 +47,8 @@
       </div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <!-- Live route height back in the CLIMB body (T2/S7, #173 — the Era-A/B sc1 'H +Nm' cell).
-           routeHeight publishes live every CLIMB tick and is already subscribed on this template.
-           MUST live inside #sc1: as a template-level sibling it would double-render in BREAK on top
-           of the 73% summary row (aV hides it here instead). 73% mirrors BREAK's row for rhythm. -->
-      <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
-        <span class="sp-b-s" style="padding-right:3px">H</span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" /></span>
-      </div>
+      <!-- (The H row used to live in here at 73%, duplicated in sc2. It is now ONE shared row at 80%
+           below sc1/sc2 — see "Shared route-height row". Same output, same Y, so it cannot jump.) -->
     </div>
 
     <!-- BREAK — same big time+pulse as CLIMB (frozen lap -2) PLUS the climb summary row: height, avg, max. Grade+result are in the colored header. -->
@@ -64,22 +58,13 @@
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <!-- BREAK tally RESTORED (old break screen, feat/restore-break-screen): session sends/routes +
-           best-send grade. packedBreak decode in LOCKSTEP with main.js setOutputs (state-2 pack) and
-           tools/tests/output-pack-equiv.js: sends = floor(x/64)%64, routes = x%64, best = dG(floor(x/4096)-1).
-           Trophy F200 labels the best send; dG is defined in this template's onLoad. Only sc2 subscribes
-           packedBreak, so it rides the BREAK-visible mount only. -->
-      <div class="p-hc sp-vertical-center" style="top:calc(64% - 20.5px);">
-        <span class="f-ico" style="padding-right:6px">&#xF200;</span>
-        <span class="sp-b-s" style="padding-right:14px"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => dG(Math.floor(x/4096)-1)" default="--" /></span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(Math.floor(x/64)%64)" default="0" /></span>
-        <span class="sp-b-s f-num">/</span>
-        <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/packedBreak" outputFormat="script x => ''+(x%64)" default="0" /></span>
-      </div>
-
-      <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
-        <span class="sp-b-s" style="padding-right:3px">H</span>
-        <span class="sp-b-s f-num" style="padding-right:14px"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="0m" /></span>
+      <!-- Session tally (best send + sends/routes) MOVED OFF the BREAK screen -> STATS overlay, reached
+           with TOP-long (eid 5). packedBreak is still packed by ext22 and stays in manifest out[] for
+           that screen; nothing on the always-mounted cluster subscribes it any more, so the three
+           packedBreak <eval> bindings leave the hot template.
+           BREAK-only AVG/MAX of the finished lap (-2). The height is NOT here — it is the shared row
+           below, so it holds the same Y in CLIMB and BREAK. -->
+      <div class="p-hc sp-vertical-center" style="top:calc(70% - 20.5px);">
         <span class="sp-b-s" style="padding-right:3px">AVG</span>
         <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
         <span class="sp-b-s" style="padding-left:12px;padding-right:3px">MAX</span>
@@ -103,6 +88,19 @@
     <div class="sp-vertical-center" style="top:calc(53% - 50%e); left:calc(50% - 50%e);">
       <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
       <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+    </div>
+
+    <!-- Shared route-height row (same trick as the HR row above). It used to be TWO byte-identical rows,
+         one in sc1 and one in sc2 — and after the tally was cut they drifted apart (sc1 @73%, sc2 @64%),
+         so H jumped 9% on every lap. Authored ONCE here, outside both sections: active.html only ever
+         renders CLIMB (state 1) or BREAK (state 2), and routeHeight already publishes the right value for
+         each (live ascent in CLIMB, lastHeight in BREAK). Same element => same Y => it CANNOT jump.
+         Sits low, below BREAK's AVG/MAX row (70%); CLIMB simply has empty space where that row would be.
+         80% is the floor: the clock/total-duration panel owns 87-96%, and rows stack ~10% apart here
+         (the old tally/H pair sat at 64/73). Bonus: one <eval> + one div leave the always-mounted tree. -->
+    <div class="p-hc sp-vertical-center" style="top:calc(80% - 20.5px);">
+      <span class="sp-b-s" style="padding-right:3px">H</span>
+      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" /></span>
     </div>
 
     <!-- Shared ROUTE/PROJECT header — one always-visible band. Was triplicated across sc0/sc1/sc2 with
