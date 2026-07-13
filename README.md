@@ -166,9 +166,26 @@ and don't count against the startup budget — but `main.js` bytecode is RESIDEN
 99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
 Current footprint (q-display minifier, v2.0):
-- `main.js` minified/resident: 7 060 B
-- `ext22.js` (generated publish satellite, parsed once per enable): 1 299 B
+- `main.js` minified/resident: 7 072 B
+- `ext22.js` (generated publish satellite, parsed once per enable): 1 299 B (cap 1 600 B)
 - runtime route satellite: `ext10` (route commit plus warm save-as-project operation)
+
+### Store budget (`data.jsn`) — the other scarce pool
+
+**Every localStorage op charges a whole-file contiguous buffer** (`JSalloc` ≈ `data.jsn` size — #181
+forensics). The shipped store size is therefore the allocation size of *every* read and of the END
+write, which is the path that fails first under 3-app memory pressure. Grow-rewrites are the
+deterministic storm class, so the store is under a growth freeze (`< 2 100 B`, asserted in
+`tools/tests/stats-endwrite-equiv.js`).
+
+Shipped store: **1 946 B**. All ten `pS<sys>` project vectors are declared (an undeclared key cannot
+persist), but as **empty objects** — `fillSlots` already defaults every absent index (`0` for 0–14,
+`-1` for 15–19), so `{}` is behaviourally identical to a full 20-slot dict and costs 1 340 B less.
+Declaring them as full dicts ships a 3 286 B store, i.e. a 65 % larger contiguous allocation on every
+single storage op, for zero benefit. **Do not "helpfully" fill them in.**
+
+Note the watch materializes only *written* keys, not all declared ones: the declaration is the
+permission to persist, not a reservation.
 
 ### Backlog
 
