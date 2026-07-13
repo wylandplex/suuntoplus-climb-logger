@@ -659,6 +659,7 @@ function onExerciseEnd(_input, _output) {
 function getSummaryOutputs(_input, _output) { return lifeK(3); }
 
 function onLap(_input, output) {
+  if (isPaused) return;
   // A watch lap ADVANCES the phase READY->CLIMB->BREAK->CLIMB->... for BOTH external laps (auto-lap / a lap
   // triggered outside the app) AND the app's own evL()->lap() firmware lap. onLap fires BEFORE onEvent here,
   // so do NOT change phase synchronously for the CLIMB-finish: the app's FAIL/SEND button arrives via onEvent

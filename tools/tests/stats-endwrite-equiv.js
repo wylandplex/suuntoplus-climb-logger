@@ -618,7 +618,11 @@ console.log('strict fuzz: ' + RUNS + ' randomized multi-session runs deep-equal 
   bind(NEW.ext11, ls0)([1, 1, 0, 0, 0, 0, 10], [-1, -1, -1, -1, -1], P0.slice(), 0, 0, 0);
   assert.strictEqual(Object.keys(ls0.getObject('s0')).length, 6, 'snapshot contains only five totals + implemented peak');
   const shippedBytes = JSON.stringify(shipped()).length;
-  assert.ok(shippedBytes < 2100, 'shipped store after the diet stays <2100B, got ' + shippedBytes);
+  // Baseline bewusst angehoben (PR2/F1): data.json deklariert jetzt pS0-pS9 statt nur pS0 -- ohne
+  // diese Keys koennen Projekt-Stats fuer 9 von 10 Grade-Systemen NIE persistieren. Korrektheit
+  // schlaegt Store-Groesse. OFFEN: ob die Uhr ein data.jsn dieser Groesse noch initialisiert, ist
+  // NICHT bewiesen -- es gibt keine dokumentierte Grenze. Das klaert der On-Watch-Test (v2.2).
+  assert.ok(shippedBytes < 3400, 'shipped store stays <3400B (pS0-pS9 declared), got ' + shippedBytes);
   console.log('growth-freeze: virgin end +' + grow + 'B (<=40), s0 is 6-field, store ' + shippedBytes + 'B OK');
 }
 
