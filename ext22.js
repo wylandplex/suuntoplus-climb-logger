@@ -13,7 +13,8 @@ v=lk*1e6+g*952+(lg+1);
 if(F||pv[3]!==v){o[2]=v;pv[3]=v}
 if(F||pv[4]!==m){o[3]=m;pv[4]=m}
 var pA=-1;
-if(st===0&&S[7]>0){i=S[7]-1;pA=Q[i+15]===P[i]?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):0}
+if(st===0&&S[7]>0){i=S[7]-1;pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):0}
+else if(st===6){i=S[5];pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):-1}
 else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;
 if(F||pv[5]!==pA){o[8]=pA;pv[5]=pA}
 var pB=0;

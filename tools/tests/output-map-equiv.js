@@ -5,8 +5,8 @@
 //   A) SLOT MAP     — ext22 writes exactly the o[N] indices the manifest implies (N = out-index +
 //                     in[].length), no more, no fewer. A reordered/extended manifest that was not
 //                     regenerated fails here (belt to gen-out-idx --check's braces).
-//   B) VALUE ORACLE — the satellite's full-publish output == the S4 resident setOutputs semantics
-//                     (transcribed below, the single source of truth), fuzzed over ~9k states
+//   B) VALUE ORACLE — the satellite's full-publish output == the publisher contract transcribed
+//                     below (the single source of truth), fuzzed over ~9k states
 //                     incl. every grade system, every state, empty/stale EDIT cursors, OFF slots.
 //   C) CHANGE-DETECT— an unchanged republish writes NOTHING (pv suppression); a single-field change
 //                     writes exactly the affected slots; pv[0] forces a full write and self-clears.
@@ -53,7 +53,7 @@ var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 var fails = 0;
 function chk(cond, msg) { if (!cond) { console.log('  FAIL  ' + msg); fails++; } return cond; }
 
-// ---- the S4 resident setOutputs semantics, verbatim (VALUE ORACLE) -----------------
+// ---- publisher contract (VALUE ORACLE) ---------------------------------------------
 function refFull(s) {
   var rA = s.routesA, gs = s.gradeSystem, o = {};
   var rGrade = function (i) { return Math.floor(rA[i] / 1e6); };
@@ -81,7 +81,13 @@ function refFull(s) {
   var pAct = -1;
   if (s.state === 0 && s.climbMode > 0) {
     var i = s.climbMode - 1;
-    pAct = s.projSlot[i + 15] === s.projGradeIdx[i] ? Math.min(s.projSlot[i] || 0, 16700) * 1000 + Math.min(s.projSlot[i + 5] || 0, 999) : 0;
+    pAct = s.projGradeIdx[i] >= 0 ? Math.min(s.projSlot[i] || 0, 16700) * 1000 + Math.min(s.projSlot[i + 5] || 0, 999) : 0;
+  } else if (s.state === 6) {
+    // #188: PROJ-SETUP publishes the stats of the slot BEING EDITED (pStep, not climbMode).
+    // An OFF / unconfigured slot stays at -1 => ready.html renders blank. NOT 0, which would decode
+    // to a fake "0T 0S" on a slot that has no stats at all. -1 is safe (pill codes are -2..-5).
+    var pi = s.pStep;
+    pAct = s.projGradeIdx[pi] >= 0 ? Math.min(s.projSlot[pi] || 0, 16700) * 1000 + Math.min(s.projSlot[pi + 5] || 0, 999) : -1;
   } else if (s.state === 5) {
     pAct = rA.length === 0 ? -5 : s.editDelMark ? -4 : rSend(s.editIdx) ? -2 : -3;
   }
@@ -133,7 +139,7 @@ chk(!/\bo\.[A-Za-z]/.test(src22), 'ext22 uses a NAMED output write (o.x) — nam
 console.log('  ' + NAMES.map(function (n) { return n + '->o[' + IDX[n] + ']'; }).join(' '));
 
 // ---- B) value oracle (fuzz) --------------------------------------------------------
-console.log('[B] value oracle vs the S4 resident semantics');
+console.log('[B] value oracle vs the publisher contract');
 var seed = 12345;
 // Math.imul, NOT a float multiply: seed*1103515245 loses the low bits to float64 rounding, and the
 // resulting LCG correlates hard with the modulus (the first cut of this harness generated 8954/9000
@@ -154,7 +160,7 @@ for (var it = 0; it < 9000; it++) {
   var pgi = [], psl = [];
   for (var p = 0; p < 5; p++) pgi.push(rnd(3) === 0 ? -1 : rnd(L));
   for (var q = 0; q < 20; q++) psl.push(q < 15 ? rnd(50) : (rnd(3) === 0 ? -1 : rnd(L)));
-  if (rnd(2)) for (var w = 0; w < 5; w++) psl[15 + w] = pgi[w];  // half the time the slot stats MATCH the configured grade (the packedAct !==0 branch)
+  if (rnd(2)) for (var w = 0; w < 5; w++) psl[15 + w] = pgi[w];  // half match, half may be stale; neither may gate slot-owned stats
   var s = {
     state: STATES[rnd(STATES.length)],
     editIdx: rnd(3) === 0 ? nR + rnd(3) : rnd(Math.max(1, nR)),   // incl. stale/out-of-range cursors

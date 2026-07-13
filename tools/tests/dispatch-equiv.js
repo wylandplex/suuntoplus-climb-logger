@@ -29,7 +29,7 @@ var os = require('os');
 
 var ROOT = path.join(__dirname, '..', '..');
 var SENT = -424242;  // "this output slot has not been written yet" — never 0, which is a legal value
-var ORACLE_REF = process.env.ORACLE_REF || 'ef36255';  // bumped per stage (ef36255 = the fold fix: packedBreak + recalcBse now count acc + the un-folded tail). The only intended divergence from 0a98ed2 was io[9]/packedBreak in the two FOLD scenarios (+66 / +65) — the OLD oracle was UNDER-counting the folded routes, so the candidate is the correct side. Guarded from here on by tools/tests/fold-tally-equiv.js.
+var ORACLE_REF = process.env.ORACLE_REF || '1cb7d16';  // bumped per stage (1cb7d16 = #187/#188/#189). Intended divergences from ef36255, ALL accounted for: (a) io[8]/packedAct now publishes in state 6 (PROJ-SETUP) where the old oracle had no branch and left -1 — that IS #188; (b) the [end] traffic differs because ext11 no longer wipes a re-graded slot — that IS #187. Guarded from here on by tools/tests/proj-regrade-equiv.js + output-map-equiv.js.
 
 function findBuild() {
   var g = cp.execSync("ls -d /home/skyfi/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1").toString().trim();
