@@ -622,7 +622,13 @@ console.log('strict fuzz: ' + RUNS + ' randomized multi-session runs deep-equal 
   // diese Keys koennen Projekt-Stats fuer 9 von 10 Grade-Systemen NIE persistieren. Korrektheit
   // schlaegt Store-Groesse. OFFEN: ob die Uhr ein data.jsn dieser Groesse noch initialisiert, ist
   // NICHT bewiesen -- es gibt keine dokumentierte Grenze. Das klaert der On-Watch-Test (v2.2).
-  assert.ok(shippedBytes < 3400, 'shipped store stays <3400B (pS0-pS9 declared), got ' + shippedBytes);
+  // The <2100B growth-freeze from #181 ("Store-Diät 2213->1999B") is NOT a style rule: watch evidence
+  // ties a 2213B store to failed ~2230B allocations and END crashes. F1 declares pS1-pS9 to make the
+  // strict-key allowlist cover all ten grade systems, but as EMPTY objects — fillSlots (main.js:111)
+  // already supplies every default (0 for 0-14, -1 for 15-19), so {} is behaviourally identical to a
+  // full 20-slot dict and costs 1206B less. Declaring them as full dicts would ship a 3286B store,
+  // i.e. ABOVE the size empirically tied to end-write crashes. Keep this bound where it is.
+  assert.ok(shippedBytes < 2100, 'shipped store stays <2100B (pS0-pS9 declared, pS1-pS9 empty), got ' + shippedBytes);
   console.log('growth-freeze: virgin end +' + grow + 'B (<=40), s0 is 6-field, store ' + shippedBytes + 'B OK');
 }
 
