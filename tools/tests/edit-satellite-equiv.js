@@ -71,14 +71,13 @@ function mkOracle(st) {
   var send = function (i) { return Math.floor(o.A[i] / 1e5) % 10; };
   var cm = function (i) { return Math.floor(o.A[i] / 1e4) % 10; };
   var dur = function (i) { return Math.floor(o.B[i] / 1000); };
-  o.bse = function () { var b = -1; for (var i = 0; i < o.A.length; i++) if (send(i) && Math.floor(o.A[i] / 1e6) > b) b = Math.floor(o.A[i] / 1e6); return b; };
   var setRes = function (i, v) {   // master toggleRes
     o.A[i] = o.A[i] + (v - send(i)) * 1e5;
     var c = cm(i);
     if (c > 0) {
       var p = c - 1;
       if (v) { o.P[p + 5]++; var d = dur(i); if (d > 0 && (o.P[p + 10] === 0 || d < o.P[p + 10])) o.P[p + 10] = d; }
-      else if (o.P[p + 5] > 0) o.P[p + 5]--;
+      else if (o.P[p + 5] > 0) { o.P[p + 5]--; if (!o.P[p + 5]) o.P[p + 10] = 0; }
     }
   };
   o.cycle = function () {          // master evEdit eid4
@@ -94,7 +93,7 @@ function mkOracle(st) {
       if (dC > 0) {
         var dp = dC - 1;
         if (o.P[dp] > 0) o.P[dp]--;
-        if (dS && o.P[dp + 5] > 0) o.P[dp + 5]--;
+        if (dS && o.P[dp + 5] > 0) { o.P[dp + 5]--; if (!o.P[dp + 5]) o.P[dp + 10] = 0; }
         if (o.P[dp] <= 0) { o.P[dp] = o.P[dp + 5] = o.P[dp + 10] = 0; o.P[dp + 15] = -1; }
       }
       if (dH > 0) o.sH = Math.max(0, o.sH - dH);
@@ -116,7 +115,6 @@ function compare(name, st, o) {
   check(st.editDelMark === o.mark, name + ': editDelMark ' + st.editDelMark + ' != ' + o.mark);
   check(st.sessionH === o.sH, name + ': sessionH ' + st.sessionH + ' != ' + o.sH);
   check(st.routeNumber === o.rn, name + ': routeNumber ' + st.routeNumber + ' != ' + o.rn);
-  check(st.bestSendIdx === o.bse(), name + ': bestSendIdx ' + st.bestSendIdx + ' != ' + o.bse());
   check(eq(st.projSlot, o.P), name + ': projSlot diverged');
 }
 

@@ -8,8 +8,10 @@ cd "$ROOT"
 proofs=(
   tools/proofs/f1-undeclared-project-keys.js
   tools/proofs/f2-system-switch-overwrite.js
+  tools/proofs/f3-regrade-climb-wipe.js
   tools/proofs/f4-migration-authorizes-clobber.js
   tools/proofs/f5-partial-write-rollback.js
+  tools/proofs/f6-press-context-parse.js
   tools/proofs/f7-uncapped-retries.js
   tools/proofs/f8-deploy-archives.js
   tools/proofs/f9-folded-edit-lie.js
@@ -35,4 +37,3 @@ for proof in "${proofs[@]}"; do
 done
 
 exit "$bad"
-

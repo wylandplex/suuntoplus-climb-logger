@@ -36,7 +36,7 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 |-----------|---------------------|---------------------|----------------------|-----------------------------|----------------------|
 | READY     | grade / project cycle | grade / project cycle | toggle free/project | → EDIT (free) / PROJSETUP (project) | START          |
 | CLIMB     | — *(locked)*        | — *(locked)*        | — *(locked)*         | FAIL ✗                      | SEND ✓               |
-| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | — *(reserved)*              | NEXT                 |
+| BREAK     | last-grade adjust *(unfolded only)* | last-grade adjust *(unfolded only)* | ★ save as project *(unfolded only)* | — *(reserved)* | NEXT |
 | SETUP     | grade system +      | grade system −      | —                    | —                           | confirm & → READY    |
 | EDIT      | route grade +       | route grade −       | cycle SEND/FAIL/DEL  | → READY                     | prev route / → READY |
 | PROJSETUP | slot grade +        | slot grade −        | —                    | done & → READY              | next slot            |
@@ -44,7 +44,9 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 The EDIT/PROJSETUP overlays render through the READY bindings: big grade = selected route / slot
 grade, header `#N` / `P1..P5` (negative `modeSub`), plus a setText status line (`EDIT i/n SEND` /
 `SLOT n/5`). `ready.html` gates its firmware `lap()` on `vState !== 5` so EDIT route-navigation
-never records a lap.
+never records a lap. A pause folds and frees the current route tail; folded routes remain in lifetime
+totals but are deliberately immutable, so BREAK correction, save-as-project, and EDIT are refused
+until a new editable tail route exists.
 
 **Universal rules:**
 - `mid-short` is OS-reserved (scrolls Suunto's native activity screens).
@@ -66,10 +68,10 @@ never records a lap.
 | `active.html`       | CLIMB / BREAK cluster                                      | Workout        |
 | `setup.html`        | Grade-system setup                                         | Config         |
 | `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
-| `ext10.js`          | Route end — build route record + update project stats      | On SEND/FAIL   |
+| `ext10.js`          | Route end + already-warm save-as-project operation          | On SEND/FAIL   |
 | `ext11.js`          | Stats RMW writer — the only localStorage WRITE in the app   | Workout end    |
-| `ext13.js`          | One-time legacy-data migration (flat keys → per-system `s<g>` / `pS<g>`) | First tick after install |
-| `ext14.js`          | Save current route as a project slot                       | On save-project |
+| `ext13.js`          | One-time legacy-data migration (flat keys → per-system `s<g>` / `pS<g>`) | Capped evaluate bootstrap |
+| `ext14.js`          | Retired save-as-project satellite (kept as a source artifact; no runtime caller) | Never |
 | `ext21.js`          | EDIT-overlay actions — result cycle, DEL execution          | On EDIT press  |
 | `ext22.js`          | Generated publish satellite — all output writes (see `tools/gen-out-idx.js`) | Every tick |
 | `ext25.js`          | Session-summary row builder (Sends/Routes, Highest Send, …) | Pause / end    |
@@ -87,20 +89,22 @@ the route arrays can be freed early; it never touches storage.
 ### Persistence (localStorage)
 
 - **Read** — `onLoad` calls `drainF12()`, which reads `stats` and `pS<system>` directly via
-  `localStorage.getObject` (plain reads, not an `evalFile` parse — this is a "hybrid inline drain",
-  not a satellite call). On a corpse-heap toggle where the read throws, a 3-tick backoff retries; the
-  workout starts on defaults if it never succeeds (`stOk` stays 0). A one-time legacy-format
-  migration (`ext13.js`) runs cold, inline in this same drain, if it detects old flat-key data.
+  `localStorage.getObject`; it never parses a satellite. On a corpse-heap toggle where the read
+  throws, a backed-off evaluate path retries at most three times. If old flat-key data is detected,
+  `onLoad` leaves the store read-only and a later evaluate tick runs `ext13.js` under the same cap.
+  Migration or bootstrap failure keeps `stOk=0`, so END cannot overwrite unread history.
 - **Write** — happens exactly once, at `onExerciseEnd` (`finishSession` → `ext11.js`, a
   read-modify-write against the `s<system>` snapshot). Gated three ways: skipped entirely if nothing
   logged or changed this session; skipped entirely if the bootstrap read never succeeded (`!stOk` —
   writing over a store you never read is a clobber risk, so the summary shows "NOT SAVED" instead);
-  otherwise gated per-field by dirty bits (`psDirty` = project-slot stats, `slotsDirty` = slot grade
+  The authoritative `s<system>` shard is written first, optional project stats next, and the derived
+  `stats` mirror last; any throw replaces the recap with `NOT SAVED`. Writes are gated per-field by
+  dirty bits (`psDirty` = project-slot stats, `slotsDirty` = slot grade
   config changed on the watch — unset lets Companion slot edits made between sessions survive,
   `sysDirty` = grade-system choice, persisted even on a routeless session).
-- **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
-  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + the active-project mirror shown to
-  the companion app.
+- **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height), the
+  exactly derivable peak grade, and the active-project mirror shown to the companion app. Eight
+  formerly advertised but unwritten lifetime records were removed rather than given invented semantics.
 - **`pS<sys>`**: compact 20-number project-stat vector for one grade system
   (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
 - **`s<sys>`**: per-grade-system snapshot of `stats`; retained for maintenance tooling.
@@ -130,8 +134,9 @@ finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
   the flat in-memory project-stat vector.
 - **Pause** (`onExercisePause`): de-load the active template and aggregate committed routes into
   the in-memory summary cache.
-- **End** (`onExerciseEnd`): close any open route, aggregate, free route arrays, and return. No
-  localStorage and no evalFile.
+- **End** (`onExerciseEnd`): close any open route, aggregate and free route arrays, build the recap
+  through transient `ext25`, then parse `ext11` for the single storage RMW. A write failure produces
+  `NOT SAVED`; the summary callback itself remains RAM-only.
 - **Summary view** (`getSummaryOutputs`): serve the RAM summary cache.
 
 ---
@@ -160,10 +165,10 @@ and don't count against the startup budget — but `main.js` bytecode is RESIDEN
 ~133 KB three-app JS heap, and that residency is what decides whether the pool sits at a
 99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
-Current footprint (built, q-display, v2.0):
-- `main.js` minified/resident: 6 919 B
-- `ext22.js` (generated publish satellite, parsed once per enable): 1 527 B
-- runtime ext parses: `ext10` 230 B (per route), `ext14` 321 B (per save-project)
+Current footprint (q-display minifier, v2.0):
+- `main.js` minified/resident: 7 060 B
+- `ext22.js` (generated publish satellite, parsed once per enable): 1 299 B
+- runtime route satellite: `ext10` (route commit plus warm save-as-project operation)
 
 ### Backlog
 

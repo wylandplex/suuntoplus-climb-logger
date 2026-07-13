@@ -18,7 +18,10 @@ function run(policy) {
   var first = p.createApp();
   first.load();
   first.warm(20);
-  if (first.state().state === 4) { first.press(6); first.warm(5); }
+  // warm generously: under a failing store the capped bootstrap (pendF12) and the pendSlots
+  // pS<sys> load each retry before giving up, so the onEvent gate stays shut for >5 ticks.
+  // A short warm here would refuse START and mask F1's actual question behind a false crash.
+  if (first.state().state === 4) { first.press(6); first.warm(20); }
   first.selectProject(1);
   first.climb({ seconds: 60, height: 10, send: true });
   first.end();
