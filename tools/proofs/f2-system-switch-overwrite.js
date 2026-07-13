@@ -58,7 +58,10 @@ var proven = 0, inconclusive = 0;
   }
   var got = r.attempts + '/' + r.sends + '/' + r.best;
   var want = EXPECT.attempts + '/' + EXPECT.sends + '/' + EXPECT.best;
-  if (got !== want) {
+  var matches = r.attempts === EXPECT.attempts &&
+    r.sends === EXPECT.sends &&
+    r.best === EXPECT.best;
+  if (!matches) {
     proven++;
     console.log('PROVEN under policy=' + policy + ': pendSlots left attempts=' + r.blankBefore +
       ' before the climb; observed reload attempts/sends/best=' + got + ', expected-if-correct=' + want + '.');
@@ -75,10 +78,9 @@ if (proven) {
   console.log('PROVEN: the real 1-to-0 SETUP and pendSlots choreography still overwrites pS0 history.');
   process.exit(1);
 }
-if (inconclusive === 3) {
-  console.log('INCONCLUSIVE: no policy reached the switch write; the destination history was never exercised.');
+if (inconclusive) {
+  console.log('INCONCLUSIVE: at least one policy could not reach the switch write because F1 poisoned bootstrap; the destination history was not exercised under every policy.');
   process.exit(2);
 }
 console.log('REFUTED: pendSlots now loads the destination pS<sys> vector before the END write, so the switch preserves the destination project history.');
 process.exit(0);
-

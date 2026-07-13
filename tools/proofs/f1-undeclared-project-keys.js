@@ -8,6 +8,24 @@ console.log('CLAIM F1: undeclared pS1-pS9 keys prevent project statistics from s
 
 var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
 
+function result(policy, p, slot, blocked, state) {
+  var keyCalls = p.storage.calls.filter(function (call) { return call.key === 'pS1'; });
+  return {
+    policy: policy,
+    blocked: blocked,
+    state: state.state,
+    stOk: state.stOk,
+    pendF12: state.pendF12,
+    pendSlots: state.pendSlots,
+    pendE: state.pendE,
+    attempts: slot[0] || 0,
+    sends: slot[5] || 0,
+    best: slot[10] || 0,
+    materialized: p.storage.materializedKeys().indexOf('pS1') >= 0,
+    outcomes: keyCalls.map(function (call) { return call.op + ':' + call.outcome; }).join(',')
+  };
+}
+
 function run(policy) {
   var stats = platform.snapshot(defaults.stats);
   stats.system = 1;
@@ -18,32 +36,48 @@ function run(policy) {
   var first = p.createApp();
   first.load();
   first.warm(20);
-  // warm generously: under a failing store the capped bootstrap (pendF12) and the pendSlots
+  // Warm generously: under a failing store the capped bootstrap (pendF12) and the pendSlots
   // pS<sys> load each retry before giving up, so the onEvent gate stays shut for >5 ticks.
-  // A short warm here would refuse START and mask F1's actual question behind a false crash.
-  if (first.state().state === 4) { first.press(6); first.warm(20); }
+  if (first.state().state === 4) {
+    first.press(6);
+    first.warm(20);
+  }
   first.selectProject(1);
+  first.warm(20);
+
+  // Press START directly so a legitimate read-only refusal becomes evidence instead of
+  // AppDriver.start throwing before this proof can report a verdict.
+  first.press(6);
+  var started = first.state();
+  if (started.state !== 1) {
+    return result(policy, p, started.projSlot, true, started);
+  }
+
   first.climb({ seconds: 60, height: 10, send: true });
   first.end();
 
   var second = p.createApp();
   second.load();
   second.warm(20);
-  var slot = second.state().projSlot;
-  var keyCalls = p.storage.calls.filter(function (call) { return call.key === 'pS1'; });
-  return {
-    policy: policy,
-    attempts: slot[0] || 0,
-    sends: slot[5] || 0,
-    best: slot[10] || 0,
-    materialized: p.storage.materializedKeys().indexOf('pS1') >= 0,
-    outcomes: keyCalls.map(function (call) { return call.op + ':' + call.outcome; }).join(',')
-  };
+  var secondState = second.state();
+  return result(policy, p, secondState.projSlot, false, secondState);
 }
+
+var verdicts = {};
 
 ['reject-key', 'poison-store', 'permissive'].forEach(function (policy) {
   var r = run(policy);
+  if (r.blocked) {
+    verdicts[policy] = 'INCONCLUSIVE';
+    console.log('INCONCLUSIVE under policy=' + policy +
+      ': START was refused after bootstrap settled (state=' + r.state + ', stOk=' + r.stOk +
+      ', pendF12=' + r.pendF12 + ', pendSlots=' + r.pendSlots + ', pendE=' + r.pendE +
+      '); expected a startable session before testing pS1 persistence; pS1 materialized=' +
+      (r.materialized ? 1 : 0) + '; calls=' + r.outcomes);
+    return;
+  }
   var status = r.attempts === 1 && r.sends === 1 && r.best === 60 ? 'REFUTED' : 'PROVEN';
+  verdicts[policy] = status;
   console.log(status + ' under policy=' + policy + ': observed reload attempts/sends/best=' +
     r.attempts + '/' + r.sends + '/' + r.best + ', expected-if-correct=1/1/60; pS1 materialized=' +
     (r.materialized ? 1 : 0) + '; calls=' + r.outcomes);
@@ -58,5 +92,7 @@ var evidence = logLines.filter(function (line) { return line.indexOf('localStora
 console.log('Watch-log archaeology: no committed line names an undeclared key. Closest direct storage evidence is ' +
   logRel + ':966: "' + (evidence || 'not found') + '"; it cannot distinguish the three policies.');
 
-console.log('INCONCLUSIVE: F1 is PROVEN under reject-key and poison-store but REFUTED under permissive; firmware undeclared-key semantics require the on-watch data.jsn experiment.');
+console.log('INCONCLUSIVE: F1 is ' + verdicts['reject-key'] + ' under reject-key, ' +
+  verdicts['poison-store'] + ' under poison-store, and ' + verdicts['permissive'] +
+  ' under permissive; firmware undeclared-key semantics require the on-watch data.jsn experiment.');
 process.exit(2);
