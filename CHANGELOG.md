@@ -1,5 +1,86 @@
 # Changelog
 
+## v2.0 — 2026-07-13
+
+**Version-scheme note:** the manifest `version` field bumps on every watch-test build (project
+convention, so on-watch logs can identify exactly which build ran) — it had climbed to internal
+`3.6` by the time this shipped. This release deliberately resets the *public* version number to
+mark the dispatcher-split/satellite-module rewrite between v3.0 and here as a new architecture
+generation; it is chronologically after v3.0, not a rollback. 169 commits since v3.0.
+
+### Highlights
+- **Project stats are safe again.** Correcting a project's grade in EDIT/PROJSETUP no longer
+  wipes that slot's attempts, sends, and best time — and, worse, no longer keeps re-wiping the
+  same slot on every subsequent session once triggered. (#187)
+- **Project stats now show while you're editing them**, not only on the READY dashboard. (#188)
+- **Activity graphs are back**, plus one new one. Three graphs now appear on the finished
+  activity in the Suunto app: a climbing/resting binary trace, a route-height sawtooth, and a
+  grade-progression step graph. (#191)
+- **Grade-system stats corruption, fixed.** Switching grade systems no longer overwrites the new
+  system's lifetime totals with the previous system's — verified by reproducing the exact
+  corruption scenario against the current save code and confirming it no longer happens.
+- **More stable multi-app sessions.** Lighter screen mounts, compact route storage, and a smaller
+  save window continue the memory-footprint work from v3.0's stability split — further reducing
+  compiled code size on the same axis (freezes when other SuuntoPlus apps are running alongside).
+- **Redesigned climb dashboard.** Route number and grade share the header; BREAK's header turns
+  green for SEND and orange for FAIL. Climb time, live pulse, and the current route's height stay
+  on screen throughout; BREAK adds the finished route's height and average/max heart rate.
+
+### Interface changes
+- **Simplified the BREAK screen** — removed the session sends/routes tally and the on-BREAK
+  quick-fix button (toggle last route's result). Both cost more resident memory than their value
+  justified. Result correction is still available via EDIT, which now works on any route in the
+  session, not only the most recent one.
+- The finished-lap height row on BREAK no longer shifts position relative to the live row shown
+  during CLIMB.
+- EDIT now opens even with zero routes logged, and previews the SEND → FAIL → DEL cycle before
+  you commit to it. Grade adjustment in EDIT only applies to free-mode routes — a route already
+  tagged to a project keeps its slot's configured grade.
+- External and auto-laps now drive the climbing flow directly: a lap during CLIMB records a SEND;
+  a lap during BREAK starts the next route immediately, without a trip through READY.
+
+### Fixes
+- CLIMB's height display now shows the current route's ascent, not the cumulative session total.
+- Stopping an activity mid-climb no longer silently drops that in-progress route.
+- Sub-second routes record an honest zero duration instead of a corrupted firmware value that
+  could poison a project's best time.
+- Implausible heart-rate samples (outside a valid 30–240 bpm band) are excluded from route
+  averages.
+- Newly configured projects record against their configured grade starting from the first
+  session, instead of losing that session's stats. A pending route also keeps the project slot it
+  was actually climbed under, even if you switch the active slot immediately afterward.
+- Post-exercise summaries are capped at four rows in a fixed priority order, so a fifth
+  metric no longer causes the watch to drop the entire summary.
+- Advancing through PROJSETUP no longer creates phantom firmware laps or disturbs BREAK's lap
+  data.
+- Removed a code path that could silently discard un-folded route data past 50 routes in a
+  single unpaused session — unreachable at the shipped 35-route cap, fixed for correctness. (#152)
+
+### Known issues
+- **Multisport sport-change crash (firmware, reported to Suunto — not app-specific).** Enabling
+  *any* SuuntoPlus app immediately after switching sports inside a multisport activity can freeze
+  and reboot the watch. Root-caused to a firmware memory pool (`EXTRAM`) that the sport transition
+  tears down without reinitializing — the app enabled afterward is just the trigger, not the
+  cause. Workaround: enable Climb Log before starting the multisport activity, or before switching
+  sports, not after. See `docs/forum/2026-07-12-multisport-extram-deinit.md`.
+
+### Internal
+- Dispatcher split into generated satellite modules (`ext22.js` now owns all output publishing;
+  `ext25.js` the end-of-session recap; per-grade-system name lookups generated into `ext30`–`39`)
+  — these parse on demand and are never resident in the app's compiled bytecode, unlike the code
+  they replaced.
+- Storm-caps added to every retrying parse/localStorage path (an uncapped retry loop had
+  previously stalled the watch for minutes under memory pressure).
+- Route aggregation now frees the in-session route arrays at PAUSE, folding them into a small
+  resident summary; persistence itself is consolidated to a single read at bootstrap and a single
+  write at exercise end, with one-time legacy-data migration isolated from that path.
+- Added a 13-scenario automated equivalence-test suite that pins the app's exact output behavior
+  build-to-build, so future changes can be verified byte-for-byte instead of only by hand-testing
+  on watch.
+- The 35-route guard's separate LIMIT screen was removed in an earlier build: START is now
+  silently refused at the cap — pause and continue, or save and start a new activity, to keep
+  logging.
+
 ## v3.0 — 2026-06-08
 
 First release since the last live version **2.82**. The 2.9x / 3.0-dev / 3.1 iterations

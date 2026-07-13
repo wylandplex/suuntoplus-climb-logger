@@ -1,6 +1,6 @@
-# Climb Log v3.0
+# Climb Log v2.0
 
-[![Latest](https://img.shields.io/badge/release-v3.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
+[![Latest](https://img.shields.io/badge/release-v2.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
 A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 10 grade systems, 5 project slots per system (50 total), heart rate, height gain, and multi-year grade progression.
 
@@ -36,7 +36,7 @@ up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
 |-----------|---------------------|---------------------|----------------------|-----------------------------|----------------------|
 | READY     | grade / project cycle | grade / project cycle | toggle free/project | → EDIT (free) / PROJSETUP (project) | START          |
 | CLIMB     | — *(locked)*        | — *(locked)*        | — *(locked)*         | FAIL ✗                      | SEND ✓               |
-| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | toggle last SEND↔FAIL       | NEXT                 |
+| BREAK     | last-grade adjust   | last-grade adjust   | ★ save as project    | — *(reserved)*              | NEXT                 |
 | SETUP     | grade system +      | grade system −      | —                    | —                           | confirm & → READY    |
 | EDIT      | route grade +       | route grade −       | cycle SEND/FAIL/DEL  | → READY                     | prev route / → READY |
 | PROJSETUP | slot grade +        | slot grade −        | —                    | done & → READY              | next slot            |
@@ -67,40 +67,49 @@ never records a lap.
 | `setup.html`        | Grade-system setup                                         | Config         |
 | `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
 | `ext10.js`          | Route end — build route record + update project stats      | On SEND/FAIL   |
-| `ext11.js`          | Stats RMW writer (at END; via ext12 replay on recovery)    | Workout end    |
-| `ext12.js`          | Bootstrap loader + eP write-ahead-log replay               | First tick     |
+| `ext11.js`          | Stats RMW writer — the only localStorage WRITE in the app   | Workout end    |
+| `ext13.js`          | One-time legacy-data migration (flat keys → per-system `s<g>` / `pS<g>`) | First tick after install |
 | `ext14.js`          | Save current route as a project slot                       | On save-project |
-| `ext18.js`          | Grade-name slice provider (legacy)                         | Not in runtime |
+| `ext21.js`          | EDIT-overlay actions — result cycle, DEL execution          | On EDIT press  |
+| `ext22.js`          | Generated publish satellite — all output writes (see `tools/gen-out-idx.js`) | Every tick |
+| `ext25.js`          | Session-summary row builder (Sends/Routes, Highest Send, …) | Pause / end    |
+| `ext30`–`ext39.js`  | Generated per-grade-system name-slice providers (`tools/gen-gradename-slices.js`) | On first route commit |
 | `manifest.json`     | Outputs, variables, settings, templates                    | App config     |
 | `data.json`         | Companion app defaults                                     | First install  |
 
-The runtime path is a flight-recorder: no localStorage and no stats-maintenance evals while the
-workout is active (the log showed `data.jsn` reads and enable-window parses pushing `exec:zapp`
-over the limit with other zapps enabled). Persistence = the eP write-ahead log: one `setItem` at
-pause/end, the RMW applied at END (companion-ready), replayed by ext12 at the next enable only if
-the end ever failed.
+`ext12.js` and `ext18.js` (an earlier write-ahead-log loader and a legacy grade-name provider) were deleted — see "Persistence" below and the `ext30`–`39` row above for what replaced them.
 
-### Data model (localStorage)
+The runtime path is a flight-recorder: **read once at bootstrap, write once at end, nothing in
+between.** A localStorage write mid-workout previously froze the watch (mid-session flash I/O is a
+known no-go on this platform) — PAUSE only folds committed routes into a RAM aggregate (`acc`) so
+the route arrays can be freed early; it never touches storage.
 
-- **Runtime state**: current grade system, routes, project slots, and summary are held in RAM only.
+### Persistence (localStorage)
+
+- **Read** — `onLoad` calls `drainF12()`, which reads `stats` and `pS<system>` directly via
+  `localStorage.getObject` (plain reads, not an `evalFile` parse — this is a "hybrid inline drain",
+  not a satellite call). On a corpse-heap toggle where the read throws, a 3-tick backoff retries; the
+  workout starts on defaults if it never succeeds (`stOk` stays 0). A one-time legacy-format
+  migration (`ext13.js`) runs cold, inline in this same drain, if it detects old flat-key data.
+- **Write** — happens exactly once, at `onExerciseEnd` (`finishSession` → `ext11.js`, a
+  read-modify-write against the `s<system>` snapshot). Gated three ways: skipped entirely if nothing
+  logged or changed this session; skipped entirely if the bootstrap read never succeeded (`!stOk` —
+  writing over a store you never read is a clobber risk, so the summary shows "NOT SAVED" instead);
+  otherwise gated per-field by dirty bits (`psDirty` = project-slot stats, `slotsDirty` = slot grade
+  config changed on the watch — unset lets Companion slot edits made between sessions survive,
+  `sysDirty` = grade-system choice, persisted even on a routeless session).
 - **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height) +
-  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + active-project mirror — maintained by
-  the **`eP` write-ahead persistence**: the workout path never touches localStorage; PAUSE and END
-  persist the session as ONE string `eP = "gs;cm;dirty;ag7;pgi5;pSlot20"`; the END then applies the
-  RMW immediately (`ext11` against the `s<sys>` snapshot — stats are current when the companion
-  syncs) and clears the WAL. If the end window ever dies mid-RMW, `ext12` replays the surviving
-  `eP` at the next enable's calm drain — nothing lost, nothing double-counted. Dirty bits gate the
-  writes: bit 0 = `pS<sys>`, bit 1 = slot config (unset ⇒ Companion slot edits made between
-  sessions survive). A returning user auto-skips SETUP → READY one tick after the drain.
+  grade-ramp (peak grade, sessions-at-peak, best-of-last-5) + the active-project mirror shown to
+  the companion app.
 - **`pS<sys>`**: compact 20-number project-stat vector for one grade system
   (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
-- **`climbProjStats`**: legacy object-form project stats; imported lazily into `pS<sys>`,
-  not used for normal end writes.
 - **`s<sys>`**: per-grade-system snapshot of `stats`; retained for maintenance tooling.
-- **Summary**: cached in RAM and served directly by `getSummaryOutputs`.
+- **Summary**: cached in RAM and served directly by `getSummaryOutputs` — no localStorage or
+  `evalFile` in the summary path.
 
-*(In-session `routes[]` is in-memory only — capped at the route limit; persisted route history
-was removed as it was never read back.)*
+*(In-session `routesA`/`routesB` are in-memory only, capped at `ROUTE_LIMIT`; committed routes are
+folded into `acc` — a tiny resident aggregate — at PAUSE, freeing the arrays early so the END-window
+save lands on heap the GC has had seconds to compact.)*
 
 ### Height tracking
 
@@ -151,9 +160,10 @@ and don't count against the startup budget — but `main.js` bytecode is RESIDEN
 ~133 KB three-app JS heap, and that residency is what decides whether the pool sits at a
 99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
-Current footprint (built, q-display):
-- `main.js` minified: 7 088 B (merged lifecycle dispatcher 860 B, cliff ~1 874 B)
-- runtime ext parses: `ext10` 229 B (per route), `ext14` 217 B (per save-project)
+Current footprint (built, q-display, v2.0):
+- `main.js` minified/resident: 6 919 B
+- `ext22.js` (generated publish satellite, parsed once per enable): 1 527 B
+- runtime ext parses: `ext10` 230 B (per route), `ext14` 321 B (per save-project)
 
 ### Backlog
 
