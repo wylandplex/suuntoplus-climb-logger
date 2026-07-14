@@ -4,6 +4,39 @@
 
 Log your climbs and keep your stats — sends & fails, projects per grade system, climb-phase heart rate, height gain, and grade progression through the session.
 
+## Major update — the app has been rebuilt
+
+This is the first store release in a long while, and almost everything under the hood is new. If you
+used an earlier version, read this before you update.
+
+**Your climbing history is safe.** Existing stats and project slots are migrated automatically. In
+fact the main reason for this release is that several bugs could *silently destroy* that history —
+re-grading a project erased its sends and best time, switching grade systems overwrote the target
+system's stats, and a failed save could quietly roll your lifetime totals backwards. All of it is
+fixed and covered by automated tests.
+
+**What's new**
+- **Project stats now work on every grade system.** Previously only the first system could store them
+  at all — Ice, Mixed and the rest silently lost their project stats. If you climbed on those, their
+  history starts fresh from this version.
+- **Graphs on the finished activity** in the Suunto app: climbing vs resting, route height, and grade
+  progression through the session.
+- **Much steadier alongside other SuuntoPlus apps.** Two paths that could reboot the watch mid-session
+  are gone, and the app's memory demand is smaller than before despite doing more.
+- **Redesigned CLIMB / BREAK dashboard** — route number and grade share the header, which turns green
+  on a send and orange on a fail.
+
+**What's gone** — removed deliberately, to buy back the memory the fixes above needed:
+- The BREAK screen's session tally and its quick-fix button. Correct a result in **EDIT** instead,
+  which now works on any route of the session, not just the last one.
+- The 1-minute / 3-minute peak-HR windows. Live HR and the per-route climb-phase average remain.
+- Lifetime grade records (peak grade, sessions-at-peak, best-of-last-5). These were advertised but
+  never actually recorded — they were removed rather than faked.
+- The dedicated route-limit screen. At 35 routes without a pause, START is simply ignored.
+
+**One caveat:** routes are folded into the session summary at every pause, so once you pause, earlier
+routes can no longer be edited. The screen no longer pretends otherwise.
+
 ## Features
 
 - **10 Grade Systems** — French, UIAA, YDS, British Trad, V-Scale, Font, Ice (WI), Mixed, Hangboard, Scrambling
