@@ -84,6 +84,11 @@
     <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(50% - 50%e)">AVG</div>
     <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(80% - 50%e)">MAX</div>
 
+    <!-- Hero backing panel. ZoneSense tints the same firmware-resident monochrome asset through its
+         CSS color property; this app has no zone colour, so keep it a static deep navy-grey. Painting
+         it before sc1/sc2 leaves either white hero value above it. -->
+    <img id="ztooth" src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#262a35" />
+
     <!-- CLIMB — the OPEN lap. ready.html fires lap() on START and evL() fires it only while S===1, so
          Lap/-1 really brackets the climb attempt rather than mixing rest and climbing. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
@@ -135,13 +140,6 @@
     <!-- Firmware-rendered rim gauge. The import passes through to the XML unexpanded and the watch draws
          it: 35 bytes, measured. The canvas we once built for this allocated a ~217 KB render surface and
          got the user's other apps evicted. -->
-    <!-- The zone indicator at the bottom rim. ZoneSense authors exactly this and then TINTS it per
-         zone: setStyle('#zns-tooth','color', color[v-1]). It is a firmware-resident asset — not bundled
-         in ZoneSense's .fea (four files: data.jsn, main.js, manifest.jsn, t.xml) — and the watch DOES
-         resolve it for a third-party app; the owner saw it render. It belongs WITH the rim gauge, not
-         instead of it: zone-g draws the arc, the tooth marks the position. -->
-    <img id="ztooth" src="tooth.png" class="p-hc" style="top:calc(100% - 100%e)" />
-
     <import src="#zone-g" />
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
