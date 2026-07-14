@@ -130,6 +130,14 @@
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
 
+
+    <!-- THE SHAPE. ZoneSense anchors a firmware image at the bottom rim, horizontally centred, and the
+         big value sits in it: <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e)">.
+         tooth.png is NOT bundled in ZoneSense's .fea (that archive holds four files: data.jsn, main.js,
+         manifest.jsn, t.xml) — it is a firmware-resident asset, like hint-btn-top.png. This is what makes
+         a Suunto screen look like a Suunto screen; we had been drawing translucent rectangles instead. -->
+    <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e)" />
+
     <!-- Firmware-rendered rim gauge. The import passes through to the XML unexpanded and the watch draws
          it: 35 bytes, measured. The canvas we once built for this allocated a ~217 KB render surface and
          got the user's other apps evicted. -->
