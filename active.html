@@ -70,27 +70,27 @@
     <!-- Route height (ZoneSense: the wide value @ 34%). State-independent: routeHeight already publishes
          live ascent in CLIMB and the finished route's height in BREAK, so ONE element serves both.
          Duplicating it is exactly how the old rows drifted apart and made H jump on every lap. -->
-    <div class="sp-d-xs p-hc" style="top:calc(34% - 50%e)">
+    <div class="sp-b-l cm-mid p-hc" style="top:calc(34% - 50%e)">
       <eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" />
     </div>
 
     <!-- Three-column band (ZoneSense: labels @ 45%, values @ 55%). The live pulse is state-independent
          and authored once; AVG and MAX depend on the lap index and live in sc1/sc2 at the IDENTICAL
          anchors, so nothing can shift on a lap change. -->
-    <div class="sp-t-s cm-mid" style="top:calc(45% - 50%e);left:calc(20% - 50%e)">HR</div>
-    <div class="sp-d-xs f-num" style="top:calc(55% - 50%e);left:calc(20% - 50%e)">
+    <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(20% - 50%e)">HR</div>
+    <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(20% - 50%e)">
       <eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" />
     </div>
-    <div class="sp-t-s cm-mid" style="top:calc(45% - 50%e);left:calc(50% - 50%e)">AVG</div>
-    <div class="sp-t-s cm-mid" style="top:calc(45% - 50%e);left:calc(80% - 50%e)">MAX</div>
+    <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(50% - 50%e)">AVG</div>
+    <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(80% - 50%e)">MAX</div>
 
     <!-- CLIMB — the OPEN lap. ready.html fires lap() on START and evL() fires it only while S===1, so
          Lap/-1 really brackets the climb attempt rather than mixing rest and climbing. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-      <div class="sp-d-xs f-num" style="top:calc(55% - 50%e);left:calc(50% - 50%e)">
+      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(50% - 50%e)">
         <eval input="/Activity/Lap/-1/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
-      <div class="sp-d-xs f-num" style="top:calc(55% - 50%e);left:calc(80% - 50%e)">
+      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(80% - 50%e)">
         <eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
 
@@ -99,7 +99,7 @@
            letters — which is why labels need a text face — but it DOES carry the apostrophe, exactly as
            Suunto's own big pace readouts (9'30) show. Formatted here rather than through a guessed
            Suunto format name. Whole seconds: a tenths digit would flicker ten times a second all route. -->
-      <div class="sp-d-m f-num p-tc p-hc" style="top:calc(76% - 50%e);width:100%">
+      <div class="sp-d-l f-num p-tc p-hc" style="top:calc(77% - 50%e);width:100%">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
       </div>
 
@@ -113,14 +113,14 @@
 
     <!-- BREAK — the CLOSED lap (-2). Identical anchors to sc1: nothing may move on a lap change. -->
     <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
-      <div class="sp-d-xs f-num" style="top:calc(55% - 50%e);left:calc(50% - 50%e)">
+      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(50% - 50%e)">
         <eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
-      <div class="sp-d-xs f-num" style="top:calc(55% - 50%e);left:calc(80% - 50%e)">
+      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(80% - 50%e)">
         <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
 
-      <div class="sp-d-m f-num p-tc p-hc" style="top:calc(76% - 50%e);width:100%">
+      <div class="sp-d-l f-num p-tc p-hc" style="top:calc(77% - 50%e);width:100%">
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
       </div>
 
@@ -131,12 +131,6 @@
     </div>
 
 
-    <!-- THE SHAPE. ZoneSense anchors a firmware image at the bottom rim, horizontally centred, and the
-         big value sits in it: <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e)">.
-         tooth.png is NOT bundled in ZoneSense's .fea (that archive holds four files: data.jsn, main.js,
-         manifest.jsn, t.xml) — it is a firmware-resident asset, like hint-btn-top.png. This is what makes
-         a Suunto screen look like a Suunto screen; we had been drawing translucent rectangles instead. -->
-    <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e)" />
 
     <!-- Firmware-rendered rim gauge. The import passes through to the XML unexpanded and the watch draws
          it: 35 bytes, measured. The canvas we once built for this allocated a ~217 KB render surface and
