@@ -56,6 +56,52 @@ generation; it is chronologically after v3.0, not a rollback. 169 commits since 
 - Removed a code path that could silently discard un-folded route data past 50 routes in a
   single unpaused session — unreachable at the shipped 35-route cap, fixed for correctness. (#152)
 
+### Data-safety fixes from the pre-release audit
+
+An adversarial full-tree audit before shipping found — and executable proofs against the real
+`main.js`/`ext*.js` confirmed — several ways the app could silently destroy climbing history. All are
+fixed here, each pinned by a proof in `tools/proofs/` that fails against the old code and passes
+against this one.
+
+- **Re-grading a project no longer erases it.** Correcting a project's grade and then climbing it
+  wiped that slot's sends and best time. The earlier fix for this landed only in the end-of-session
+  writer, so it protected a re-grade followed *immediately* by saving — but the next climb destroyed
+  the slot anyway.
+- **Switching grade systems no longer overwrites the destination's history.** The switch never loaded
+  the target system's project vector before writing to it.
+- **Project stats now persist on every grade system.** Only the first system's storage key was ever
+  declared; the other nine could not be written. Verified on-watch: Ice and Mixed projects now survive
+  a restart. (This also made the store *smaller* — see below.)
+- **Lifetime totals can no longer roll backward.** The end-of-session save wrote its derived summary
+  before the authoritative record; a failed write left the two disagreeing, and the next healthy
+  session silently reverted to the older number. The authoritative record now commits first.
+- **A failed data migration no longer authorises a destructive save.** It reported success regardless,
+  then rewrote lifetime totals from an empty record. A bootstrap that cannot read the store now keeps
+  it read-only and says `NOT SAVED` instead of overwriting history it never read.
+- **Correcting a route's result no longer leaves a contradictory project record** (zero sends but a
+  recorded best time).
+
+### Stability fixes
+
+- **Two watch-reboot risks removed.** Saving a route as a project parsed code inside the button-press
+  context — the tightest memory moment on the device. And four retry paths had no limit: a failing
+  parse retried on *every* route, *every* pause, and *every* press, without end. All are now bounded.
+- **Smaller memory demand per storage operation.** Every localStorage op allocates a contiguous buffer
+  the size of the whole store, so the store size *is* the allocation size of the end-of-session save.
+  Declaring all ten grade systems as empty vectors shrank it to 1 946 B — **53 B below** its size
+  before this work, while now covering every system.
+- **A lap received while the activity is paused no longer auto-completes the open route** as a send on
+  resume.
+
+### Honesty fixes
+
+- **BREAK no longer shows a grade correction it cannot apply.** Routes are folded into a summary at
+  each pause and become immutable; the screen accepted the correction visually and silently discarded
+  it. EDIT likewise reported "0 routes" while routes were logged.
+- **Nine lifetime records that were advertised but never written have been removed** rather than
+  invented — including peak grade, sessions-at-peak, and best-of-last-5. Fabricating them would mean
+  inventing history that was never recorded, and enlarging the store touched by every save.
+
 ### Known issues
 - **Multisport sport-change crash (firmware, reported to Suunto — not app-specific).** Enabling
   *any* SuuntoPlus app immediately after switching sports inside a multisport activity can freeze
