@@ -104,7 +104,7 @@
            letters — which is why labels need a text face — but it DOES carry the apostrophe, exactly as
            Suunto's own big pace readouts (9'30) show. Formatted here rather than through a guessed
            Suunto format name. Whole seconds: a tenths digit would flicker ten times a second all route. -->
-      <div class="sp-d-l f-num p-tc p-hc" style="top:calc(77% - 50%e);width:100%">
+      <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
       </div>
 
@@ -125,7 +125,7 @@
         <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
 
-      <div class="sp-d-l f-num p-tc p-hc" style="top:calc(77% - 50%e);width:100%">
+      <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
       </div>
 
