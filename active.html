@@ -16,8 +16,19 @@
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
           function evL(n){if(lock)return;if(S===1)lap();ev(n);lock=1;setTimeout(ulk,300)}
         ">
+    <!-- NO <:if test="{APP_IS_DISPLAY_LARGE}"> BRANCHES. Suunto's own templates branch the icon
+         placement (above the number on large displays, beside it on small), but that conditional is
+         NOT resolved at build time by build-app.js — which is the compiler our BLE deploy path uses.
+         Both arms land in the compiled XML as an <if> node and the FIRMWARE picks one at render time,
+         so the screen looks right while BOTH arms sit in the always-mounted UI tree. Measured on this
+         very file: 17 318 B with the branches vs 12 799 B with one arm authored directly. That is
+         4.5 KB of the pool that decides whether the watch evicts the user's other apps — spent on
+         markup the device never draws. Suunto can afford it (their apps are ~2 KB); we cannot.
+         So: ONE arm, authored once, using plain % containers + p-hc. It is also the portable one —
+         percentages scale across the UI2 displays, unlike px, which the toolchain emits byte-identically
+         into every variant. Cost of the whole grid redesign incl. the rim gauge: +974 B over the
+         previous layout. -->
   <div id="climblogger">
-
 
     <!-- vState → aV (the applyVis pattern): <eval> binding replaces leaky $.subscribe (#90). Eval bindings are framework-managed, do not leak on template unload. Both trackers (vState→aV, hdrRes→hC) share ONE 0-dim holder div. -->
     <!-- SuuntoPlus CSS parser rejects display:none → use visibility:HIDDEN + 0-dim instead. -->
@@ -26,123 +37,109 @@
     <!-- READY lives in its own ready.html now (idle-split): this template mounts ONLY at
          READY->CLIMB and carries just the CLIMB/BREAK pair (zero per-lap swaps via aV). -->
 
-    <!-- CLIMB — dashboard LIVE from the current lap (-1). Identical layout to BREAK (finished lap -2): switching CLIMB<->BREAK just swaps live<->frozen firmware-lap data. Grade = current; height = live; HR from Lap/-1. -->
-    <!-- CLIMB — climb time + pulse, big and uncluttered. Grade lives in the header;
-         the result tint appears there only on BREAK, while height/avg/max are BREAK-only. -->
-    <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-
-      <!-- Duration anchored at BREAK's 30% (NOT 36%): CLIMB<->BREAK must not shift the big timer.
-           The HR row was already unified to BREAK's 53% and the H-row to 73%; the timer was the last
-           un-aligned element, so it jumped 6% on every lap. sc1/sc2 now share the identical geometry. -->
-      <div class="sp-d-m p-hc" style="top:calc(30% - 50%e);">
-        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
-      </div>
-
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
-        <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF110;</div>
-      </div>
-      <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
-        <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF200;</div>
-      </div>
-      <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <!-- Live AVG/MAX of the OPEN lap. Byte-for-byte the sc2 row except Lap/-1 instead of Lap/-2, and
-           at the IDENTICAL Y (70%) so it cannot shift when CLIMB<->BREAK swaps. It cannot be shared like
-           the HR/H rows below: those read one resource that is already correct in both states, whereas
-           this one must switch lap index, and an <eval> input is static.
-           The lap indices are exact, not approximate: ready.html fires lap() on START (vs===0) and
-           active.html fires it on SEND/FAIL (S===1), so the firmware lap brackets the climb attempt —
-           Lap/-1 during CLIMB IS the attempt, not rest+climb mixed. -->
-      <div class="p-hc sp-vertical-center" style="top:calc(70% - 20.5px);">
-        <span class="sp-b-s" style="padding-right:3px">AVG</span>
-        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-        <span class="sp-b-s" style="padding-left:12px;padding-right:3px">MAX</span>
-        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-      </div>
-
-      <!-- (The H row used to live in here at 73%, duplicated in sc2. It is now ONE shared row at 80%
-           below sc1/sc2 — see "Shared route-height row". Same output, same Y, so it cannot jump.) -->
-    </div>
-
-    <!-- BREAK — same time+pulse hierarchy as CLIMB (frozen lap -2) PLUS the climb summary row:
-         height, avg, max. Grade and result tint stay in the header. -->
-    <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
-
-      <div class="sp-d-m p-hc" style="top:calc(30% - 50%e);">
-        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
-      </div>
-
-      <!-- The removed session-tally row has no output subscription; recap rows own session totals.
-           BREAK-only AVG/MAX of the finished lap (-2). The height is NOT here — it is the shared row
-           below, so it holds the same Y in CLIMB and BREAK. -->
-      <div class="p-hc sp-vertical-center" style="top:calc(70% - 20.5px);">
-        <span class="sp-b-s" style="padding-right:3px">AVG</span>
-        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-        <span class="sp-b-s" style="padding-left:12px;padding-right:3px">MAX</span>
-        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
-      </div>
-
-      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
-      </div>
-      <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
-
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
-      </div>
-      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
-    </div>
-
-    <!-- Shared live HR: center the NUMBER itself, not the combined icon+number row, so the pulse does
-         not jump sideways when it crosses 99->100. The heart sits in a fixed slot to its left.
-         That slot is a PERCENTAGE, not px: the toolchain emits px byte-identically into every display
-         variant (proven — it does not scale them), so a hard `50% - 105px` would drift on the smaller
-         UI2 watches while the font scales with them. 22.5% == 105px on the Vertical 2's 466px face and
-         holds its relative position everywhere else. -->
-    <div class="sp-d-l p-hc" style="top:calc(53% - 50%e);">
-      <eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" />
-    </div>
-    <div class="f-ico sp-c-red" style="position:absolute;top:calc(53% - 18.5px);left:calc(50% - 22.5%)">&#xF101;</div>
-
-    <!-- Shared route-height row (same trick as the HR row above). It used to be TWO byte-identical rows,
-         one in sc1 and one in sc2 — and after the tally was cut they drifted apart (sc1 @73%, sc2 @64%),
-         so H jumped 9% on every lap. Authored ONCE here, outside both sections: active.html only ever
-         renders CLIMB (state 1) or BREAK (state 2), and routeHeight already publishes the right value for
-         each (live ascent in CLIMB, lastHeight in BREAK). Same element => same Y => it CANNOT jump.
-         Sits low, below BREAK's AVG/MAX row (70%); CLIMB simply has empty space where that row would be.
-         80% is the floor: the clock/total-duration panel owns 87-96%, and rows stack ~10% apart here
-         (the old tally/H pair sat at 64/73). Bonus: one <eval> + one div leave the always-mounted tree. -->
-    <div class="p-hc sp-vertical-center" style="top:calc(80% - 20.5px);">
-      <span class="sp-b-s" style="padding-right:3px">H</span>
-      <span class="sp-b-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" /></span>
-    </div>
-
-    <!-- Shared ROUTE/PROJECT header — one always-visible band. Was triplicated across sc0/sc1/sc2 with
-         identical content; authored once here (rendered last so it sits above the section tops). Saves
-         2 cm-fg bands + 2 evals + 2 self-size measure-passes from the resident active mount. -->
-    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.18)">
-      <!-- Result bands stay inside the header. Runtime setStyle only applies visibility reliably. -->
+    <!-- Shared ROUTE/PROJECT title: Suunto's 25% cm-fg band, with the approved small session-time and
+         clock line fitted beneath the route and grade. The four state-independent bindings are authored
+         once; duplicating them made old CLIMB/BREAK rows drift when one copy changed. -->
+    <div id="hdr" class="cm-fg" style="position:absolute;top:0;left:0;width:100%;height:25%">
+      <!-- Result bands are pre-built and visibility-toggled. Runtime setStyle applies visibility reliably,
+           but changing background was a silent on-watch no-op. -->
       <div id="hg" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(45,175,75,0.5);visibility:HIDDEN"></div>
       <div id="ho" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(235,140,25,0.5);visibility:HIDDEN"></div>
-      <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
-        <span><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" /></span>
-        <span style="padding-left:16px"><eval input="/Zapp/{zapp_index}/Output/hdrGrade" outputFormat="script x => x < 0 ? '' : dG(x)" default="" /></span>
+      <div class="sp-t-m" style="top:calc(34% - 50%e);left:calc(26% - 50%e)">
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" />
+      </div>
+      <div class="sp-t-m" style="top:calc(34% - 50%e);left:calc(74% - 50%e)">
+        <eval input="/Zapp/{zapp_index}/Output/hdrGrade" outputFormat="script x => x < 0 ? '' : dG(x)" default="" />
+      </div>
+      <div class="sp-b-s" style="top:calc(78% - 50%e);left:calc(26% - 50%e)">
+        <eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_Training" default="0'00.0" />
+      </div>
+      <div class="sp-b-s f-num" style="top:calc(78% - 50%e);left:calc(74% - 50%e)">
+        <eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" />
       </div>
     </div>
 
-    <!-- Bottom time-bar: a cheap flat-fill backing panel (replaces the removed clip-path diamond, a costly
-         per-pixel mask). The 2px top hairline (and BREAK's summary hairline) were dropped in the trim-audit
-         — plain rgba rects are cheap, but the accent lines still cost box + measure passes on this mount. -->
-    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.18)"></div>
-    <!-- left:calc(50% - 50%e) self-centers the row by its own width (exact, panel-independent); top 91.5% =
-         the panel's vertical center (87%+9%/2) so the text sits centered in the bar, not riding its top edge. -->
-    <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
-      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
-      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+    <!-- Suunto's Layout 5 separator; its 32%-75% span divides only the 2x2 field grid. -->
+    <div class="cm-fg p-hc" style="top:32%;width:2px;height:43%;opacity:0.4"></div>
+
+    <!-- Shared top fields use Layout 5's exact 26/74% and 35/41% anchors. The %/%e placement is
+         deliberate: horizontal px passed byte-identically to smaller UI2 displays and drifted there.
+         Live pulse is state-independent, and routeHeight already publishes live ascent in CLIMB and
+         lastHeight in BREAK; keeping H at one top-right anchor means it cannot jump on a lap. -->
+    <div style="top:26%;left:3%;width:46%;height:30%">
+      <div class="p-hc sp-vertical-center">
+        <span class="f-ico sp-c-red" style="padding-right:4px">&#xF101;</span>
+        <span class="sp-d-s f-num"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      </div>
     </div>
+    <div style="top:26%;left:51%;width:46%;height:30%">
+      <div class="p-hc sp-vertical-center">
+        <span class="sp-t-s"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" /></span>
+        <span class="sp-b-s" style="padding-left:4px">H</span>
+      </div>
+    </div>
+
+    <!-- Only climb time, AVG and MAX depend on lap index, so only these three fields are duplicated.
+         Their <eval> inputs are static: OPEN Lap/-1 belongs in CLIMB and CLOSED Lap/-2 in BREAK.
+         ready.html fires lap() on START and evL() fires it only while S===1, so Lap/-1 really brackets
+         the climb attempt instead of mixing rest and climbing. Both sections keep identical anchors. -->
+    <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
+      <div style="top:48%;left:5%;width:43%;height:30%">
+        <div class="p-hc sp-vertical-center">
+          <span class="sp-b-s" style="padding-right:4px">AVG</span>
+          <span class="sp-d-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        </div>
+      </div>
+      <div style="top:48%;left:51%;width:48%;height:30%">
+        <div class="p-hc sp-vertical-center">
+          <span class="sp-d-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+          <span class="sp-b-s" style="padding-left:4px">MAX</span>
+        </div>
+      </div>
+
+      <!-- Layout 4's 87% bottom row is identical in both states, so the hero cannot jump at BREAK.
+           The text face is intentional: the digit-only face drops the required apostrophe. Whole
+           seconds avoid a tenths digit flickering throughout every route. -->
+      <div class="p-hc sp-vertical-center" style="top:calc(87% - 50%e)">
+        <span class="f-ico" style="padding-right:4px">&#xF100;</span>
+        <span class="sp-t-m"><eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" /></span>
+      </div>
+
+      <!-- Tap markers stay bare: the old translucent panels were removed because they obscured data. -->
+      <div class="f-ico" style="top:calc(24% - 18.5px);left:calc(90.5% - 50%e);color:#fff">&#xF110;</div>
+      <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute"></div>
+      <div class="f-ico" style="top:calc(76% - 18.5px);left:calc(90.5% - 50%e);color:#fff">&#xF200;</div>
+      <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
+    </div>
+
+    <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
+      <div style="top:48%;left:5%;width:43%;height:30%">
+        <div class="p-hc sp-vertical-center">
+          <span class="sp-b-s" style="padding-right:4px">AVG</span>
+          <span class="sp-d-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        </div>
+      </div>
+      <div style="top:48%;left:51%;width:48%;height:30%">
+        <div class="p-hc sp-vertical-center">
+          <span class="sp-d-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+          <span class="sp-b-s" style="padding-left:4px">MAX</span>
+        </div>
+      </div>
+
+      <div class="p-hc sp-vertical-center" style="top:calc(87% - 50%e)">
+        <span class="f-ico" style="padding-right:4px">&#xF100;</span>
+        <span class="sp-t-m"><eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" /></span>
+      </div>
+
+      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px);left:calc(95% - 50%e)">&#xE338;</div>
+      <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute"></div>
+      <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(90.5% - 50%e)">&#xE373;</div>
+      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
+    </div>
+
+    <!-- Firmware-rendered rim gauge: the import passes through unexpanded (35 B); the old canvas
+         allocated about 217 KB and evicted co-apps. -->
+    <import src="#zone-g" />
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">
