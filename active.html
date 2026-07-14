@@ -27,13 +27,14 @@
          READY->CLIMB and carries just the CLIMB/BREAK pair (zero per-lap swaps via aV). -->
 
     <!-- CLIMB — dashboard LIVE from the current lap (-1). Identical layout to BREAK (finished lap -2): switching CLIMB<->BREAK just swaps live<->frozen firmware-lap data. Grade = current; height = live; HR from Lap/-1. -->
-    <!-- CLIMB — climb time + pulse, big and uncluttered. Grade lives in the colored header; height/avg/max are BREAK-only. -->
+    <!-- CLIMB — climb time + pulse, big and uncluttered. Grade lives in the header;
+         the result tint appears there only on BREAK, while height/avg/max are BREAK-only. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
       <!-- Duration anchored at BREAK's 30% (NOT 36%): CLIMB<->BREAK must not shift the big timer.
            The HR row was already unified to BREAK's 53% and the H-row to 73%; the timer was the last
            un-aligned element, so it jumped 6% on every lap. sc1/sc2 now share the identical geometry. -->
-      <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
+      <div class="sp-d-m p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
@@ -47,14 +48,29 @@
       </div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
+      <!-- Live AVG/MAX of the OPEN lap. Byte-for-byte the sc2 row except Lap/-1 instead of Lap/-2, and
+           at the IDENTICAL Y (70%) so it cannot shift when CLIMB<->BREAK swaps. It cannot be shared like
+           the HR/H rows below: those read one resource that is already correct in both states, whereas
+           this one must switch lap index, and an <eval> input is static.
+           The lap indices are exact, not approximate: ready.html fires lap() on START (vs===0) and
+           active.html fires it on SEND/FAIL (S===1), so the firmware lap brackets the climb attempt —
+           Lap/-1 during CLIMB IS the attempt, not rest+climb mixed. -->
+      <div class="p-hc sp-vertical-center" style="top:calc(70% - 20.5px);">
+        <span class="sp-b-s" style="padding-right:3px">AVG</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+        <span class="sp-b-s" style="padding-left:12px;padding-right:3px">MAX</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+      </div>
+
       <!-- (The H row used to live in here at 73%, duplicated in sc2. It is now ONE shared row at 80%
            below sc1/sc2 — see "Shared route-height row". Same output, same Y, so it cannot jump.) -->
     </div>
 
-    <!-- BREAK — same big time+pulse as CLIMB (frozen lap -2) PLUS the climb summary row: height, avg, max. Grade+result are in the colored header. -->
+    <!-- BREAK — same time+pulse hierarchy as CLIMB (frozen lap -2) PLUS the climb summary row:
+         height, avg, max. Grade and result tint stay in the header. -->
     <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
 
-      <div class="sp-d-l p-hc" style="top:calc(30% - 50%e);">
+      <div class="sp-d-m p-hc" style="top:calc(30% - 50%e);">
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
@@ -79,13 +95,16 @@
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
     </div>
 
-    <!-- Shared live-HR row: the CLIMB (sc1) and BREAK (sc2) HR eval were byte-identical (both read the
-         live Move/-1 Current). Authored once here, always-visible over whichever section is shown. Anchored
-         at BREAK's 53% (its summary row @73% constrains it); CLIMB's HR shifts up from 64% to match. -->
-    <div class="sp-vertical-center" style="top:calc(53% - 50%e); left:calc(50% - 50%e);">
-      <span class="f-ico sp-c-red" style="padding-right:6px">&#xF101;</span>
-      <span class="sp-d-m"><eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" /></span>
+    <!-- Shared live HR: center the NUMBER itself, not the combined icon+number row, so the pulse does
+         not jump sideways when it crosses 99->100. The heart sits in a fixed slot to its left.
+         That slot is a PERCENTAGE, not px: the toolchain emits px byte-identically into every display
+         variant (proven — it does not scale them), so a hard `50% - 105px` would drift on the smaller
+         UI2 watches while the font scales with them. 22.5% == 105px on the Vertical 2's 466px face and
+         holds its relative position everywhere else. -->
+    <div class="sp-d-l p-hc" style="top:calc(53% - 50%e);">
+      <eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" />
     </div>
+    <div class="f-ico sp-c-red" style="position:absolute;top:calc(53% - 18.5px);left:calc(50% - 22.5%)">&#xF101;</div>
 
     <!-- Shared route-height row (same trick as the HR row above). It used to be TWO byte-identical rows,
          one in sc1 and one in sc2 — and after the tally was cut they drifted apart (sc1 @73%, sc2 @64%),
@@ -104,7 +123,7 @@
          identical content; authored once here (rendered last so it sits above the section tops). Saves
          2 cm-fg bands + 2 evals + 2 self-size measure-passes from the resident active mount. -->
     <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.18)">
-      <!-- result bands: pre-built green/orange, toggled by hC via the PROVEN visibility mechanism. Runtime setStyle only applies 'visibility' (like aV), NOT 'background' — the old inline setStyle('#hdr','background',rgba) was a silent on-watch no-op. Bands sit BEHIND the text. -->
+      <!-- Result bands stay inside the header. Runtime setStyle only applies visibility reliably. -->
       <div id="hg" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(45,175,75,0.5);visibility:HIDDEN"></div>
       <div id="ho" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(235,140,25,0.5);visibility:HIDDEN"></div>
       <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
