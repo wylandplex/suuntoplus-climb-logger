@@ -46,7 +46,7 @@
     <!-- vState -> aV, hdrRes -> hC (the applyVis pattern): <eval> bindings replace a leaky $.subscribe
          (#90) — framework-managed, they do not leak on template unload. Both trackers share ONE 0-dim
          holder. The SuuntoPlus CSS parser rejects display:none, so hidden means visibility:HIDDEN. -->
-    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /></div>
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval input="/Activity/Zones/HeartRate/CurrentZone" outputFormat="script x => (gaugeControl('#zns-z-ind',3*Math.PI/4+x*3*Math.PI/10,'radian'),'')" default="" /></div>
 
     <!-- Result tint. ZoneSense has no coloured bands, but SEND/FAIL must be legible at a glance. Runtime
          setStyle applies visibility RELIABLY and background NOT AT ALL (the old
@@ -110,9 +110,9 @@
 
       <!-- Tap zones and their button hints. Bare grey icons, no panels — the panels were half of what
            made this look un-Suunto. FAIL top-right, SEND bottom-right. -->
-      <div class="f-ico cm-mid" style="top:calc(24% - 18.5px);left:calc(91% - 50%e)">&#xF110;</div>
+      <div class="f-ico cm-mid" style="top:calc(24% - 18.5px);left:calc(85% - 50%e)">&#xF110;</div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute"></div>
-      <div class="f-ico cm-mid" style="top:calc(70% - 18.5px);left:calc(91% - 50%e)">&#xF200;</div>
+      <div class="f-ico cm-mid" style="top:calc(70% - 18.5px);left:calc(85% - 50%e)">&#xF200;</div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
 
@@ -129,9 +129,9 @@
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
       </div>
 
-      <div class="f-ico cm-mid" style="top:calc(47% - 18.5px);left:calc(95% - 50%e)">&#xE338;</div>
+      <div class="f-ico cm-mid" style="top:calc(47% - 18.5px);left:calc(85% - 50%e)">&#xE338;</div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute"></div>
-      <div class="f-ico cm-mid" style="top:calc(70% - 18.5px);left:calc(91% - 50%e)">&#xE373;</div>
+      <div class="f-ico cm-mid" style="top:calc(70% - 18.5px);left:calc(85% - 50%e)">&#xE373;</div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
 
@@ -141,6 +141,11 @@
          it: 35 bytes, measured. The canvas we once built for this allocated a ~217 KB render surface and
          got the user's other apps evicted. -->
     <import src="#zone-g" />
+    <svg><id>zns-z-ind</id>
+      <style><width><pixel>466</pixel></width><height><pixel>466</pixel></height></style>
+      <path><id>z-ind-bg</id><d>M0 194 -17 226 -18 235 18 235 17 226Z</d><transform>translate(233,233)</transform></path>
+      <path><id>zArm</id><d>M0 206 -12 227 -12 235 12 235 12 227Z</d><transform>translate(233,233)</transform></path>
+    </svg>
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">

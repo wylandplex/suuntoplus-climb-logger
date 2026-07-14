@@ -35,7 +35,7 @@
       <div class="f-ico p-hc" style="top:calc(74% - 18.5px);">&#xF267;</div>
 
       <!-- Bottom pill (save) — DOWN-long = save&exit on setup -->
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
+      <div style="top:70%;left:80%;width:15%;height:12%;position:absolute;">
         <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
       </div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
@@ -46,6 +46,8 @@
     <!-- No bottom time-bar on SETUP: pre-activity there is nothing to time (duration is 0:00), so the
          clock+duration wrapper and its two eval subscriptions are omitted here — a lighter setup mount
          (the template the watch builds on every enable/re-enable). The time-bar lives on ready/active. -->
+
+    <import src="#zone-g" />
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">
