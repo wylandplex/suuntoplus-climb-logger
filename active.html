@@ -37,12 +37,12 @@
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+      <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
         <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF110;</div>
       </div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
         <div class="f-ico" style="top:calc(50% - 18.5px); left:6px;color:#fff;">&#xF200;</div>
       </div>
       <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
@@ -68,12 +68,12 @@
         <span class="sp-b-s f-num"><eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" /></span>
       </div>
 
-      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+      <div style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
         <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE338;</div>
       </div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.15);">
+      <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
         <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
       </div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
@@ -103,7 +103,7 @@
     <!-- Shared ROUTE/PROJECT header — one always-visible band. Was triplicated across sc0/sc1/sc2 with
          identical content; authored once here (rendered last so it sits above the section tops). Saves
          2 cm-fg bands + 2 evals + 2 self-size measure-passes from the resident active mount. -->
-    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.12)">
+    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.18)">
       <!-- result bands: pre-built green/orange, toggled by hC via the PROVEN visibility mechanism. Runtime setStyle only applies 'visibility' (like aV), NOT 'background' — the old inline setStyle('#hdr','background',rgba) was a silent on-watch no-op. Bands sit BEHIND the text. -->
       <div id="hg" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(45,175,75,0.5);visibility:HIDDEN"></div>
       <div id="ho" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(235,140,25,0.5);visibility:HIDDEN"></div>
@@ -116,7 +116,7 @@
     <!-- Bottom time-bar: a cheap flat-fill backing panel (replaces the removed clip-path diamond, a costly
          per-pixel mask). The 2px top hairline (and BREAK's summary hairline) were dropped in the trim-audit
          — plain rgba rects are cheap, but the accent lines still cost box + measure passes on this mount. -->
-    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.12)"></div>
+    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.18)"></div>
     <!-- left:calc(50% - 50%e) self-centers the row by its own width (exact, panel-independent); top 91.5% =
          the panel's vertical center (87%+9%/2) so the text sits centered in the bar, not riding its top edge. -->
     <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
