@@ -43,7 +43,7 @@
          EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
          them; inside the script string ONLY \uXXXX escapes render (HTML entities break silently) — the
          entity form is legal only in the XML `default`. -->
-    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
+    <div style="top:18%;left:83%;width:15%;height:12%;position:absolute;">
       <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => x===5||x===6?'\uE365':'\uE338'" default="&#xE338;" /></div>
     </div>
     <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
@@ -60,13 +60,13 @@
          placeholder glyph (#101) — the DEL text replaces it, and the trophy closes the cycle.
          x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
          setOutputs + tools/tests/output-pack-equiv.js. -->
-    <div id="pm" style="top:44%;left:90%;width:10%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
+    <div id="pm" style="top:44%;left:90%;width:10%;height:12%;position:absolute;">
       <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'\uF110':x===-4?'\uF200':x<-1?'':'\uF111'" default="&#xF111;" /></div>
       <div class="sp-b-s cm-bgc" style="position:absolute;top:calc(50% - 20.5px);left:2px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-3?'DEL':''" default="" /></div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;background:rgba(255,255,255,0.22);">
+    <div style="top:70%;left:83%;width:15%;height:12%;position:absolute;">
       <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
     </div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
