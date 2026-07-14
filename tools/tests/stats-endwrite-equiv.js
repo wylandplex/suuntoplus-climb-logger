@@ -123,7 +123,7 @@ function endAggCalc(routesA, routesB, gs) {
     if (d > 0) durAg += d;
     if (rr > 0) { hrs += rr; hrc++; }
   }
-  return [sAg, nR, spcAg, spAg, durAg, hrc > 0 ? hrs / hrc : 0, htAg];
+  return [sAg, nR, spAg >= 0 ? spAg % 100 : -1, spAg, durAg, hrc > 0 ? hrs / hrc : 0, htAg];
 }
 
 // ---------------------------------------------------------------- the shared pipeline driver
@@ -263,7 +263,7 @@ function runPipeline(initStore, plan, isOld) {
             } else {
               const dp = dCm - 1;
               if (P[dp] > 0) P[dp]--;
-              if (dSend && P[dp + 5] > 0) P[dp + 5]--;
+              if (dSend && P[dp + 5] > 0) { P[dp + 5]--; if (!P[dp + 5]) P[dp + 10] = 0; }
               if (P[dp] <= 0) { P[dp] = P[dp + 5] = P[dp + 10] = 0; P[dp + 15] = -1; }
               projStatsDirty = 1;
             }
@@ -305,7 +305,7 @@ function runPipeline(initStore, plan, isOld) {
               rescanBest(c);
             } else {
               const p = c - 1;
-              if (P[p + 5] > 0) P[p + 5]--;
+              if (P[p + 5] > 0) { P[p + 5]--; if (!P[p + 5]) P[p + 10] = 0; }
               projStatsDirty = 1;
             }
           }
@@ -519,8 +519,13 @@ for (let seed = 1; seed <= RUNS; seed++) {
   const cl = () => plan.init ? JSON.parse(JSON.stringify(plan.init)) : null;
   const oldDump = runPipeline(cl(), plan, true);
   const newDump = runPipeline(cl(), plan, false);
+  const oldCmp = JSON.parse(JSON.stringify(oldDump)), newCmp = JSON.parse(JSON.stringify(newDump));
+  for (const x of [oldCmp, newCmp]) {
+    if (x.stats) delete x.stats.peakGrade;
+    for (let n = 0; n < 10; n++) if (x['s' + n]) delete x['s' + n].peakGrade;
+  }
   try {
-    assert.deepStrictEqual(newDump, oldDump);
+    assert.deepStrictEqual(newCmp, oldCmp);
   } catch (e) {
     fail++;
     console.error('\n=== SEED ' + seed + ' DIVERGED ===');
@@ -552,7 +557,7 @@ console.log('strict fuzz: ' + RUNS + ' randomized multi-session runs deep-equal 
   assert.strictEqual(nd.s1.totalSends, 1, 'virgin system: sends = this session only');
   assert.strictEqual(nd.s1.sessions, 1, 'virgin system: first session');
   assert.strictEqual(nd.s1.totalHeight, 20, 'virgin system: height = this session only');
-  assert.strictEqual(nd.s1.peakGrade, -1, 'virgin system: records stay default (old flow leaked them)');
+  assert.strictEqual(nd.s1.peakGrade, 5, 'virgin system: peak grade comes from this session');
   assert.strictEqual(nd.s0.totalRoutes, 3, 'previous system untouched by the switch');
   assert.strictEqual(nd.s0.sessions, 1, 'previous system session count intact');
   assert.strictEqual(nd.stats.system, 1, 'blob labeled with the end system');
@@ -611,10 +616,20 @@ console.log('strict fuzz: ' + RUNS + ' randomized multi-session runs deep-equal 
   assert.ok(grow <= 40, 'virgin-system first end grows the store <=40B (was ~+180B), got +' + grow);
   const ls0 = mkLS(shipped());
   bind(NEW.ext11, ls0)([1, 1, 0, 0, 0, 0, 10], [-1, -1, -1, -1, -1], P0.slice(), 0, 0, 0);
-  assert.strictEqual(Object.keys(ls0.getObject('s0')).length, 14, '14-field snapshot keeps all fields');
+  assert.strictEqual(Object.keys(ls0.getObject('s0')).length, 6, 'snapshot contains only five totals + implemented peak');
   const shippedBytes = JSON.stringify(shipped()).length;
-  assert.ok(shippedBytes < 2100, 'shipped store after the diet stays <2100B, got ' + shippedBytes);
-  console.log('growth-freeze: virgin end +' + grow + 'B (<=40), s0 stays 14-field, store ' + shippedBytes + 'B OK');
+  // Baseline bewusst angehoben (PR2/F1): data.json deklariert jetzt pS0-pS9 statt nur pS0 -- ohne
+  // diese Keys koennen Projekt-Stats fuer 9 von 10 Grade-Systemen NIE persistieren. Korrektheit
+  // schlaegt Store-Groesse. OFFEN: ob die Uhr ein data.jsn dieser Groesse noch initialisiert, ist
+  // NICHT bewiesen -- es gibt keine dokumentierte Grenze. Das klaert der On-Watch-Test (v2.2).
+  // The <2100B growth-freeze from #181 ("Store-Diät 2213->1999B") is NOT a style rule: watch evidence
+  // ties a 2213B store to failed ~2230B allocations and END crashes. F1 declares pS1-pS9 to make the
+  // strict-key allowlist cover all ten grade systems, but as EMPTY objects — fillSlots (main.js:111)
+  // already supplies every default (0 for 0-14, -1 for 15-19), so {} is behaviourally identical to a
+  // full 20-slot dict and costs 1206B less. Declaring them as full dicts would ship a 3286B store,
+  // i.e. ABOVE the size empirically tied to end-write crashes. Keep this bound where it is.
+  assert.ok(shippedBytes < 2100, 'shipped store stays <2100B (pS0-pS9 declared, pS1-pS9 empty), got ' + shippedBytes);
+  console.log('growth-freeze: virgin end +' + grow + 'B (<=40), s0 is 6-field, store ' + shippedBytes + 'B OK');
 }
 
 console.log('stats-endwrite-equiv: ALL OK');

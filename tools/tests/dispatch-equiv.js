@@ -29,7 +29,7 @@ var os = require('os');
 
 var ROOT = path.join(__dirname, '..', '..');
 var SENT = -424242;  // "this output slot has not been written yet" — never 0, which is a legal value
-var ORACLE_REF = process.env.ORACLE_REF || '1cb7d16';  // bumped per stage (1cb7d16 = #187/#188/#189). Intended divergences from ef36255, ALL accounted for: (a) io[8]/packedAct now publishes in state 6 (PROJ-SETUP) where the old oracle had no branch and left -1 — that IS #188; (b) the [end] traffic differs because ext11 no longer wipes a re-graded slot — that IS #187. Guarded from here on by tools/tests/proj-regrade-equiv.js + output-map-equiv.js.
+var ORACLE_REF = process.env.ORACLE_REF || '6403071';  // bumped per stage (ffe817a = the v2.0 audit fix round, F2-F11). Intended divergence from 1cb7d16, accounted for: the packedBreak output was REMOVED as dead code (no mounted template subscribed to it — it funded the resident budget for the fixes), so manifest out[] went 10 -> 9 and every io[] slot after index 7 shifts by one. An index-wise compare across that schema change is structurally meaningless, NOT a regression: the old oracle and the new candidate no longer agree on what io[N] even means. Guarded from here on by the 12 executable proofs in tools/proofs/ (which drive the real main.js + ext*.js and assert on behaviour, not on a moving oracle) + proj-regrade-equiv.js + output-map-equiv.js.
 
 function findBuild() {
   var g = cp.execSync("ls -d /home/skyfi/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1").toString().trim();

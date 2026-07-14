@@ -1,4 +1,4 @@
-// output-pack-equiv.js — proves packedGL / packedBreak encode↔decode round-trips exactly AND that
+// output-pack-equiv.js — proves the packed output encoders/decoders round-trip exactly AND that
 // every composite is float32-exact (SuuntoPlus outputs reach template scripts as float32; a value
 // above 2^24 silently loses low digits → wrong grade/count on the watch). See outputs-are-float32.
 //
@@ -65,36 +65,6 @@ for (var lf = 0; lf <= 1; lf++) {
 }
 console.log("  max flagged packedGL = " + encGLF(1, MAXGF, MAXG) + " (limit 2^24 = 16777216)");
 check(encGLF(1, MAXGF, MAXG) <= (1 << 24), "flagged packedGL worst case exceeds 2^24");  // 2^24 is the largest float32-exact integer, so the safe limit is <=, not <
-
-// ---------- packedBreak = (bse+1)*4096 + sat(brkSends)*64 + sat(brkRoutes) ----------
-//   bestSend decode:  Math.floor(x/4096) - 1   (bse -1 = none)
-//   brkSends decode:  Math.floor(x/64) % 64
-//   brkRoutes decode: x % 64
-console.log("[packedBreak] bestSend + brkSends + brkRoutes (counts saturate at 63)");
-var sat = function(n) { return n > 63 ? 63 : n; };
-var encBrk = function(bse, bs, br) { return (bse + 1) * 4096 + sat(bs) * 64 + sat(br); };
-var decBse = function(x) { return Math.floor(x / 4096) - 1; };
-var decBS  = function(x) { return Math.floor(x / 64) % 64; };
-var decBR  = function(x) { return x % 64; };
-var bseVals = [-1].concat(gradeVals);
-var countVals = [0, 1, 2, 17, 34, 35, 50, 63];   // in-range counts (≤63); 50 = splice cap, 35 = prod ROUTE_LIMIT
-for (var c = 0; c < bseVals.length; c++) {
-  for (var d = 0; d < countVals.length; d++) {
-    for (var e = 0; e < countVals.length; e++) {
-      var bse = bseVals[c], bs = countVals[d], br = countVals[e], y = encBrk(bse, bs, br), yf = Math.fround(y);
-      check(f32(y), "packedBreak not float32-exact: bse=" + bse + " bs=" + bs + " br=" + br + " -> " + y);
-      check(decBse(yf) === bse, "bestSend round-trip bse=" + bse + " -> " + decBse(yf));
-      check(decBS(yf) === bs, "brkSends round-trip bs=" + bs + " -> " + decBS(yf));
-      check(decBR(yf) === br, "brkRoutes round-trip br=" + br + " -> " + decBR(yf));
-    }
-  }
-}
-// saturation: counts >63 must clamp to 63 (display degrades, composite stays valid) — never corrupt other fields
-check(decBS(encBrk(MAXG, 200, 0)) === 63, "brkSends>63 must saturate to 63");
-check(decBR(encBrk(MAXG, 0, 999)) === 63, "brkRoutes>63 must saturate to 63");
-check(decBse(encBrk(MAXG, 999, 999)) === MAXG, "bestSend must survive saturated counts");
-console.log("  max packedBreak = " + encBrk(MAXG, 63, 63) + " (limit 2^24 = 16777216)");
-check(encBrk(MAXG, 63, 63) <= (1 << 24), "packedBreak worst case exceeds 2^24");
 
 // ---------- packedAct: READY P-mode tries*1000+sends (>=0) | -1 hidden | EDIT codes -2..-5 ----------
 //   encoder mirrors main.js setOutputs: state 0 P-mode = min(tries,16700)*1000 + min(sends,999);

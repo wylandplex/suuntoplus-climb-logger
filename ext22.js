@@ -6,9 +6,9 @@ var lg=S[4]>=0?gs*100+S[4]:-1;
 var rh=st===1?Math.max(0,Math.round(S[13]-S[14])):st===2?S[8]:S[9];
 if(F||pv[2]!==rh){o[4]=rh;pv[2]=rh}
 var cl=st===1?1:0;
-if(F||pv[9]!==cl){o[10]=cl;pv[9]=cl}
+if(F||pv[9]!==cl){o[9]=cl;pv[9]=cl}
 var gl=st===1?S[12]:S[4]>=0?S[4]:S[12];
-if(F||pv[10]!==gl){o[11]=gl;pv[10]=gl}
+if(F||pv[10]!==gl){o[10]=gl;pv[10]=gl}
 if(st===5){g=S[1]<rA.length?gs*100+Math.floor(rA[S[1]]/1e6):gs*100+50;m=S[1]+1;lg=-1}
 else if(st===6){g=P[S[5]]>=0?gs*100+P[S[5]]:gs*100+50;m=-(S[5]+1);lg=-1}
 else if(st===4){g=gs*100+S[17][gs];m=gs;lg=-1}
@@ -21,9 +21,6 @@ if(st===0&&S[7]>0){i=S[7]-1;pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i
 else if(st===6){i=S[5];pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):-1}
 else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;
 if(F||pv[5]!==pA){o[8]=pA;pv[5]=pA}
-var pB=0;
-if(st===2){var bs=S[10]>=0?gs*100+S[10]:-1,sn=A?A[0]:0,rn=A?A[1]:0;for(i=0;i<rA.length;i++){rn++;if(Math.floor(rA[i]/1e5)%10)sn++}pB=(bs+1)*4096+Math.min(63,sn)*64+Math.min(63,rn)}
-if(F||pv[8]!==pB){o[9]=pB;pv[8]=pB}
 var hg=st===1?g:st===2?lg:-1;
 if(F||pv[6]!==hg){o[6]=hg;pv[6]=hg}
 var hr=st===2?S[11]?1:2:0;

@@ -47,6 +47,10 @@ function loadExt11(LS) {
   var src = fs.readFileSync(path.join(ROOT, 'ext11.js'), 'utf8').trim().replace(/;$/, '');
   return new Function('localStorage', 'return (' + src + ')')(LS);
 }
+function loadExt10() {
+  var src = fs.readFileSync(path.join(ROOT, 'ext10.js'), 'utf8').trim().replace(/;$/, '');
+  return new Function('return (' + src + ')')();
+}
 
 var ACC = [3, 7, 0, 0, 0, 0, 120, 0];   // acc = [sends, routes, ...]; only [0],[1],[6] matter to ext11
 
@@ -54,6 +58,19 @@ var ACC = [3, 7, 0, 0, 0, 0, 120, 0];   // acc = [sends, routes, ...]; only [0],
 function freshSlot() { return [12, 0, 0, 0, 0, 4, 0, 0, 0, 0, 310, 0, 0, 0, 0, 18, -1, -1, -1, -1]; }
 
 console.log('[proj-regrade-equiv] a re-grade must NOT destroy a project slot (#187)');
+
+// ---- route commit after a re-grade keeps the existing history (F3) ----------
+(function () {
+  var ext10 = loadExt10(), P = freshSlot();
+  ext10(22, 0, 60, 2, 0, 0, 1, -1, P, 1, 0);
+  check(P[0] === 13 && P[5] === 4 && P[10] === 310 && P[15] === 22,
+    'ext10 FAIL after re-grade must yield 13/4/310/tag22, got ' + [P[0], P[5], P[10], P[15]]);
+  P = freshSlot();
+  ext10(22, 0, 60, 2, 0, 1, 1, -1, P, 1, 0);
+  check(P[0] === 13 && P[5] === 5 && P[10] === 60 && P[15] === 22,
+    'ext10 SEND after re-grade must yield 13/5/60/tag22, got ' + [P[0], P[5], P[10], P[15]]);
+  console.log('  PASS  real ext10 route commit preserves re-graded project history');
+})();
 
 // ---- scenario 1: RE-GRADE keeps the stats and adopts the new grade -----------
 (function () {

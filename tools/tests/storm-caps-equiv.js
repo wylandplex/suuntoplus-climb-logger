@@ -230,7 +230,6 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
   var d = decodeA(st.routesA[0]);
   check(d.send === 1 && d.grade === 18 && d.cm === 0, 'T5: degraded record matches ext10 shape (g=' + d.grade + ' s=' + d.send + ' cm=' + d.cm + ')');
   check(st.routesB[0] === 3000 + 1.5, 'T5: duration/hr packed (B=' + st.routesB[0] + ')');
-  check(st.bestSendIdx === 18, 'T5: best-send tally maintained inline');
   check(sb.__ev.counts['10'] === 3, 'T5: exactly 3 parse attempts (' + sb.__ev.counts['10'] + ')');
   // second route: no further parse attempts, degraded immediately
   press(sb, 6);                             // BREAK -> READY (frDirty clear now)
@@ -264,7 +263,6 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
   var st = sb.__st();
   check(st.frDirty === 0, 'T5b: route resolved in the end window (frDirty=' + st.frDirty + ')');
   check(st.acc && st.acc[1] === 1 && st.acc[0] === 1, 'T5b: route folded into summary (acc=' + st.acc + ')');
-  check(st.bestSendIdx === 18, 'T5b: best-send tally maintained');
   check(sb.__ev.counts['10'] === 1, 'T5b: exactly ONE end-window parse attempt (' + sb.__ev.counts['10'] + ')');
   check(sb.__ev.counts['11'] === 1 && ls.sets > 0, 'T5b: end save ran with the rescued route');
   check(!hasNs(st.sum) && st.sum && st.sum[0].value === 1, 'T5b: summary shows 1/1');

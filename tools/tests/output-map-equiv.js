@@ -97,13 +97,6 @@ function refFull(s) {
     pAct = rA.length === 0 ? -5 : s.editDelMark ? -4 : rSend(s.editIdx) ? -2 : -3;
   }
   o.packedAct = pAct;
-  var pBrk = 0;
-  if (s.state === 2) {
-    var bse = s.bestSendIdx >= 0 ? gs * 100 + s.bestSendIdx : -1, snd = 0;
-    for (var b = 0; b < rA.length; b++) if (rSend(b)) snd++;
-    pBrk = (bse + 1) * 4096 + Math.min(63, snd) * 64 + Math.min(63, rA.length);
-  }
-  o.packedBreak = pBrk;
   o.hdrGrade = s.state === 1 ? gradeV : s.state === 2 ? lastGradeV : -1;
   o.hdrRes = s.state === 2 ? (s.lastResult ? 1 : 2) : 0;
   return o;
@@ -294,7 +287,7 @@ var COLD4 = { state: 4, gradeSystem: 1, climbMode: 0, currentGrade: DEFAULT_IDX[
 var expC = refCrown(COLD4);
 chk(d.io[IDX.vState] === expC.vState && d.io[IDX.packedGL] === expC.packedGL && d.io[IDX.modeSub] === expC.modeSub && d.io[IDX.routeHeight] === expC.routeHeight,
   'cold SETUP crown wrong: got GL=' + d.io[IDX.packedGL] + '/mode=' + d.io[IDX.modeSub] + ' expected GL=' + expC.packedGL + '/mode=' + expC.modeSub);
-chk([IDX.hdrGrade, IDX.hdrRes, IDX.packedAct, IDX.packedBreak].every(function (k) { return d.io[k] === SENT; }), 'FBW touched a non-crown slot');
+chk([IDX.hdrGrade, IDX.hdrRes, IDX.packedAct].every(function (k) { return d.io[k] === SENT; }), 'FBW touched a non-crown slot');
 chk(d.n22() === 0, 'ext22 parsed before the first tick (onLoad/press must never parse)');
 d.ev(6);                                            // confirm -> READY mount; sysChg -> pendSlots=1
 d.tick();                                           // tick 1 drains pendSlots (heavy-op serialization)
@@ -308,9 +301,8 @@ d.clear(); d.ev(5);
 chk(d.io[IDX.vState] === SENT, 'EDIT overlay opened while cold (must be refused)');
 d.tick();                                           // tick 2: stager -> warm
 chk(d.n22() === 1, 'expected exactly 1 ext22 parse at the stager tick, got ' + d.n22());
-d.clear(); d.ev(5);                                 // now warm: overlay opens
-chk(d.io[IDX.vState] === 5, 'EDIT overlay did not open when warm');
-chk(d.io[IDX.packedAct] === -5, 'warm empty EDIT pill wrong: ' + d.io[IDX.packedAct]);
+d.clear(); d.ev(5);                                 // warm but empty: honest immutable editor refusal
+chk(d.io[IDX.vState] === SENT, 'empty EDIT overlay opened despite having no editable tail route');
 
 // ---- E) lifecycle --------------------------------------------------------------------
 console.log('[E] stager lifecycle');
@@ -345,7 +337,7 @@ var n0 = f.n22();
 f.faults.call22 = 1;
 f.clear(); f.ev(1);                                  // publisher CALL throws at the press
 chk(f.io[IDX.packedGL] !== SENT, 'call-throw: FBW did not publish the crown at the throwing press');
-chk(f.io[IDX.hdrRes] === SENT && f.io[IDX.packedBreak] === SENT, 'call-throw: a non-crown slot was written by FBW');
+chk(f.io[IDX.hdrRes] === SENT, 'call-throw: a non-crown slot was written by FBW');
 f.tick();
 chk(f.n22() === n0 + 1, 'call-throw: the stager did not re-parse on the next tick');
 // warm again? a BREAK grade correction must republish a NON-crown slot (hdrGrade), which only the
@@ -423,7 +415,7 @@ chk(y.io[IDX.packedGL] !== SENT, 'F5: the continue mount published nothing (stal
 y.tick();
 chk(y.n22() === 2, 'F6: the post-continue tick did not re-parse the publisher');
 y.clear(); y.ev(5);
-chk(y.io[IDX.vState] === 5, 'F6: EDIT could not be re-entered once warm again');
+chk(y.io[IDX.vState] === SENT || y.io[IDX.vState] === 0, 'F6: folded-only EDIT history was exposed as editable');
 // PROJ-SETUP folds identically
 var z = makeInstance(RETURN);
 z.ui(); z.load(); z.tick(); z.tick();     // warm, READY

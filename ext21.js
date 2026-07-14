@@ -6,7 +6,7 @@ function(op, b, rA, rB, P) {
       if (c > 0) {
         var p = c - 1;
         if (P[p] > 0) P[p]--;
-        if (s && P[p + 5] > 0) P[p + 5]--;
+        if (s && P[p + 5] > 0) { P[p + 5]--; if (!P[p + 5]) P[p + 10] = 0; }
         if (P[p] <= 0) { P[p] = P[p + 5] = P[p + 10] = 0; P[p + 15] = -1; }
         b[4] = 1;
       }
@@ -29,7 +29,7 @@ function(op, b, rA, rB, P) {
   if (c > 0) {
     var q = c - 1;
     if (v) { P[q + 5]++; var d = Math.floor(rB[i] / 1000); if (d > 0 && (P[q + 10] === 0 || d < P[q + 10])) P[q + 10] = d; }
-    else if (P[q + 5] > 0) P[q + 5]--;
+    else if (P[q + 5] > 0) { P[q + 5]--; if (!P[q + 5]) P[q + 10] = 0; }
     b[4] = 1;
   }
 }

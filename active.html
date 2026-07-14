@@ -58,10 +58,7 @@
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" />
       </div>
 
-      <!-- Session tally (best send + sends/routes) MOVED OFF the BREAK screen -> STATS overlay, reached
-           with TOP-long (eid 5). packedBreak is still packed by ext22 and stays in manifest out[] for
-           that screen; nothing on the always-mounted cluster subscribes it any more, so the three
-           packedBreak <eval> bindings leave the hot template.
+      <!-- The removed session-tally row has no output subscription; recap rows own session totals.
            BREAK-only AVG/MAX of the finished lap (-2). The height is NOT here — it is the shared row
            below, so it holds the same Y in CLIMB and BREAK. -->
       <div class="p-hc sp-vertical-center" style="top:calc(70% - 20.5px);">

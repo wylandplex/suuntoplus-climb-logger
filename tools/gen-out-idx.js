@@ -19,17 +19,13 @@
 //   o  = the io/output vector            S  = resident scalar bag (see main.js pub())
 //   rA/rB = packed route arrays          pv = publish cache; pv[0] = force-republish flag
 //   A  = the folded session accumulator `acc` (NULLABLE — null until the first foldRoutes()).
-//        MANDATORY for any SESSION-WIDE count: foldRoutes() runs at PAUSE and at END and it EMPTIES
-//        routesA/routesB into acc. So rA is only the UN-FOLDED TAIL, never the whole session. Counting
-//        rA alone made packedBreak report 0/0 right after a pause (bug found 2026-07-11, repro:
-//        3 sends -> pause -> continue -> 4th send showed "1/1" instead of "4/4"). Session total =
-//        acc + rA. acc = [sends, routes, height, dur, hrSum, hrCnt, bestEnc, peakCount].
+//        acc = [sends, routes, height, dur, hrSum, hrCnt, bestEnc, peakCount].
 // S layout: 0 state, 1 editIdx, 2 editDelMark, 3 gradeSystem, 4 lastGradeIdx, 5 pStep,
-//   6 routeNumber, 7 climbMode, 8 lastHeight, 9 sessionH, 10 bestSendIdx, 11 lastResult,
+//   6 routeNumber, 7 climbMode, 8 lastHeight, 9 sessionH, 10 unused, 11 lastResult,
 //   12 currentGrade, 13 curAsc, 14 startAsc, 15 projGradeIdx(ref), 16 projSlot(ref),
 //   17 DEFAULT_IDX(ref)
-// pv keys (unchanged from the old chg()): 1 vState, 2 routeHeight, 3 packedGL, 4 modeSub,
-//   5 packedAct, 6 hdrGrade, 7 hdrRes, 8 packedBreak, 9 climbing, 10 gradeLog
+// pv keys: 1 vState, 2 routeHeight, 3 packedGL, 4 modeSub,
+//   5 packedAct, 6 hdrGrade, 7 hdrRes, 9 climbing, 10 gradeLog
 // Write order is o-first-then-pv: a mid-call throw can only leave the store NEWER than the
 // cache (rewritten on the next call), never stale-behind-cache.
 
@@ -77,12 +73,6 @@ var TPL = [
   'else if(st===6){i=S[5];pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):-1}',
   'else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;',
   'if(F||pv[5]!==pA){o[@packedAct@]=pA;pv[5]=pA}',
-  'var pB=0;',
-  // SESSION totals = folded (A) + un-folded tail (rA). rA alone is NOT the session: foldRoutes()
-  // empties it into acc at PAUSE and at END. bs stays on S[10] (bestSendIdx survives the fold, and
-  // recalcBse now re-seeds itself from acc[6]).
-  'if(st===2){var bs=S[10]>=0?gs*100+S[10]:-1,sn=A?A[0]:0,rn=A?A[1]:0;for(i=0;i<rA.length;i++){rn++;if(Math.floor(rA[i]/1e5)%10)sn++}pB=(bs+1)*4096+Math.min(63,sn)*64+Math.min(63,rn)}',
-  'if(F||pv[8]!==pB){o[@packedBreak@]=pB;pv[8]=pB}',
   'var hg=st===1?g:st===2?lg:-1;',
   'if(F||pv[6]!==hg){o[@hdrGrade@]=hg;pv[6]=hg}',
   'var hr=st===2?S[11]?1:2:0;',

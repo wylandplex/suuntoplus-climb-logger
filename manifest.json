@@ -3,7 +3,7 @@
   "description": "Track your progress on rock & ice.",
   "version": "2.0",
   "author": "skyfi",
-  "modificationTime": 1783930344,
+  "modificationTime": 1783957826,
   "type": "feature",
   "usage": "workout",
   "in": [
@@ -42,9 +42,6 @@
     },
     {
       "name": "packedAct"
-    },
-    {
-      "name": "packedBreak"
     },
     {
       "name": "climbing",
@@ -112,46 +109,6 @@
     {
       "shownName": "Peak Grade",
       "path": "stats.peakGrade",
-      "type": "int"
-    },
-    {
-      "shownName": "Sessions @ Peak",
-      "path": "stats.sessionsAtPeak",
-      "type": "int"
-    },
-    {
-      "shownName": "Last Session Grade",
-      "path": "stats.lastSessionGrade",
-      "type": "int"
-    },
-    {
-      "shownName": "Best of Last 5",
-      "path": "stats.bestOfLast5",
-      "type": "int"
-    },
-    {
-      "shownName": "Best Session Height [m]",
-      "path": "stats.bestSessionHm",
-      "type": "int"
-    },
-    {
-      "shownName": "Longest Project Sessions",
-      "path": "stats.longestProjectSes",
-      "type": "int"
-    },
-    {
-      "shownName": "Longest Project Grade",
-      "path": "stats.longestProjectGrade",
-      "type": "int"
-    },
-    {
-      "shownName": "Most Tries on Project",
-      "path": "stats.mostTriesProject",
-      "type": "int"
-    },
-    {
-      "shownName": "Most Tries Grade",
-      "path": "stats.mostTriesGrade",
       "type": "int"
     },
     {

@@ -2,9 +2,9 @@
 // reads at onLoad) is state-equivalent to the deleted ext12.js evalFile bootstrap it replaced.
 //
 // Oracle = the frozen ext12 source (identical copy also embedded in stats-endwrite-equiv.js).
-// Candidate = the real main.js, loaded in a vm sandbox and driven through onLoad.
+// Candidate = the real main.js, loaded in a vm sandbox and driven through onLoad + evaluate.
 // Compared after bootstrap: gradeSystem, projGradeIdx, projSlot, sessionsNo, skipP, and the
-// ext13 cold-migration gate (needsMig <-> ext13 invocation).
+// ext13 cold-migration gate (never parsed in onLoad; parsed on a later evaluate tick).
 //
 // Deliberate hybrid DIVERGENCES (asserted, not compared):
 //   - watchSetup legacy fallback dropped (pre-populated installs always ship stats.system).
@@ -53,7 +53,7 @@ function runInline(seed) {
   var sandbox = {
     localStorage: ls,
     evalFile: function (p) {
-      if (/ext13/.test(p)) { ext13calls.n++; return function () {}; }
+      if (/ext13/.test(p)) { ext13calls.n++; return function () { var s = ls.getObject('stats') || {}; s.mig = 1; ls.setObject('stats', s); }; }
       return function () { return null; };
     },
     setText: function () {}, setStyle: function () {}, unload: function () {},
@@ -63,11 +63,15 @@ function runInline(seed) {
   var src = fs.readFileSync(MAIN, 'utf8') +
     '\n;this.__st=function(){return {gradeSystem:gradeSystem,projGradeIdx:projGradeIdx.slice(),' +
     'projSlot:projSlot.slice(),sessionsNo:sessionsNo,skipP:skipP,pendF12:pendF12}};' +
-    '\n;this.__onLoad=onLoad;';
+    '\n;this.__onLoad=onLoad;this.__evaluate=evaluate;';
   vm.runInContext(src, sandbox, { filename: 'main.js' });
   sandbox.__onLoad({}, {});
+  var atLoad = ext13calls.n, pendingAtLoad = sandbox.__st().pendF12;
+  for (var i = 0; i < 12 && sandbox.__st().pendF12; i++) sandbox.__evaluate({}, {});
   var st = sandbox.__st();
   st.ext13calls = ext13calls.n;
+  st.ext13AtLoad = atLoad;
+  st.pendingAtLoad = pendingAtLoad;
   return st;
 }
 
@@ -96,8 +100,10 @@ for (var c = 0; c < CASES.length; c++) {
   check(eqArr(n.projSlot, o.projSlot), name + ': projSlot [' + n.projSlot + '] != [' + o.projSlot + ']');
   check(n.sessionsNo === o.sessionsNo, name + ': sessionsNo ' + n.sessionsNo + ' != ' + o.sessionsNo);
   check((n.skipP === 1) === o.skipAllowed, name + ': skipP ' + n.skipP + ' vs oracle ' + o.skipAllowed);
-  check((n.ext13calls > 0) === o.needsMig, name + ': ext13 gate ' + n.ext13calls + ' vs needsMig ' + o.needsMig);
-  check(n.pendF12 === 0, name + ': bootstrap must complete in onLoad (pendF12=' + n.pendF12 + ')');
+  check(n.ext13AtLoad === 0, name + ': ext13 must not parse in onLoad, got ' + n.ext13AtLoad);
+  check((n.ext13calls > 0) === o.needsMig, name + ': evaluate ext13 gate ' + n.ext13calls + ' vs needsMig ' + o.needsMig);
+  check((n.pendingAtLoad !== 0) === o.needsMig, name + ': deferred migration gate ' + n.pendingAtLoad + ' vs needsMig ' + o.needsMig);
+  check(n.pendF12 === 0, name + ': bootstrap must settle after evaluate ticks (pendF12=' + n.pendF12 + ')');
   if (!fails) console.log('  PASS  ' + name);
 }
 
