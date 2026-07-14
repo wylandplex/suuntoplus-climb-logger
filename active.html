@@ -135,6 +135,13 @@
     <!-- Firmware-rendered rim gauge. The import passes through to the XML unexpanded and the watch draws
          it: 35 bytes, measured. The canvas we once built for this allocated a ~217 KB render surface and
          got the user's other apps evicted. -->
+    <!-- The zone indicator at the bottom rim. ZoneSense authors exactly this and then TINTS it per
+         zone: setStyle('#zns-tooth','color', color[v-1]). It is a firmware-resident asset — not bundled
+         in ZoneSense's .fea (four files: data.jsn, main.js, manifest.jsn, t.xml) — and the watch DOES
+         resolve it for a third-party app; the owner saw it render. It belongs WITH the rim gauge, not
+         instead of it: zone-g draws the arc, the tooth marks the position. -->
+    <img id="ztooth" src="tooth.png" class="p-hc" style="top:calc(100% - 100%e)" />
+
     <import src="#zone-g" />
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
