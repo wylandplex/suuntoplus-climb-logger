@@ -1,6 +1,7 @@
 function(o,S,rA,rB,pv,A){
 var st=S[0],gs=S[3],P=S[15],Q=S[16],F=pv[0],g,m,v,i;
-var lk=st===5&&(S[1]>=rA.length||Math.floor(rA[S[1]]/1e4)%10>0)?1:0;
+var cm=st===5&&S[1]<rA.length?Math.floor(rA[S[1]]/1e4)%10:0;
+var lk=st===5&&(S[1]>=rA.length||cm>0)?1:0;
 if(F||pv[1]!==st){o[5]=st;pv[1]=st}
 var lg=S[4]>=0?gs*100+S[4]:-1;
 var rh=st===1?Math.max(0,Math.round(S[13]-S[14])):st===2?S[8]:S[9];
@@ -19,7 +20,7 @@ if(F||pv[4]!==m){o[3]=m;pv[4]=m}
 var pA=-1;
 if(st===0&&S[7]>0){i=S[7]-1;pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):0}
 else if(st===6){i=S[5];pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):-1}
-else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;
+else if(st===5){i=S[2]?2:Math.floor(rA[S[1]]/1e5)%10?0:1;pA=rA.length===0?-5:cm>0?-(6+(Math.min(Q[cm-1]||0,5591)*1000+Math.min(Q[cm+4]||0,999))*3+i):i===2?-4:i===0?-2:-3}
 if(F||pv[5]!==pA){o[8]=pA;pv[5]=pA}
 var hg=st===1?g:st===2?lg:-1;
 if(F||pv[6]!==hg){o[6]=hg;pv[6]=hg}

@@ -42,7 +42,9 @@ OUTS.forEach(function (nm, k) { IDX[nm] = OFF + k; });
 var TPL = [
   'function(o,S,rA,rB,pv,A){',
   'var st=S[0],gs=S[3],P=S[15],Q=S[16],F=pv[0],g,m,v,i;',
-  'var lk=st===5&&(S[1]>=rA.length||Math.floor(rA[S[1]]/1e4)%10>0)?1:0;',
+  // The same project-route digit drives both the EDIT chevron lock and the packed project stats.
+  'var cm=st===5&&S[1]<rA.length?Math.floor(rA[S[1]]/1e4)%10:0;',
+  'var lk=st===5&&(S[1]>=rA.length||cm>0)?1:0;',
   'if(F||pv[1]!==st){o[@vState@]=st;pv[1]=st}',
   'var lg=S[4]>=0?gs*100+S[4]:-1;',
   'var rh=st===1?Math.max(0,Math.round(S[13]-S[14])):st===2?S[8]:S[9];',
@@ -71,7 +73,10 @@ var TPL = [
   // An OFF / unconfigured slot must stay at -1 (=> ready.html renders blank), NOT 0 — 0 decodes to a
   // FAKE "0T 0S" on a slot that has no stats at all. -1 is safe: the pill codes are -2..-5.
   'else if(st===6){i=S[5];pA=P[i]>=0?Math.min(Q[i]||0,16700)*1000+Math.min(Q[i+5]||0,999):-1}',
-  'else if(st===5)pA=rA.length===0?-5:S[2]?-4:Math.floor(rA[S[1]]/1e5)%10?-2:-3;',
+  // Project-route EDIT keeps the three result states AND its T/S counters in one float32-exact
+  // negative capsule: -(6 + (tries*1000+sends)*3 + result), result 0=SEND/1=FAIL/2=DEL.
+  // 5,591 tries is the exact cap that leaves room for 999 sends, all three states and the base.
+  'else if(st===5){i=S[2]?2:Math.floor(rA[S[1]]/1e5)%10?0:1;pA=rA.length===0?-5:cm>0?-(6+(Math.min(Q[cm-1]||0,5591)*1000+Math.min(Q[cm+4]||0,999))*3+i):i===2?-4:i===0?-2:-3}',
   'if(F||pv[5]!==pA){o[@packedAct@]=pA;pv[5]=pA}',
   'var hg=st===1?g:st===2?lg:-1;',
   'if(F||pv[6]!==hg){o[@hdrGrade@]=hg;pv[6]=hg}',

@@ -1,7 +1,7 @@
 <uiView onFlickUp="ev(7)"
         onFlickDown="ev(8)"
         onLoad="
-          var SN='French Sport,UIAA Sport,YDS Sport,British Trad,V-Scale,Font Boulder,Ice (WI),Mixed (M),Hangboard,Scrambling'.split(',');
+          var M=Math.floor,SN='French Sport,UIAA Sport,YDS Sport,British Trad,V-Scale,Font Boulder,Ice (WI),Mixed (M),Hangboard,Scrambling'.split(',');
           // SETUP only ever previews the DEFAULT grade of the selected system (main.js state-4 sets
           // gradeV=encGrade(DEFAULT_IDX[gradeSystem])), so the 10 samples are precomputed here as a flat
           // table instead of shipping the full dG() grade algorithm — same strings, a fraction of the mount.
@@ -11,43 +11,47 @@
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
+          setStyle('#ht','TRANSFORMCONTENT',transformation().rotate(.5));
         ">
-  <div id="climblogger">
+  <div>
+
+    <!-- Shared shaped header backing. Keep it first so setup controls always paint above it. -->
+    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
+      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#343740" />
+    </div>
+    <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
+      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
+      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
+      <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+    </div>
 
     <!-- SETUP as its own template (split out of manage.html): mounting SETUP no longer builds the
          hidden PROJ-SETUP section too — ~half the old manage mount. Single-state: no vState/applyVis. -->
 
     <div id="sc4" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
 
-      <div class="f-ico p-hc" style="top:calc(22% - 18.5px);">&#xF102;</div>
+      <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
+      <div class="f-ico p-hc" style="top:calc(38% - 18.5px - 1.5px);">&#xF266;</div>
 
-      <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(33% - 18.5px);">&#xF266;</div>
-
-      <div class="sp-t-l" style="top:calc(42% - 50%e); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => sN(x)" default="?" />
+      <div class="sp-t-l p-hc p-tc" style="top:calc(50% - 50%e);width:100%">
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => (setText('#sg',GS[x]||'--'),sN(x))" default="?" />
       </div>
-      <div class="sp-t-l" style="top:calc(59% - 36.5px); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => GS[x]||'--'" default="--" />
-      </div>
+      <div id="sg" class="sp-t-l p-hc p-tc" style="top:calc(63% - 50%e);width:100%">--</div>
 
-      <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(74% - 18.5px);">&#xF267;</div>
+      <div onTap="ev(2)" style="top:68%;left:0;width:70%;height:19%;position:absolute;"></div>
+      <div class="f-ico p-hc" style="top:calc(76% - 18.5px);">&#xF267;</div>
 
       <!-- Bottom pill (save) — DOWN-long = save&exit on setup -->
-      <div style="top:70%;left:80%;width:15%;height:12%;position:absolute;">
-        <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
-      </div>
+      <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     </div>
 
 
-    <!-- No bottom time-bar on SETUP: pre-activity there is nothing to time (duration is 0:00), so the
-         clock+duration wrapper and its two eval subscriptions are omitted here — a lighter setup mount
-         (the template the watch builds on every enable/re-enable). The time-bar lives on ready/active. -->
+    <!-- Session duration and clock share the shaped header, matching READY/ACTIVE. -->
 
     <import src="#zone-g" />
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" /></div>
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">

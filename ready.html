@@ -1,16 +1,28 @@
 <uiView onFlickUp="ev(7)"
         onFlickDown="ev(8)"
         onLoad="
-          var lock=0,vs=0,M=Math.floor;
+          var lock=0,vs=0,ms=0,M=Math.floor;
           function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          function setVs(x){vs=x;setStyle('#pm','visibility',x===6?'HIDDEN':'VISIBLE');return ''}
+          function mT(){setText('#rm',vs===5?'ROUTE EDIT':vs===6?'PROJECT EDIT':ms<0?'PROJECT MODE':'ROUTE MODE')}
+          function mS(x){ms=x;mT();return x>0?'#'+x:'P'+(-x)}
+          function setVs(x){vs=x;mT();setVis('#pm',x!==6);setText('#pu',x===5||x===6?'\uE365':'\uE338');return ''}
+          function gV(x){var v=x<1e6;setVis('#gu',v);setVis('#gd',v);return dG(M(x%1e6/952))}
+          function pA(x){var q=x<=-6?-x-6:-1,c=q>=0?q%3:x===-2?0:x===-3?1:x===-4?2:-1;setVis('#pd',c===1);setText('#pi',c===0?'\uF110':c===2?'\uF200':x<-1?'':'\uF111');return q>=0?c===0?'SEND':c===1?'FAIL':'DEL':x===-2?'SEND':x===-3?'FAIL':x===-4?'DEL':''}
+          function pS(x){var q=x<=-6?M((-x-6)/3):-1;return q>=0?M(q/1000)+'T '+(q%1000)+'S':x>=0?M(x/1000)+'T '+(x%1000)+'S':''}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
-          function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
-          function evL(){if(lock)return;if(vs===0)lap();evX(6)}
+          function evL(){if(lock)return;if(vs===0)$.put('/Activity/Trigger',23);evX(6)}
+          setStyle('#ht','TRANSFORMCONTENT',transformation().rotate(.5));
         ">
-  <div id="climblogger">
+  <div>
+
+    <!-- Same firmware-resident, vertically mirrored header tooth as ACTIVE. Authored first so every
+         state label, value and action marker paints above it. -->
+    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
+      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#343740" />
+    </div>
+    <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#262a35" />
 
     <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to READY ONLY (#172) —
          in the EDIT overlay (5) the bottom zone/down-long navigates routes, in PROJ-SETUP (6) it advances
@@ -19,33 +31,41 @@
          vs at its init 0 for a sub-second window until the vState eval fires — a press in that window can
          phantom-lap. Init vs=-1 would fix it but swallow the lap in the common BREAK->READY->instant-START
          flow (worse: wrong climb timer), so 0 stays. -->
-    <span><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" /></span>
-
     <!-- READY as its own single-screen template (split out of active.html): mounts ~1/3 of the old
          3-in-1, so idle-time swaps (app-switch, EDIT entry, SETUP) carry a far smaller teardown.
          Single-state -> NO vState/applyVis eval, NO hdr result bands (always neutral in READY).
          START (evL 6) fires the firmware lap directly (was the lapState===0 branch). -->
 
-    <div onTap="ev(1)" style="top:17%;left:0;width:70%;height:22%;position:absolute;"></div>
+    <!-- Transparent header content layer; the mirrored tooth backing is the first root child above. -->
+    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:24%">
+      <div class="sp-t-s p-hc" style="top:calc(34% - 19px);">
+        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => mS(x)" default="#1" />
+      </div>
+      <div class="sp-vertical-center" style="left:calc(50% - 50%e);top:calc(76% - 20.5px)">
+        <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
+        <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
+        <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+      </div>
+    </div>
+
+    <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
     <!-- Chevrons are lock-gated (T3, #173): packedGL's 1e6 flag = grade locked in EDIT (empty
          editor / project-tagged route, mirroring evEdit's eid1/2 gates) -> chevrons blank, absence
          = feedback (was a silent dead control). Grade decode above masks with %1e6 in lockstep. -->
-    <div class="f-ico p-hc" style="top:calc(36% - 18.5px);"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => x>=1e6?'':'\uF266'" default="&#xF266;" /></div>
+    <div id="gu" class="f-ico p-hc" style="top:calc(33% - 18.5px - 1.5px);">&#xF266;</div>
 
-    <div class="sp-t-l" style="top:calc(48% - 36.5px); left:calc(50% - 50%e);">
-      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => dG(M(x%1e6/952))" default="--" />
+    <div class="sp-t-l p-hc p-tc" style="top:calc(46.5% - 50%e - 3px);width:100%">
+      <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => gV(x)" default="--" />
     </div>
 
-    <div onTap="ev(2)" style="top:57%;left:0;width:70%;height:25%;position:absolute;"></div>
-    <div class="f-ico p-hc" style="top:calc(66% - 18.5px);"><eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => x>=1e6?'':'\uF267'" default="&#xF267;" /></div>
+    <div onTap="ev(2)" style="top:54%;left:0;width:70%;height:17%;position:absolute;"></div>
+    <div id="gd" class="f-ico p-hc" style="top:calc(62.5% - 18.5px - 1.5px);">&#xF267;</div>
 
     <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
          EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
          them; inside the script string ONLY \uXXXX escapes render (HTML entities break silently) — the
          entity form is legal only in the XML `default`. -->
-    <div style="top:18%;left:80%;width:15%;height:12%;position:absolute;">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => x===5||x===6?'\uE365':'\uE338'" default="&#xE338;" /></div>
-    </div>
+    <div id="pu" class="f-ico cm-bgc" style="top:calc(24% - 18.5px);left:calc(85% - 50%e);">&#xE338;</div>
     <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
@@ -58,45 +78,34 @@
          text-font DEL span ("press arms DEL", icon blanks); -4 DEL armed -> trophy (F200, "press
          restores SEND"); -5 empty editor -> blank. Era-A's F107 at -3 was a meaningless EKG/stats
          placeholder glyph (#101) — the DEL text replaces it, and the trophy closes the cycle.
+         Project-tagged EDIT routes use the <=-6 capsule: same result preview plus their slot T/S.
          x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
          setOutputs + tools/tests/output-pack-equiv.js. -->
-    <div id="pm" style="top:44%;left:80%;width:15%;height:12%;position:absolute;">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'\uF110':x===-4?'\uF200':x<-1?'':'\uF111'" default="&#xF111;" /></div>
-      <div class="sp-b-s cm-bgc" style="position:absolute;top:calc(50% - 20.5px);left:2px;"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-3?'DEL':''" default="" /></div>
+    <div id="pm" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+      <div id="pi" class="f-ico cm-bgc" style="top:calc(47% - 18.5px);left:calc(94% - 50%e - 3px);">&#xF111;</div>
+      <div id="pd" class="sp-b-s cm-bgc" style="position:absolute;top:calc(47% - 20.5px);left:calc(94% - 50%e - 3px);visibility:HIDDEN">DEL</div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <div style="top:70%;left:80%;width:15%;height:12%;position:absolute;">
-      <div class="f-ico cm-bgc" style="top:calc(50% - 18.5px); left:6px;">&#xE373;</div>
-    </div>
+    <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- 78% line: P-mode stats OR the EDIT status. #edr (setText from pushEd) renders "EDIT i/n ",
-         the eval span appends the CURRENT result word from packedAct's negative channel (-2 SEND /
-         -3 FAIL / -4 DEL) — output-driven, so it survives app-swipe remounts (#edr does not: after
-         a remount the line shows only the word until the next pushEd; documented, accepted).
-         Span ORDER matters: #edr first, word second ("EDIT 3/5 SEND", not "SEND EDIT 3/5"). -->
-    <div class="p-hc sp-vertical-center" style="top:calc(78% - 20.5px);">
+    <!-- Both packedAct strings render DIRECTLY: project-route EDIT puts T/S on its own row above the
+         SEND/FAIL/DEL result; READY and PROJ-SETUP keep their standalone T/S row. This avoids the
+         unreliable mount-time setText-to-span path that previously left project stats blank on-watch. -->
+    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" default="" /></span>
+    </div>
+    <div class="p-hc sp-vertical-center" style="top:calc(79% - 20.5px);">
       <span id="edr" class="sp-b-s"></span>
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => x===-2?'SEND':x===-3?'FAIL':x===-4?'DEL':x<0?'':M(x/1000)+'T '+(x%1000)+'S'" /></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" default="" /></span>
     </div>
 
-    <!-- Neutral header band: #N / P-slot only (hdrGrade is always blank, hdrRes always neutral in READY) -->
-    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:16%;background:rgba(255,255,255,0.18)">
-      <div class="sp-t-s p-hc" style="top:calc(50% - 19px); left:calc(50% - 50%e);">
-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + (-x)" default="#1" />
-      </div>
-    </div>
-
-    <!-- Bottom time-bar -->
-    <div class="p-hc" style="top:87%;width:70%;height:9%;background:rgba(255,255,255,0.18)"></div>
-    <div class="sp-vertical-center" style="left:calc(50% - 50%e); top:calc(91.5% - 20.5px);">
-      <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
-      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
-      <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
-    </div>
+    <div id="rm" class="sp-b-s p-hc" style="top:calc(90% - 50%e - 6px)">ROUTE MODE</div>
 
     <import src="#zone-g" />
+    <eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" />
+    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
 
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>

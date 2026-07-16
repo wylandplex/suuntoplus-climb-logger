@@ -59,7 +59,8 @@ function refFull(s) {
   var rGrade = function (i) { return Math.floor(rA[i] / 1e6); };
   var rSend = function (i) { return Math.floor(rA[i] / 1e5) % 10; };
   var rCm = function (i) { return Math.floor(rA[i] / 1e4) % 10; };
-  var lockF = s.state === 5 && (s.editIdx >= rA.length || rCm(s.editIdx) > 0) ? 1 : 0;
+  var editCm = s.state === 5 && s.editIdx < rA.length ? rCm(s.editIdx) : 0;
+  var lockF = s.state === 5 && (s.editIdx >= rA.length || editCm > 0) ? 1 : 0;
   o.vState = s.state;
   var lastGradeV = s.lastGradeIdx >= 0 ? gs * 100 + s.lastGradeIdx : -1;
   o.routeHeight = s.state === 1 ? Math.max(0, Math.round(s.curAsc - s.startAsc)) : s.state === 2 ? s.lastHeight : s.sessionH;
@@ -94,7 +95,13 @@ function refFull(s) {
     var pi = s.pStep;
     pAct = s.projGradeIdx[pi] >= 0 ? Math.min(s.projSlot[pi] || 0, 16700) * 1000 + Math.min(s.projSlot[pi + 5] || 0, 999) : -1;
   } else if (s.state === 5) {
-    pAct = rA.length === 0 ? -5 : s.editDelMark ? -4 : rSend(s.editIdx) ? -2 : -3;
+    var result = s.editDelMark ? 2 : rSend(s.editIdx) ? 0 : 1;
+    if (rA.length === 0) pAct = -5;
+    else if (editCm > 0) {
+      var ep = editCm - 1;
+      var epStats = Math.min(s.projSlot[ep] || 0, 5591) * 1000 + Math.min(s.projSlot[ep + 5] || 0, 999);
+      pAct = -(6 + epStats * 3 + result);
+    } else pAct = result === 2 ? -4 : result === 0 ? -2 : -3;
   }
   o.packedAct = pAct;
   o.hdrGrade = s.state === 1 ? gradeV : s.state === 2 ? lastGradeV : -1;
@@ -427,13 +434,26 @@ z.clear(); z.tick();
 chk(z.io[IDX.vState] === 0, 'F7: a lost publisher did not fold PROJ-SETUP back to READY');
 z.clear(); z.tick();
 chk(z.io[IDX.packedAct] !== SENT, 'F7: the warm republish after the PROJ-SETUP fold was suppressed');
+
+// A route retains its project-slot tag after returning to free mode. Route EDIT must use the same
+// tag that locks the grade chevrons to publish the slot counters alongside SEND/FAIL/DEL.
+var pe = makeInstance(RETURN);
+pe.ui(); pe.load(); pe.tick(); pe.tick();
+pe.ev(4);                                           // READY free -> P1 (stored 3T/2S)
+pe.ev(6); pe.tick(); pe.tick(); pe.ev(6); pe.tick(); // project SEND -> stored live vector 4T/3S
+pe.ev(6); pe.tick(); pe.ev(4);                      // BREAK -> READY, then project -> free
+pe.ev(5); pe.tick();                                // route EDIT + ext21 warm
+chk(pe.io[IDX.packedGL] >= 1e6, 'F8: project route EDIT did not reuse the chevron-lock tag');
+chk(pe.io[IDX.packedAct] === -(6 + 4003 * 3), 'F8: project route EDIT did not publish SEND + 4T/3S (' + pe.io[IDX.packedAct] + ')');
+pe.ev(4);                                           // SEND -> FAIL, project sends decrements 3 -> 2
+chk(pe.io[IDX.packedAct] === -(6 + 4002 * 3 + 1), 'F8: project route FAIL did not republish 4T/2S (' + pe.io[IDX.packedAct] + ')');
 // permanently cold: overlays are unreachable, but the app never TRAPS the user in one
 var w = makeInstance(RETURN);
 w.faults.ext['22'] = 999;
 w.ui(); w.load();
 for (var tw = 0; tw < 12; tw++) w.tick();
 w.clear(); w.ev(5);
-chk(w.io[IDX.vState] === SENT, 'F8: a permanently-cold app opened an overlay');
+chk(w.io[IDX.vState] === SENT, 'F9: a permanently-cold app opened an overlay');
 
 console.log(fails ? '\n' + fails + ' FAILURE(S)' : '\nALL PASS');
 process.exit(fails ? 1 : 0);

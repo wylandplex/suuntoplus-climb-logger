@@ -60,7 +60,7 @@
     "bestSessionHm": 0,
     "bestOfLast5": -1,
     "showSetupOnStart": 1,
-    "mig": 1
+    "mig": 2
   },
   "projNames0": "",
   "projNames1": "",
@@ -70,6 +70,8 @@
   "projNames5": "",
   "projNames6": "",
   "projNames7": "",
+  "watchSetup": {},
+  "climbProjStats": {},
   "s0": {
     "totalRoutes": 0,
     "totalSends": 0,

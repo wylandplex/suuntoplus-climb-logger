@@ -70,8 +70,10 @@ var rt = 0;        // shared per-enable failure budget for the four formerly unb
 var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes pS<gs>)
 var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
 var sysDirty = 0;  // grade system changed (persist even on a routeless session)
+var leg = 0;       // active system came from the live-2.82 watchSetup/climbProjStats store -> ext11 dirty bit 2
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
+var LEG_SYS = [0, 1, 2, 3, 6, 7, 4, 5];  // current <-> live-2.82 system index (the permutation is its own inverse)
 var ROUTE_LIMIT = 35;  // The cap gates on live routesA.length, and foldRoutes() empties routesA at every pause, so the live tail cannot exceed 35 and needs no eviction.
 var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
@@ -117,15 +119,18 @@ var fillSlots = function(sv, sys, Z) {
 // closed input gate remains until the evaluate-tick parse completes (replaces the churn-sensor
 // machinery). Object-graph reads are many SMALL allocations (fragmentation-tolerant) — dominated-
 // safe vs the on-watch-proven full ext12 parse at onLoad (log 2026-07-07g fresh-enable cycles).
-// watchSetup legacy fallback dropped (pre-populated installs always ship stats.system).
+// Live 2.82 used a string stats.system plus watchSetup/climbProjStats. Its object graph is read by
+// ext13 on a calm tick and remains untouched until the normal END write lazily migrates one system.
 // LOCKSTEP oracle: tools/tests/drain-inline-equiv.js proves equivalence with the deleted ext12.js.
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
   var L = localStorage, sv = L.getObject("stats") || {};
+  if (typeof sv.system === "string") { sessionsNo = (sv.sessions | 0) + 1; if (autoSkip && sv.sessions > 0 && sv.showSetupOnStart === 0) skipP = 1; pendF12 = 1; stOk = 3; return; }
   // Legacy data stays read-only until ext13 has completed on a calm evaluate tick.
-  if (sv.mig !== 1 && sv.rou0 !== undefined) { pendF12 = 1; stOk = 2; return; }
+  if ((sv.mig | 0) < 1 && sv.rou0 !== undefined) { pendF12 = 1; stOk = 2; return; }
   if (!sysDirty) gradeSystem = sv.system >= 0 && sv.system <= 9 ? sv.system | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
   fillSlots(sv, gradeSystem, L.getObject("pS" + gradeSystem));
+  leg = 0;
   currentGrade = DEFAULT_IDX[gradeSystem];
   sessionsNo = (sv.sessions | 0) + 1;
   pendF12 = 0; stOk = 1;
@@ -150,8 +155,10 @@ var cycleSlot = function(dy) {
 // during the inter-app swipe = template-swap peak that evicts the app; see crash-template-swap-eviction).
 //   packedGL    = lockF*1e6 + grade*952 + (lastGrade+1) → 1 path (was 2); lockF = EDIT grade-lock flag
 //                 (empty editor / project-tagged route). Max 1e6+950*952+951 = 1,905,351 < 2^24.
-//   packedAct   = READY-P tries*1000+sends (>=0); EDIT rides the negative channel as the pill/word code
-//                 (-2 SEND / -3 FAIL / -4 DEL armed / -5 empty). Positive max 16,700,999 < 2^24.
+//   packedAct   = READY-P tries*1000+sends (>=0); free EDIT uses -2 SEND / -3 FAIL / -4 DEL / -5 empty.
+//                 Project-route EDIT additionally packs its result + slot T/S into a float32-exact
+//                 negative capsule (see ext22 generator + output-pack-equiv). Positive max stays
+//                 16,700,999 < 2^24.
 // Outputs reach template scripts as FLOAT32, so each composite stays <= 2^24; see outputs-are-float32.
 // The ENCODE lives in the GENERATED ext22.js (S5) — the template inside tools/gen-out-idx.js is the
 // single source of truth. DECODE SITES (bare literals, NOT build-checked — change in lockstep):
@@ -476,8 +483,8 @@ function onLoad(_input, output) {
 // dispatcher keeps only the isPaused thin-arm and hands over primitives (h, asc). `output` rides
 // as a bare positional arg down the whole chain (deploy-build output tracking, proven multi-hop).
 var tick = function(output, h, asc) {
-  if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { if (stOk === 2) loadExt(13)(); drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap/migration path; migration is never parsed from onLoad
-  else if (pendSlots) { pendSlots = 0; try { var sv = localStorage.getObject("stats") || {}; fillSlots(sv, gradeSystem, localStorage.getObject("pS" + gradeSystem)); } catch (e) { if (++slTries < 3) pendSlots = 1; else { climbMode = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; } } }  // destination labels AND project vector load before the input gate opens; capped at 3 attempts
+  if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { if (stOk === 2) { loadExt(13)(); drainF12(1); } else if (stOk === 3) { gradeSystem = loadExt(13)(projGradeIdx, projSlot, -1); currentGrade = DEFAULT_IDX[gradeSystem]; leg = 1; psDirty = slotsDirty = 1; pendF12 = 0; stOk = 1; } else drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap/migration path; migration is never parsed from onLoad
+  else if (pendSlots) { pendSlots = 0; try { var sv = localStorage.getObject("stats") || {}, old = gradeSystem < 8 && (typeof sv.system === "string" || sv.lm !== undefined && !(sv.lm & 1 << LEG_SYS[gradeSystem])); if (old) { gradeSystem = loadExt(13)(projGradeIdx, projSlot, gradeSystem); leg = 1; psDirty = slotsDirty = 1; } else { fillSlots(sv, gradeSystem, localStorage.getObject("pS" + gradeSystem)); leg = 0; } } catch (e) { if (++slTries < 3) pendSlots = 1; else { climbMode = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; } } }  // destination labels AND project vector load before the input gate opens; capped at 3 attempts
   else if (pendE) {
     try { fE = fE || loadExt(21); pendE = 0; } catch (e) { if (++rt >= 3) pendE = 0; }
   }
@@ -591,7 +598,7 @@ var finishSession = function() {
   f10 = null; fE = null; f3 = null;  // release all cached parses before the transient recap parse + the ext11 RMW
   sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
   try {
-    loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, acc && acc[6] >= 0 ? acc[6] % 100 : -1, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0));  // totals + exactly derivable session peak
+    loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, acc && acc[6] >= 0 ? acc[6] % 100 : -1, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0) | (leg ? 4 : 0));  // totals + exactly derivable session peak
   } catch (e) { sumUp(0, 2); }
 };
 

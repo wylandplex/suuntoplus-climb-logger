@@ -1,20 +1,18 @@
 <uiView onFlickUp="ev(7)"
         onFlickDown="ev(8)"
         onLoad="
-          function dG(x){if(x<0)return'--';var s=Math.floor(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+Math.floor(i/6))+'abc'.charAt(Math.floor(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):''+(5+Math.floor((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+Math.floor((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+Math.floor(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+Math.floor(i/6))+'ABC'.charAt(Math.floor(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+Math.floor((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          var S=-1,lock=0;
-          function aV(x){
-            if(x===S)return;
-            S=x;
-            setStyle('#sc1','visibility',x===1?'VISIBLE':'HIDDEN');
-            setStyle('#sc2','visibility',x===2?'VISIBLE':'HIDDEN');
-          }
-          function hC(x){setStyle('#hg','visibility',x===1?'VISIBLE':'HIDDEN');setStyle('#ho','visibility',x===2?'VISIBLE':'HIDDEN')}
+          var M=Math.floor,S=-1,lock=0;
+          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):''+(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
+          function tm(x){return M(x/60)+&quot;'&quot;+('0'+M(x%60)).slice(-2)}
+          function aV(x){if(x===S)return;S=x;setVis('#sc1',x===1);setVis('#sc2',x===2);setText('#ba',String.fromCharCode(x===1?0xF200:0xE373))}
+          function pV(x){setVis('#ma',x>=0);return x}
+          function hC(x){setVis('#hgb',x===1);setVis('#hob',x===2)}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function lap(){$.put('/Activity/Trigger',23)}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
           function evL(n){if(lock)return;if(S===1)lap();ev(n);lock=1;setTimeout(ulk,300)}
+          setStyle('#ht','TRANSFORMCONTENT',transformation().rotate(.5));
         ">
   <!-- ============================================================================================
        LAYOUT = ZoneSense, Suunto's own app, decompiled from b:/zapp/zzaeroen.fea pulled off the watch.
@@ -41,99 +39,86 @@
        watch evicts the user's other apps, spent on markup the device never draws. Contrast
        {{ HAS_ON_EVENT }} (double braces), which IS substituted at build time and is safe.
        ============================================================================================ -->
-  <div id="climblogger" class="cm-bg">
+  <div class="cm-bg">
+
+    <!-- BACKING LAYER: the upper tooth stays neutral on every screen; static lower result variants
+         avoid unreliable runtime colour changes. -->
+    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
+      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#343740" />
+    </div>
+    <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#262a35" />
+    <img id="hgb" src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#2D7842;visibility:HIDDEN" />
+    <img id="hob" src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#945A1E;visibility:HIDDEN" />
 
     <!-- vState -> aV, hdrRes -> hC (the applyVis pattern): <eval> bindings replace a leaky $.subscribe
          (#90) — framework-managed, they do not leak on template unload. Both trackers share ONE 0-dim
          holder. The SuuntoPlus CSS parser rejects display:none, so hidden means visibility:HIDDEN. -->
-    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval input="/Activity/Zones/HeartRate/CurrentZone" outputFormat="script x => ((x>=1&amp;&amp;x<=5)?(setVis('#zns-z-ind',1),gaugeControl('#zns-z-ind',3*Math.PI/4+x*3*Math.PI/10,'radian')):setVis('#zns-z-ind',0),'')" default="" /></div>
+    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" /><eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" /><eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" /></div>
 
-    <!-- Result tint. ZoneSense has no coloured bands, but SEND/FAIL must be legible at a glance. Runtime
-         setStyle applies visibility RELIABLY and background NOT AT ALL (the old
-         setStyle('#hdr','background',...) was a silent on-watch no-op), so both tints are PRE-BUILT and
-         toggled by visibility. Low opacity, behind the title only: the screen still reads as black. -->
-    <div id="hg" style="position:absolute;top:0;left:0;width:100%;height:30%;background:rgba(45,175,75,0.35);visibility:HIDDEN"></div>
-    <div id="ho" style="position:absolute;top:0;left:0;width:100%;height:30%;background:rgba(235,140,25,0.35);visibility:HIDDEN"></div>
-
-    <!-- Title (ZoneSense: f-t-m p-hc @ 15%) — route number and grade. -->
-    <div class="sp-t-m p-hc" style="top:calc(15% - 50%e)">
-      <span><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => x > 0 ? '#' + x : 'P' + Math.abs(x)" default="#1" /></span>
+    <!-- Compact title row — route number and grade. -->
+    <div class="sp-t-s p-hc" style="top:calc(8% - 50%e)">
+      <span><eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => (pV(x),x > 0 ? '#' + x : 'P' + Math.abs(x))" default="#1" /></span>
       <span style="padding-left:14px"><eval input="/Zapp/{zapp_index}/Output/hdrGrade" outputFormat="script x => x < 0 ? '' : dG(x)" default="" /></span>
     </div>
 
-    <!-- Secondary line (ZoneSense: f-t-s cm-mid p-hc @ 25%) — session duration and clock, grey. -->
-    <div class="sp-t-s cm-mid p-hc" style="top:calc(25% - 50%e)">
+    <!-- Compact secondary row — clock, the original F100 separator and session duration. -->
+    <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
+      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
+      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
       <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
-      <span class="f-num" style="padding-left:16px"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+Math.floor((x/3600)%24)).slice(-2)+':'+('0'+Math.floor((x/60)%60)).slice(-2)" default="--:--" /></span>
     </div>
 
-    <!-- Route height (ZoneSense: the wide value @ 34%). State-independent: routeHeight already publishes
-         live ascent in CLIMB and the finished route's height in BREAK, so ONE element serves both.
-         Duplicating it is exactly how the old rows drifted apart and made H jump on every lap. -->
-    <div class="sp-b-l cm-mid p-hc" style="top:calc(34% - 50%e)">
-      <eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x+'m'" default="+0m" />
+    <!-- Large state-independent height. The unit uses a text face because the numeric face has no letters. -->
+    <div class="p-hc sp-vertical-center" style="top:calc(36% - 50%e)">
+      <span class="sp-d-s f-num"><eval input="/Zapp/{zapp_index}/Output/routeHeight" outputFormat="script x => (x>=0?'+':'')+x" default="+0" /></span>
+      <span class="sp-b-l" style="padding-left:4px">m</span>
     </div>
 
-    <!-- Three-column band (ZoneSense: labels @ 45%, values @ 55%). The live pulse is state-independent
-         and authored once; AVG and MAX depend on the lap index and live in sc1/sc2 at the IDENTICAL
-         anchors, so nothing can shift on a lap change. -->
-    <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(20% - 50%e)">HR</div>
-    <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(20% - 50%e)">
+    <!-- Live HR stays large and central in both states. BREAK alone adds small AVG/MAX side values. -->
+    <div class="sp-d-l f-num p-hc" style="top:calc(59% - 50%e)">
       <eval input="/Activity/Move/-1/Heartrate/Current" outputFormat="HeartRate_Fourdigits" default="--" />
     </div>
-    <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(50% - 50%e)">AVG</div>
-    <div class="sp-t-s cm-mid" style="top:calc(46% - 50%e);left:calc(80% - 50%e)">MAX</div>
-
-    <!-- Hero backing panel. ZoneSense tints the same firmware-resident monochrome asset through its
-         CSS color property; this app has no zone colour, so keep it a static deep navy-grey. Painting
-         it before sc1/sc2 leaves either white hero value above it. -->
-    <img id="ztooth" src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#262a35" />
 
     <!-- CLIMB — the OPEN lap. ready.html fires lap() on START and evL() fires it only while S===1, so
          Lap/-1 really brackets the climb attempt rather than mixing rest and climbing. -->
     <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(50% - 50%e)">
-        <eval input="/Activity/Lap/-1/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" />
-      </div>
-      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(80% - 50%e)">
-        <eval input="/Activity/Lap/-1/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" />
-      </div>
-
       <!-- THE HERO (ZoneSense: p-tc p-hc + medium display face, full width, 76% to the rim).
            f-num is a FONT FAMILY (SuuntoUINextDisplaySemibold), not a glyph filter: it carries no
            letters — which is why labels need a text face — but it DOES carry the apostrophe, exactly as
            Suunto's own big pace readouts (9'30) show. Formatted here rather than through a guessed
            Suunto format name. Whole seconds: a tenths digit would flicker ten times a second all route. -->
       <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
-        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
+        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
       </div>
 
-      <!-- Tap zones and their button hints. Bare grey icons, no panels — the panels were half of what
-           made this look un-Suunto. FAIL top-right, SEND bottom-right. -->
-      <div class="f-ico cm-mid" style="top:calc(24% - 18.5px);left:calc(85% - 50%e)">&#xF110;</div>
+      <!-- Tap zones and white action glyphs: FAIL top-right, SEND bottom-right. -->
+      <div class="f-ico" style="top:calc(24% - 18.5px);left:calc(85% - 50%e);">&#xF110;</div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute"></div>
-      <div class="f-ico cm-mid" style="top:calc(70% - 18.5px);left:calc(85% - 50%e)">&#xF200;</div>
-      <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
 
-    <!-- BREAK — the CLOSED lap (-2). Identical anchors to sc1: nothing may move on a lap change. -->
+    <!-- BREAK — the CLOSED lap (-2). AVG/MAX appear only once the attempt is complete. -->
     <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
-      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(50% - 50%e)">
+      <div class="sp-t-s cm-mid" style="top:calc(50% - 50%e);left:calc(23% - 50%e)">AVG</div>
+      <div class="sp-t-s cm-mid" style="top:calc(50% - 50%e);left:calc(77% - 50%e)">MAX</div>
+      <div class="sp-d-xs f-num" style="top:calc(59% - 50%e);left:calc(23% - 50%e)">
         <eval input="/Activity/Lap/-2/HeartRate/Avg" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
-      <div class="sp-d-xs f-num" style="top:calc(56% - 50%e);left:calc(80% - 50%e)">
+      <div class="sp-d-xs f-num" style="top:calc(59% - 50%e);left:calc(77% - 50%e)">
         <eval input="/Activity/Lap/-2/HeartRate/Max" outputFormat="HeartRate_Fourdigits" default="--" />
       </div>
 
       <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
-        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => Math.floor(x/60) + &quot;'&quot; + ('0' + Math.floor(x%60)).slice(-2)" default="0'00" />
+        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
       </div>
 
-      <div class="f-ico cm-mid" style="top:calc(47% - 18.5px);left:calc(85% - 50%e)">&#xE338;</div>
+      <div id="ma" class="f-ico" style="top:calc(47% - 18.5px);left:calc(94% - 50%e - 3px)">&#xE338;</div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute"></div>
-      <div class="f-ico cm-mid" style="top:calc(70% - 18.5px);left:calc(85% - 50%e)">&#xE373;</div>
-      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
+
+    <!-- Same position and action in both states; only the glyph changes. Sharing these nodes keeps the
+         full UI while avoiding a second always-mounted icon and hit target. -->
+    <div id="ba" class="f-ico" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xF200;</div>
+    <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
 
 
 
@@ -141,11 +126,6 @@
          it: 35 bytes, measured. The canvas we once built for this allocated a ~217 KB render surface and
          got the user's other apps evicted. -->
     <import src="#zone-g" />
-    <svg><id>zns-z-ind</id>
-      <style><width><pixel>466</pixel></width><height><pixel>466</pixel></height><visibility><valueText>hidden</valueText></visibility></style>
-      <path><id>z-ind-bg</id><d>M0 194 -17 226 -18 235 18 235 17 226Z</d><transform>translate(233,233)</transform></path>
-      <path><id>zArm</id><d>M0 206 -12 227 -12 235 12 235 12 227Z</d><transform>translate(233,233)</transform></path>
-    </svg>
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">

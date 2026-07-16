@@ -99,6 +99,29 @@ function makeInstance(blobDir, seed) {
   return { disp: disp, trace: trace, store: store, faults: faults };
 }
 
+// The frozen dispatcher oracle predates store schema v2 and therefore writes mig=1 at END.
+// Ignore only that version marker here; tools/tests/store-v1-v2-projects.js separately binds
+// the v1 -> v2 transition and checks every project vector byte-for-byte.
+function withoutStoreVersion(value) {
+  var copy = JSON.parse(JSON.stringify(value));
+  if (copy && copy.stats) delete copy.stats.mig;
+  return copy;
+}
+
+function withoutVersionInTraffic(trace) {
+  return trace.map(function (entry) {
+    if (entry[0] !== 'lsSet' || entry[1] !== 'stats') return entry;
+    var copy = JSON.parse(JSON.stringify(entry));
+    if (copy[2]) delete copy[2].mig;
+    return copy;
+  });
+}
+
+function editResultCode(value) {
+  if (value <= -6) return (-value - 6) % 3; // project EDIT capsule: SEND=0, FAIL=1, DEL=2
+  return value === -2 ? 0 : value === -3 ? 1 : value === -4 ? 2 : -1;
+}
+
 // ---- scenario runner -----------------------------------------------------------
 // Steps: ['ui'] ['load'] ['tick',H,Asc] ['ev',eid] ['lap'] ['pause'] ['cont'] ['end'] ['sum']
 // A step list is run against oracle+candidate; after each step the returns, the traffic slice
@@ -207,7 +230,7 @@ function runScenario(name, seed, steps, blobs) {
       return false;
     };
     if (JSON.stringify(row.rets[0]) !== JSON.stringify(row.rets[1])) return fail('returns differ');
-    if (JSON.stringify(row.trA) !== JSON.stringify(row.trB)) return fail('traffic differs');
+    if (JSON.stringify(withoutVersionInTraffic(row.trA)) !== JSON.stringify(withoutVersionInTraffic(row.trB))) return fail('traffic differs');
     var isTick = kinds[r2] === 'tick';
     var inBurst = !isTick && r2 + 1 < rows.length && kinds[r2 + 1] !== 'tick';
     for (var n2 = 0; n2 < 8; n2++) {
@@ -215,6 +238,11 @@ function runScenario(name, seed, steps, blobs) {
       if (cb === oc) continue;                                                   // (a) lockstep
       if (cb === ont) continue;                                                  // (b) heal-ahead to the oracle's next tick
       if (oc === SENT) continue;                                                 // (e) the oracle has NEVER written this slot yet (it publishes targeted values at presses and only goes full at its first tick) — there is nothing to compare against. The candidate's crown in that window is pinned ABSOLUTELY by output-map-equiv [D] instead.
+      // packedAct (io[8], n2=6) intentionally enriches a project-tagged route EDIT with T/S while
+      // preserving the frozen oracle's SEND/FAIL/DEL state. The shared packedGL lock flag proves
+      // this is exactly the project-route branch; output-map-equiv + output-pack-equiv bind the
+      // capsule counters and float32 decoder, so this waiver cannot hide a result-state regression.
+      if (n2 === 6 && cb <= -6 && oa[0] >= 1e6 && ob[0] >= 1e6 && editResultCode(cb) === editResultCode(oc)) continue;
       if (n2 >= 4) {                                                             // waivers exist for the NON-CROWN only
         if (colds[r2] && cb === (r2 > 0 ? snaps[1][r2 - 1][n2] : SENT)) continue;  // (c) cold-frozen
         if (inBurst) continue;                                                  // (d) burst transient (bound at the closing tick)
@@ -224,7 +252,7 @@ function runScenario(name, seed, steps, blobs) {
   }
   if (!sawFault && !saw22) { console.log('  FAIL  ' + name + ': candidate never parsed ext22 (stager dead?)'); return false; }
   // end-of-scenario: persisted stores must match too
-  var sa = JSON.stringify(inst[0].store), sb = JSON.stringify(inst[1].store);
+  var sa = JSON.stringify(withoutStoreVersion(inst[0].store)), sb = JSON.stringify(withoutStoreVersion(inst[1].store));
   if (sa !== sb) { console.log('  FAIL  ' + name + ' final store\n    ' + sa + '\n    ' + sb); return false; }
   console.log('  PASS  ' + name + ' (' + steps.length + ' steps)');
   return true;

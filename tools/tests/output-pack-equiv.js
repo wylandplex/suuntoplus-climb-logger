@@ -66,16 +66,19 @@ for (var lf = 0; lf <= 1; lf++) {
 console.log("  max flagged packedGL = " + encGLF(1, MAXGF, MAXG) + " (limit 2^24 = 16777216)");
 check(encGLF(1, MAXGF, MAXG) <= (1 << 24), "flagged packedGL worst case exceeds 2^24");  // 2^24 is the largest float32-exact integer, so the safe limit is <=, not <
 
-// ---------- packedAct: READY P-mode tries*1000+sends (>=0) | -1 hidden | EDIT codes -2..-5 ----------
+// ---------- packedAct: READY P-mode T/S | -1 hidden | free EDIT -2..-5 | project EDIT <=-6 ----------
 //   encoder mirrors main.js setOutputs: state 0 P-mode = min(tries,16700)*1000 + min(sends,999);
-//   state 5 EDIT = empty ? -5 : delArmed ? -4 : send ? -2 : -3; everywhere else -1.
+//   state 5 free EDIT = empty ? -5 : DEL ? -4 : SEND ? -2 : -3. A project route additionally
+//   packs result + its slot T/S as -(6 + (min(T,5591)*1000+min(S,999))*3 + result).
 //   decoders mirror ready.html: mid-pill GLYPH eval + 78%-line WORD eval (change in lockstep!).
-console.log("[packedAct] P-mode tries/sends + EDIT steering codes");
+console.log("[packedAct] P-mode T/S + free/project EDIT steering and stats");
 var encActP = function(t, sn) { return Math.min(t, 16700) * 1000 + Math.min(sn, 999); };
 var encActE = function(empty, del, send) { return empty ? -5 : del ? -4 : send ? -2 : -3; };
-var decGlyph = function(x) { return x === -2 ? '\uF110' : x === -4 ? '\uF200' : x < -1 ? '' : '\uF111'; };
-var decDel   = function(x) { return x === -3 ? 'DEL' : ''; };
-var decWord  = function(x) { return x === -2 ? 'SEND' : x === -3 ? 'FAIL' : x === -4 ? 'DEL' : x < 0 ? '' : Math.floor(x / 1000) + 'T ' + (x % 1000) + 'S'; };
+var encActEP = function(t, sn, del, send) { var r = del ? 2 : send ? 0 : 1; return -(6 + (Math.min(t, 5591) * 1000 + Math.min(sn, 999)) * 3 + r); };
+var decResult = function(x) { var q = x <= -6 ? -x - 6 : -1; return q >= 0 ? q % 3 : x === -2 ? 0 : x === -3 ? 1 : x === -4 ? 2 : -1; };
+var decGlyph = function(x) { var r = decResult(x); return r === 0 ? '\uF110' : r === 2 ? '\uF200' : x < -1 ? '' : '\uF111'; };
+var decDel   = function(x) { return decResult(x) === 1 ? 'DEL' : ''; };
+var decWord  = function(x) { var q = x <= -6 ? -x - 6 : -1, r = decResult(x); if (q >= 0) { q = Math.floor(q / 3); return (r === 0 ? 'SEND ' : r === 1 ? 'FAIL ' : 'DEL ') + Math.floor(q / 1000) + 'T ' + (q % 1000) + 'S'; } return x === -2 ? 'SEND' : x === -3 ? 'FAIL' : x === -4 ? 'DEL' : x < 0 ? '' : Math.floor(x / 1000) + 'T ' + (x % 1000) + 'S'; };
 var tVals = [0, 1, 34, 35, 50, 999, 16700, 99999];
 var snVals = [0, 1, 34, 63, 999, 5000];
 for (var ta = 0; ta < tVals.length; ta++) {
@@ -105,10 +108,25 @@ for (var cc = 0; cc < codeCases.length; cc++) {
   check(decDel(cf) === C[5], "EDIT DEL-span case " + cc + ": got " + JSON.stringify(decDel(cf)));
   check(decWord(cf) === C[6], "EDIT word case " + cc + ": got " + JSON.stringify(decWord(cf)));
 }
-check(decDel(Math.fround(-1)) === '' && decDel(Math.fround(5000)) === '', "DEL-span must blank outside -3");
+check(decDel(Math.fround(-1)) === '' && decDel(Math.fround(5000)) === '', "DEL marker must blank outside a FAIL code");
 // -1 (hidden everywhere else): word blank, pill keeps the READY mode-toggle glyph
 check(decWord(Math.fround(-1)) === '', "-1 must blank the word");
 check(decGlyph(Math.fround(-1)) === '\uF111', "-1 must keep the F111 mode-toggle pill");
+
+// A project-tagged route retains the same result cycle and appends the exact slot counters.
+var epVals = [[0, 0], [3, 1], [5591, 999], [99999, 5000]];
+for (var ep = 0; ep < epVals.length; ep++) {
+  for (var er = 0; er < 3; er++) {
+    var et = epVals[ep][0], es = epVals[ep][1], del = er === 2, send = er === 0;
+    var ex = encActEP(et, es, del, send), exf = Math.fround(ex);
+    var ew = (send ? 'SEND ' : er === 1 ? 'FAIL ' : 'DEL ') + Math.min(et, 5591) + 'T ' + Math.min(es, 999) + 'S';
+    check(f32(ex), "project EDIT code not float32-exact: " + ex);
+    check(decWord(exf) === ew, "project EDIT word: got " + JSON.stringify(decWord(exf)) + " expected " + JSON.stringify(ew));
+    check(decGlyph(exf) === (send ? '\uF110' : del ? '\uF200' : ''), "project EDIT glyph result=" + er);
+    check(decDel(exf) === (er === 1 ? 'DEL' : ''), "project EDIT DEL marker result=" + er);
+  }
+}
+check(Math.abs(encActEP(5591, 999, true, false)) <= (1 << 24), "project EDIT negative max exceeds 2^24");
 
 // packedPk (1'/3' peak HR) removed — the 1'/3' rolling-peak feature was cut for the heap diet.
 
