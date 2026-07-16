@@ -60,17 +60,17 @@ function refFull(s) {
   var rSend = function (i) { return Math.floor(rA[i] / 1e5) % 10; };
   var rCm = function (i) { return Math.floor(rA[i] / 1e4) % 10; };
   var editCm = s.state === 5 && s.editIdx < rA.length ? rCm(s.editIdx) : 0;
-  var lockF = s.state === 5 && (s.editIdx >= rA.length || editCm > 0) ? 1 : 0;
+  var lockF = s.state === 5 ? (s.editIdx >= rA.length ? 6 : editCm) : 0;
   o.vState = s.state;
   var lastGradeV = s.lastGradeIdx >= 0 ? gs * 100 + s.lastGradeIdx : -1;
   o.routeHeight = s.state === 1 ? Math.max(0, Math.round(s.curAsc - s.startAsc)) : s.state === 2 ? s.lastHeight : s.sessionH;
   var gradeV, ms;
   if (s.state === 5) {
-    gradeV = s.editIdx < rA.length ? gs * 100 + rGrade(s.editIdx) : gs * 100 + 50;
-    ms = s.editIdx + 1; lastGradeV = -1;
+    gradeV = s.editIdx < rA.length ? gs * 100 + (editCm > 0 && s.projGradeIdx[editCm - 1] >= 0 ? s.projGradeIdx[editCm - 1] : rGrade(s.editIdx)) : gs * 100 + 50;
+    ms = s.editIdx + 101; lastGradeV = -1;
   } else if (s.state === 6) {
     gradeV = s.projGradeIdx[s.pStep] >= 0 ? gs * 100 + s.projGradeIdx[s.pStep] : gs * 100 + 50;
-    ms = -(s.pStep + 1); lastGradeV = -1;
+    ms = -(s.pStep + 101); lastGradeV = -1;
   } else if (s.state === 4) {
     gradeV = gs * 100 + DEFAULT_IDX[gs]; ms = gs; lastGradeV = -1;
   } else {
@@ -279,8 +279,19 @@ function makeInstance(seedStore) {
     n22: function () { return trace.filter(function (t) { return t === 'parse22'; }).length; }
   };
 }
-var FRESH = { stats: { system: 0, sessions: 0, showSetupOnStart: 1, p0_1: -1, p0_2: -1, p0_3: -1, p0_4: -1, p0_5: -1 } };
-var RETURN = { stats: { system: 2, sessions: 7, showSetupOnStart: 0, p2_1: 5, p2_2: 11, p2_3: -1, p2_4: 28, p2_5: 0 }, pS2: { 0: 3, 5: 2, 10: 61, 15: 5, 16: -1, 17: 1, 18: -1, 19: -1 } };
+function canonical(g, sessions, setup, grades, values) {
+  var C = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8')).climbProjStats));
+  C.g = g; C.u = setup; C['s' + g] = [0, 0, 0, sessions, 0, -1];
+  if (grades) {
+    var P = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, -1,-1,-1,-1,-1,''];
+    for (var i = 0; i < 5; i++) P[15 + i] = grades[i];
+    if (values) for (var k in values) P[k | 0] = values[k];
+    C['p' + g] = P;
+  }
+  return { climbProjStats: C };
+}
+var FRESH = canonical(0, 0, 1, [-1, -1, -1, -1, -1]);
+var RETURN = canonical(2, 7, 0, [5, 11, -1, 28, 0], { 0: 3, 5: 2, 10: 61 });
 
 // ---- D) cold crown ------------------------------------------------------------------
 // The stager is the LAST arm of the tick's else-if chain (one heavy op per tick, by design), so
@@ -296,9 +307,11 @@ chk(d.io[IDX.vState] === expC.vState && d.io[IDX.packedGL] === expC.packedGL && 
   'cold SETUP crown wrong: got GL=' + d.io[IDX.packedGL] + '/mode=' + d.io[IDX.modeSub] + ' expected GL=' + expC.packedGL + '/mode=' + expC.modeSub);
 chk([IDX.hdrGrade, IDX.hdrRes, IDX.packedAct].every(function (k) { return d.io[k] === SENT; }), 'FBW touched a non-crown slot');
 chk(d.n22() === 0, 'ext22 parsed before the first tick (onLoad/press must never parse)');
-d.ev(6);                                            // confirm -> READY mount; sysChg -> pendSlots=1
-d.tick();                                           // tick 1 drains pendSlots (heavy-op serialization)
+d.ev(6);                                            // confirm -> keep SETUP; sysChg -> pendSlots=2
+d.tick();                                           // tick 1 reads slots under SETUP
 chk(d.n22() === 0, 'the stager jumped the queue: it must not parse on a pendSlots drain tick');
+d.tick();                                           // tick 2 mounts READY, isolated from the read
+chk(d.n22() === 0, 'the stager parsed on the isolated READY mount tick');
 // cold fluidity: a grade flick must move packedGL EVERY press, warm or not (THE law)
 d.clear(); d.ev(1);
 var expR = refCrown({ state: 0, gradeSystem: 1, climbMode: 0, currentGrade: DEFAULT_IDX[1] + 1, lastGradeIdx: -1, routeNumber: 1, lastHeight: 0, sessionH: 0, curAsc: 0, startAsc: 0, projGradeIdx: [-1, -1, -1, -1, -1] });
@@ -306,7 +319,7 @@ chk(d.io[IDX.packedGL] === expR.packedGL, 'cold READY grade flick: packedGL=' + 
 // cold overlays are refused (no publisher -> no overlay)
 d.clear(); d.ev(5);
 chk(d.io[IDX.vState] === SENT, 'EDIT overlay opened while cold (must be refused)');
-d.tick();                                           // tick 2: stager -> warm
+d.tick();                                           // tick 3: stager -> warm
 chk(d.n22() === 1, 'expected exactly 1 ext22 parse at the stager tick, got ' + d.n22());
 d.clear(); d.ev(5);                                 // warm but empty: honest immutable editor refusal
 chk(d.io[IDX.vState] === SENT, 'empty EDIT overlay opened despite having no editable tail route');
@@ -374,7 +387,7 @@ for (var t3 = 0; t3 < 15; t3++) h.tick();
 chk(h.trace.filter(function (x) { return x === 'parseTHROW22'; }).length === 3, 'permanent parse fail: expected exactly 3 attempts, got ' + h.trace.filter(function (x) { return x === 'parseTHROW22'; }).length);
 h.ev(6); h.tick(); h.tick(); h.ev(6); h.tick();      // a route on the cold app
 h.end();
-chk(h.store.stats && h.store.stats.totalRoutes >= 1, 'permanently-cold session did not persist its routes');
+chk(h.store.climbProjStats && h.store.climbProjStats.s2[0] >= 1, 'permanently-cold session did not persist its routes');
 
 // ---- F) INVARIANT: an overlay (state 5/6) exists only while the publisher does -----------
 // The S5 review (Codex, 2026-07-11) found the hole this section now guards: the cold-ENTRY refusal
@@ -395,7 +408,7 @@ function warmEdit(seedStore) {           // -> instance parked in a warm EDIT ov
 }
 var x = warmEdit(RETURN);
 chk(x.io[IDX.vState] === 5, 'F0: warm EDIT did not open');
-chk(x.io[IDX.modeSub] === 1, 'F0: EDIT header is not the route number #1 (' + x.io[IDX.modeSub] + ') — the frame is not really an EDIT frame');
+chk(x.io[IDX.modeSub] === 101, 'F0: EDIT header is not packed as ROUTE EDIT #1 (' + x.io[IDX.modeSub] + ')');
 chk(x.io[IDX.packedAct] === -2, 'F0: EDIT pill is not SEND (' + x.io[IDX.packedAct] + ')');
 x.faults.call22 = 1;
 x.clear(); x.tick();                     // idle tick: the publisher CALL throws

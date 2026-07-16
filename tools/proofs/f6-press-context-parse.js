@@ -9,11 +9,9 @@ console.log('CLAIM F6: an onEvent dispatch can call evalFile for ext14 or ext21.
 var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
 
 function seed() {
-  var stats = platform.snapshot(defaults.stats);
-  stats.system = 0;
-  stats.sessions = 1;
-  stats.showSetupOnStart = 0;
-  return { stats: stats };
+  var C = platform.snapshot(defaults.climbProjStats);
+  C.g = 0; C.u = 0; C.s0 = [0,0,0,1,0,-1];
+  return { climbProjStats: C };
 }
 
 function drive(fail21) {

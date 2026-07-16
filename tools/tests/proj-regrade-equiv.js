@@ -116,21 +116,16 @@ console.log('[proj-regrade-equiv] a re-grade must NOT destroy a project slot (#1
   console.log('  PASS  a re-grade does not poison the slot (no re-zero on later sessions)');
 })();
 
-// ---- scenario 4: the cloud active-stats gate follows the same rule -----------
-// ext11 also publishes activeTries/activeSends/activeBest for the phone. Pre-fix that was gated on
-// P[r+15]===p[r] (grade must match the stored tag) and so went to 0 after a re-grade. It must now only
-// require a CONFIGURED slot.
+// ---- scenario 4: obsolete one-project Companion mirrors stay removed --------
 (function () {
   var LS = mkLS(), ext11 = loadExt11(LS);
   var P = freshSlot();
-  var p = [22, -1, -1, -1, -1];          // re-graded, climbMode = 1 (slot 0 is the active project)
+  var p = [22, -1, -1, -1, -1];
   ext11(ACC, p, P, 1, 0, 2 | 1);
-  var stats = LS.getObject('stats');
-  check(stats.activeTries === 12, 'cloud: activeTries must be 12 after a re-grade, got ' + stats.activeTries);
-  check(stats.activeSends === 4, 'cloud: activeSends must be 4 after a re-grade, got ' + stats.activeSends);
-  check(stats.activeBest === 310, 'cloud: activeBest must be 310 after a re-grade, got ' + stats.activeBest);
-  check(stats.activeGrade === 0 * 100 + 22, 'cloud: activeGrade must follow the NEW grade, got ' + stats.activeGrade);
-  console.log('  PASS  cloud active-stats survive a re-grade');
+  var stats = LS.getObject('climbProjStats');
+  check(stats.activeTries === undefined && stats.activeSends === undefined && stats.activeBest === undefined && stats.activeGrade === undefined,
+    'obsolete active-project mirrors must not be rewritten');
+  console.log('  PASS  obsolete one-project Companion mirrors stay removed');
 })();
 
 if (fails) { console.log('\n' + fails + ' FAILURE(S)'); process.exit(1); }

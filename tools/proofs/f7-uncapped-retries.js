@@ -9,12 +9,10 @@ console.log('CLAIM F7: grade-name, summary, EDIT, and save-as-project parse retr
 var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
 
 function returningSeed(withProject) {
-  var stats = platform.snapshot(defaults.stats);
-  stats.system = 0;
-  stats.sessions = 1;
-  stats.showSetupOnStart = 0;
-  if (withProject) stats.p0_1 = 18;
-  return { stats: stats };
+  var C = platform.snapshot(defaults.climbProjStats);
+  C.g = 0; C.u = 0; C.s0 = [0,0,0,1,0,-1];
+  if (withProject) C.p0 = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 18,-1,-1,-1,-1,''];
+  return { climbProjStats: C };
 }
 
 function boot(p) {
@@ -90,4 +88,3 @@ console.log(proven ?
   'PROVEN: all four real retry paths are individually uncapped and make exactly 50 parse attempts for 50 re-entries.' :
   'REFUTED: at least one real retry path plateaued instead of growing with 50 re-entries.');
 process.exit(proven ? 1 : 0);
-

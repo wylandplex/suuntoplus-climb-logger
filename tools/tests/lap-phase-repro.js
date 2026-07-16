@@ -44,7 +44,7 @@ function extStub(n) {
 }
 
 function makeApp() {
-  var store = {};
+  var store = { 'o:climbProjStats': JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data.json'), 'utf8')).climbProjStats };
   var ls = {
     getItem: function (k) { return store[k] === undefined ? null : store[k]; },
     setItem: function (k, v) { store[k] = '' + v; },

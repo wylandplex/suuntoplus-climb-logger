@@ -7,21 +7,22 @@ var platform = require('./platform');
 console.log('CLAIM F3: climbing a re-graded project wipes its historic sends and best time.');
 
 var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
-var stats = platform.snapshot(defaults.stats);
-stats.system = 0;
-stats.sessions = 1;
-stats.showSetupOnStart = 0;
-stats.p0_1 = 22;
+var C = platform.snapshot(defaults.climbProjStats);
+C.g = 0; C.u = 0; C.s0 = [0,0,0,1,0,-1];
 var project = [12, 0, 0, 0, 0, 4, 0, 0, 0, 0, 310, 0, 0, 0, 0, 18, -1, -1, -1, -1];
-var p = platform.createPlatform({ policy: 'reject-key', seed: { stats: stats, pS0: project } });
+C.p0 = project;
+var p = platform.createPlatform({ policy: 'reject-key', seed: { climbProjStats: C } });
 var app = p.createApp();
 app.load();
 app.warm(6);
 app.selectProject(1);
+app.press(5);                    // PROJSETUP on slot 1
+for (var rg = 0; rg < 4; rg++) app.press(1); // grade 18 -> 22
+app.press(5);                    // back to READY
 app.climb({ seconds: 60, send: false });
 var live = app.state().projSlot;
 app.end();
-var stored = p.storage.peek('pS0');
+var stored = p.storage.peek('climbProjStats').p0;
 
 console.log('Observed live attempts/sends/best/tag=' + [live[0], live[5], live[10], live[15]].join('/') +
   '; persisted=' + [stored[0], stored[5], stored[10], stored[15]].join('/') +

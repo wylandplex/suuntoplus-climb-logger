@@ -42,9 +42,10 @@ OUTS.forEach(function (nm, k) { IDX[nm] = OFF + k; });
 var TPL = [
   'function(o,S,rA,rB,pv,A){',
   'var st=S[0],gs=S[3],P=S[15],Q=S[16],F=pv[0],g,m,v,i;',
-  // The same project-route digit drives both the EDIT chevron lock and the packed project stats.
+  // The project-route digit drives the EDIT slot label and the packed project stats. High million
+  // 1..5 = editable P-slot; 6 = empty editor (locked). The remainder keeps the normal grade payload.
   'var cm=st===5&&S[1]<rA.length?Math.floor(rA[S[1]]/1e4)%10:0;',
-  'var lk=st===5&&(S[1]>=rA.length||cm>0)?1:0;',
+  'var lk=st===5?(S[1]>=rA.length?6:cm):0;',
   'if(F||pv[1]!==st){o[@vState@]=st;pv[1]=st}',
   'var lg=S[4]>=0?gs*100+S[4]:-1;',
   'var rh=st===1?Math.max(0,Math.round(S[13]-S[14])):st===2?S[8]:S[9];',
@@ -59,8 +60,10 @@ var TPL = [
   'if(F||pv[9]!==cl){o[@climbing@]=cl;pv[9]=cl}',
   'var gl=st===1?S[12]:S[4]>=0?S[4]:S[12];',
   'if(F||pv[10]!==gl){o[@gradeLog@]=gl;pv[10]=gl}',
-  'if(st===5){g=S[1]<rA.length?gs*100+Math.floor(rA[S[1]]/1e6):gs*100+50;m=S[1]+1;lg=-1}',
-  'else if(st===6){g=P[S[5]]>=0?gs*100+P[S[5]]:gs*100+50;m=-(S[5]+1);lg=-1}',
+  // modeSub carries the overlay kind as a +/-100 prefix. ready.html can derive ROUTE/PROJECT EDIT
+  // from this same eval and no longer keeps a second state variable + label refresh function.
+  'if(st===5){g=S[1]<rA.length?gs*100+(cm>0&&P[cm-1]>=0?P[cm-1]:Math.floor(rA[S[1]]/1e6)):gs*100+50;m=S[1]+101;lg=-1}',
+  'else if(st===6){g=P[S[5]]>=0?gs*100+P[S[5]]:gs*100+50;m=-(S[5]+101);lg=-1}',
   'else if(st===4){g=gs*100+S[17][gs];m=gs;lg=-1}',
   'else{g=gs*100+(S[7]>0?(P[S[7]-1]>=0?P[S[7]-1]:50):S[12]);m=S[7]>0?-S[7]:st===2?S[6]-1:S[6]}',
   'v=lk*1e6+g*952+(lg+1);',

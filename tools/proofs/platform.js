@@ -190,7 +190,7 @@ function buildBags(manifest, inputValues) {
 
 var STATE_EXPORT = [
   "this.__proofApi={getUserInterface:getUserInterface,onLoad:onLoad,evaluate:evaluate,onEvent:onEvent,onLap:onLap,onExercisePause:onExercisePause,onExerciseContinue:onExerciseContinue,onExerciseEnd:onExerciseEnd,getSummaryOutputs:getSummaryOutputs};",
-  "this.__proofState=function(){return {state:state,currentTemplate:currentTemplate,gradeSystem:gradeSystem,currentGrade:currentGrade,routeNumber:routeNumber,routesA:routesA.slice(),routesB:routesB.slice(),lastResult:lastResult,lastDuration:lastDuration,lastGradeIdx:lastGradeIdx,bestSendIdx:bestSendIdx,frDirty:frDirty,extLapPending:extLapPending,isPaused:isPaused,finalized:finalized,curAsc:curAsc,startAsc:startAsc,lastHeight:lastHeight,sessionH:sessionH,climbMode:climbMode,lastClimbMode:lastClimbMode,pStep:pStep,projGradeIdx:projGradeIdx.slice(),projSlot:projSlot.slice(),sessionsNo:sessionsNo,pendF12:pendF12,dfTries:dfTries,stOk:stOk,slTries:slTries,exFail:exFail,psDirty:psDirty,slotsDirty:slotsDirty,sysDirty:sysDirty,leg:leg,skipP:skipP,pendSlots:pendSlots,pendE:pendE,pendV:pendV,f3:!!f3,f10:!!f10,fE:!!fE,fP:!!fP,acc:acc?acc.slice():null,sumStale:sumStale,summary:lastSummaryCache};};"
+  "this.__proofState=function(){return {state:state,currentTemplate:currentTemplate,gradeSystem:gradeSystem,currentGrade:currentGrade,routeNumber:routeNumber,routesA:routesA.slice(),routesB:routesB.slice(),lastResult:lastResult,lastDuration:lastDuration,lastGradeIdx:lastGradeIdx,frDirty:frDirty,extLapPending:extLapPending,isPaused:isPaused,finalized:finalized,curAsc:curAsc,startAsc:startAsc,lastHeight:lastHeight,sessionH:sessionH,climbMode:climbMode,lastClimbMode:lastClimbMode,pStep:pStep,projGradeIdx:projGradeIdx.slice(),projSlot:projSlot.slice(),pendF12:pendF12,dfTries:dfTries,stOk:stOk,slTries:slTries,exFail:exFail,psDirty:psDirty,slotsDirty:slotsDirty,sysDirty:sysDirty,skipP:skipP,pendSlots:pendSlots,pendE:pendE,pendV:pendV,migRun:migRun,migGap:migGap,migIdx:migIdx,migNames:!!migNames,fM:!!fM,f3:!!f3,f10:!!f10,fE:!!fE,fP:!!fP,acc:acc?acc.slice():null,sumStale:sumStale,summary:lastSummaryCache};};"
 ].join('\n');
 
 function AppDriver(platform) {
@@ -283,6 +283,8 @@ AppDriver.prototype.readOutput = function (name) {
 AppDriver.prototype.evaluate = function (values) {
   this._setInput(values || {});
   this.api.evaluate(this.input, this.output);
+  var st = this.state();
+  if (st.migRun === 6 && st.currentTemplate === 'setup') this.api.onEvent(this.input, this.output, 9); // setup.html onLoad mount acknowledgement
   return this.state();
 };
 

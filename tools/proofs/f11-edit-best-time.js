@@ -7,13 +7,11 @@ var platform = require('./platform');
 console.log('CLAIM F11: changing a project route from SEND to FAIL through EDIT leaves best time nonzero.');
 
 var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
-var stats = platform.snapshot(defaults.stats);
-stats.system = 0;
-stats.sessions = 1;
-stats.showSetupOnStart = 0;
-stats.p0_1 = 18;
+var C = platform.snapshot(defaults.climbProjStats);
+C.g = 0; C.u = 0; C.s0 = [0,0,0,1,0,-1];
 var project = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, -1, -1, -1, -1];
-var p = platform.createPlatform({ policy: 'reject-key', seed: { stats: stats, pS0: project } });
+C.p0 = project;
+var p = platform.createPlatform({ policy: 'reject-key', seed: { climbProjStats: C } });
 var app = p.createApp();
 app.load();
 app.warm(6);
@@ -27,19 +25,16 @@ var edited = app.state();
 app.press(5); // exit EDIT
 app.press(4); // re-select P1 so the active-project companion mirror is populated at END
 app.end();
-var stored = p.storage.peek('pS0');
-var mirror = p.storage.peek('stats');
+var stored = p.storage.peek('climbProjStats').p0;
 var ext21Calls = p.evals.calls.filter(function (call) { return call.extension === '21'; }).length;
 
 console.log('Real ext21 parses=' + ext21Calls + '; in-memory after edit attempts/sends/best=' +
   edited.projSlot[0] + '/' + edited.projSlot[5] + '/' + edited.projSlot[10] + '.');
-console.log('Persisted observed pS0 attempts/sends/best=' + stored[0] + '/' + stored[5] + '/' + stored[10] +
-  ' and stats.activeSends/activeBest=' + mirror.activeSends + '/' + mirror.activeBest +
-  '; expected-if-correct=1/0/0 and 0/0.');
+console.log('Persisted observed p0 attempts/sends/best=' + stored[0] + '/' + stored[5] + '/' + stored[10] +
+  '; expected-if-correct=1/0/0.');
 
-var proven = ext21Calls >= 1 && stored[0] === 1 && stored[5] === 0 && stored[10] === 60 &&
-  mirror.activeSends === 0 && mirror.activeBest === 60;
+var proven = ext21Calls >= 1 && stored[0] === 1 && stored[5] === 0 && stored[10] === 60;
 console.log(proven ?
-  'PROVEN: real EDIT persists the contradictory project tuple sends=0,best=60 and publishes the same contradiction to stats.' :
+  'PROVEN: real EDIT persists the contradictory project tuple sends=0,best=60.' :
   'REFUTED: real EDIT cleared or recomputed best time when the final send became FAIL.');
 process.exit(proven ? 1 : 0);

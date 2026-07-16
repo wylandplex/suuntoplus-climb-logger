@@ -14,10 +14,12 @@ var fails = 0;
 function check(cond, msg) { if (!cond) { console.log('  FAIL  ' + msg); fails++; } }
 
 function mkApp() {
+  var store = JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
   var sb = {
     localStorage: {
       getItem: function () { return null; }, setItem: function () {},
-      getObject: function () { return null; }, setObject: function () {},
+      getObject: function (k) { return store[k] === undefined ? null : JSON.parse(JSON.stringify(store[k])); },
+      setObject: function (k, v) { store[k] = JSON.parse(JSON.stringify(v)); },
     },
     evalFile: function (p) {
       var m = /ext(\d+)\.js/.exec(p);

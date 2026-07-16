@@ -71,7 +71,7 @@ function makeSandboxVmExts(ls) {
     'onExerciseEnd:onExerciseEnd,getSummaryOutputs:getSummaryOutputs};' +
     '\n;this.__st=function(){return {pendF12:pendF12,dfTries:dfTries,stOk:stOk,slTries:slTries,' +
     'exFail:exFail,pendSlots:pendSlots,climbMode:climbMode,frDirty:frDirty,state:state,' +
-    'routesA:routesA.slice(),routesB:routesB.slice(),bestSendIdx:bestSendIdx,' +
+    'routesA:routesA.slice(),routesB:routesB.slice(),' +
     'gradeSystem:gradeSystem,acc:acc?acc.slice():null,sum:lastSummaryCache,' +
     'projGradeIdx:projGradeIdx.slice(),currentGrade:currentGrade,psDirty:psDirty};};';
   vm.runInContext(src, sandbox, { filename: 'main.js' });
@@ -83,7 +83,15 @@ var fails = 0;
 function check(cond, msg) { if (!cond) { console.log('  FAIL  ' + msg); fails++; } }
 function pass(name) { console.log('  PASS  ' + name); }
 
-var RETURNING = { stats: { system: 0, sessions: 7, showSetupOnStart: 0, p0_1: 5, p0_2: -1, p0_3: -1, p0_4: -1, p0_5: -1 } };
+function canonical(g, sessions, setup, grade) {
+  var C = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8')).climbProjStats));
+  C.g = g; C.u = setup; C['s' + g] = [0, 0, 0, sessions, 0, -1];
+  var P = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, -1,-1,-1,-1,-1,''];
+  if (grade !== undefined) P[15] = grade;
+  C['p' + g] = P;
+  return { climbProjStats: C };
+}
+var RETURNING = canonical(0, 7, 0, 5);
 function tick(sb, n, inp) { for (var i = 0; i < (n || 1); i++) sb.__api.evaluate(inp || { H: 1.5, Asc: 10 }, {}); }
 function press(sb, eid) { sb.__api.onEvent({}, {}, eid); }
 function decodeA(a) { return { grade: Math.floor(a / 1e6), send: Math.floor(a / 1e5) % 10, cm: Math.floor(a / 1e4) % 10, h: a % 1e4 }; }
@@ -125,7 +133,7 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
   check(sb.__st().pendF12 > 1, 'T2: onLoad failure arms backoff');
   tick(sb, 14);                      // backoff x3 -> attempt2, backoff -> attempt3, backoff -> give up
   var st = sb.__st();
-  check(ls.counts['stats'] === 3, 'T2: exactly 3 drain attempts (' + ls.counts['stats'] + ')');
+  check(ls.counts.climbProjStats === 3, 'T2: exactly 3 drain attempts (' + ls.counts.climbProjStats + ')');
   check(st.pendF12 === 0 && st.dfTries === 3 && st.stOk === 0, 'T2: gave up with open guards (pendF12=' + st.pendF12 + ' dfTries=' + st.dfTries + ' stOk=' + st.stOk + ')');
   // guards open -> app usable on defaults: SETUP confirm -> READY -> CLIMB -> SEND
   press(sb, 6);                      // evSetup confirm (no system change -> no pendSlots)
@@ -136,7 +144,7 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
   sb.__api.onExercisePause({}, {});
   sb.__api.onExerciseEnd({}, {});
   st = sb.__st();
-  check(ls.counts['stats'] === 3, 'T2: end belt respects the cap (attempts=' + ls.counts['stats'] + ')');
+  check(ls.counts.climbProjStats === 3, 'T2: end belt respects the cap (attempts=' + ls.counts.climbProjStats + ')');
   check(ls.sets === 0, 'T2: READ-ONLY — no setObject ever (' + ls.sets + ')');
   check(!sb.__ev.counts['11'], 'T2: ext11 never parsed');
   check(hasNs(st.sum) && st.sum[0].id === 'ns', 'T2: NOT SAVED row leads the summary');
@@ -175,22 +183,22 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
 // project mode on the departed system's out-of-range grade (the review-confirmed corruption).
 (function () {
   var f0 = fails;
-  var ls = makeLS({ stats: { system: 0, sessions: 0, showSetupOnStart: 1, p0_1: 35 } }); // fresh user -> stays SETUP
+  var ls = makeLS(canonical(0, 0, 1, 35)); // fresh user -> stays SETUP
   var sb = makeSandboxVmExts(ls);
   sb.__api.onLoad({}, {});
   check(sb.__st().state === 4, 'T4: fresh user stays in SETUP');
   check(sb.__st().projGradeIdx[0] === 35, 'T4: boot system slot loaded (idx 35)');
   press(sb, 1); press(sb, 1); press(sb, 1);  // dy x3: system 0 -> 3 (GRADE_LENS 11), sysChg armed
-  var before = ls.counts['stats'] || 0;
+  var before = ls.counts.climbProjStats || 0;
   ls.throwing = true;                // heap dies before the confirm
-  press(sb, 6);                      // confirm: pendSlots=1, slTries=0, READY mount
-  check(sb.__st().pendSlots === 1, 'T4: pendSlots armed at confirm');
+  press(sb, 6);                      // confirm: pendSlots=2, slTries=0, SETUP retained
+  check(sb.__st().pendSlots === 2, 'T4: preload armed at confirm');
   press(sb, 6);                      // gated: pendSlots blocks input
-  check(sb.__st().state === 0, 'T4: input gated while pendSlots pending');
+  check(sb.__st().state === 4, 'T4: SETUP retained while preload is pending');
   tick(sb, 5);                       // attempts 1..3, then give-up (ticks 4/5 must not re-attempt)
   var st = sb.__st();
-  check((ls.counts['stats'] || 0) - before === 3, 'T4: exactly 3 slot-load attempts (' + ((ls.counts['stats'] || 0) - before) + ')');
-  check(st.pendSlots === 0 && st.slTries === 3, 'T4: gate open after cap (pendSlots=' + st.pendSlots + ')');
+  check((ls.counts.climbProjStats || 0) - before === 3, 'T4: exactly 3 slot-load attempts (' + ((ls.counts.climbProjStats || 0) - before) + ')');
+  check(st.pendSlots === 0 && st.slTries === 3 && st.stOk === 0, 'T4: gate opens read-only after cap (pendSlots=' + st.pendSlots + ', stOk=' + st.stOk + ')');
   check(st.climbMode === 0, 'T4: free-mode fallback');
   check(st.projGradeIdx.join() === '-1,-1,-1,-1,-1', 'T4: departed system slot vector WIPED (' + st.projGradeIdx + ')');
   press(sb, 4);                      // toggleMode: no configured slot -> climbMode 1, no grade copy
@@ -205,6 +213,11 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
   tick(sb, 2); press(sb, 6); tick(sb, 1);
   var d = decodeA(sb.__st().routesA[0]);
   check(d.grade === 5 && d.grade < 11, 'T4: committed grade in-range for system 3 (' + d.grade + ')');
+  var setsBeforeEnd = ls.sets;
+  sb.__api.onExerciseEnd({}, {});
+  st = sb.__st();
+  check(ls.sets === setsBeforeEnd, 'T4: read-only recovery performs no END storage write');
+  check(hasNs(st.sum), 'T4: read-only recovery reports NOT SAVED');
   if (fails === f0) pass('T4 slTries cap — free-mode fallback, wiped slots, open gate');
 })();
 
@@ -301,7 +314,7 @@ console.log('[storm-caps-equiv] S2 attempt caps + degraded landings vs main.js')
 // ---- T5d: degraded commit in PROJECT mode never poisons the slot subsystem ---
 (function () {
   var f0 = fails;
-  var ls = makeLS({ stats: { system: 0, sessions: 7, showSetupOnStart: 0, p0_1: 20 } });
+  var ls = makeLS(canonical(0, 7, 0, 20));
   var sb = makeSandboxVmExts(ls);
   sb.__api.onLoad({}, {});
   tick(sb, 2);

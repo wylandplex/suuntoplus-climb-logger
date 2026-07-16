@@ -27,7 +27,6 @@ var sessionH = 0;
 var lastDuration = 0;
 var lastGradeIdx = -1;
 var lastHrAvg = 0;
-var bestSendIdx = -1;  // retained only for strict proof-state ABI; no mounted template consumes it
 var frDirty = 0;
 var frSend = 0;
 var extLapPending = 0;  // deferred CLIMB-finish armed by an EXTERNAL lap (auto-lap / non-app lap) in onLap; drained in evaluate one tick later so an app FAIL/SEND button (onEvent fires AFTER onLap on this platform) can cancel it via finishRoute. SEND by default.
@@ -48,15 +47,14 @@ var lastClimbMode = 0;   // slot snapshot at route finish — commitDirty attrib
 var pStep = 0;
 var projGradeIdx = [-1, -1, -1, -1, -1];
 var sysChg = 0;    // a SETUP dy changed the system this visit
-var pendSlots = 0; // deferred slot load after a system switch: the setup->ready confirm must stay MOUNT-ONLY (THE LAW: a mount moment tolerates ZERO extra allocation at the 97-99% baseline — the fillSlots getObject AT the confirm froze the watch, same class as the deleted seedSys write). The read runs on the tick AFTER the mount (the proven tick-1-drain choreography).
-// projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19].
+var pendSlots = 0; // staged preload: 2 = system switch, 1 = mount READY next tick. Storage parsing and READY never share a tick.
+// projSlot layout: attempts[0..4], sends[5..9], bestTime[10..14], grade[15..19], Companion row[20].
 var projSlot = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1];
-var sessionsNo = 1;
-// Persistence = the PROVEN choreography: inline reads run at enable, while legacy migration is
-// deferred to the calm first-tick drain; the workout path is LS-free; END does the RMW via ext11.
+// Persistence = the PROVEN choreography: native reads run at enable; the workout path is LS-free;
+// END does one canonical RMW via ext11. Legacy stores are isolated in ext16/ext17 migration launches.
 // The eP/WAL
 // variant (pause write + next-enable replay) was FALSIFIED on-watch 2026-07-03 — do not re-add.
-var pendF12 = 1;   // bootstrap pending: 1 = attempt on the next tick, >1 = backoff countdown after a failed attempt. Normally cleared in onLoad; legacy migration and failure retries stay on evaluate.
+var pendF12 = 1;   // bootstrap pending: 1 = next-tick attempt, >1 = failure backoff, 99 = migration input lock
 // S2 storm caps: every retrying parse/LS path gets a hard attempt bound — on a corpse heap each
 // attempt costs a RelMem burst, and an unbounded retry loop IS the storm (the P4 stg() loop
 // re-attempted every 3s for 13 minutes; a cable pulse did not stop it). After the cap the app
@@ -67,10 +65,10 @@ var stOk = 0;      // 1 = bootstrap drain succeeded. 0 at end = READ-ONLY sessio
 var slTries = 0;   // post-switch fillSlots attempts (cap 3) — then climbMode=0: START must never stay silently refused
 var exFail = 0;    // ext10 parse/call failures (cap 3) — then routes commit DEGRADED inline (no slot stats)
 var rt = 0;        // shared per-enable failure budget for the four formerly unbounded parse paths
-var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes pS<gs>)
-var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (writes stats.p<gs>_* + purge; ungated it would clobber Companion slot edits made between sessions)
-var sysDirty = 0;  // grade system changed (persist even on a routeless session)
-var leg = 0;       // active system came from the live-2.82 watchSetup/climbProjStats store -> ext11 dirty bit 2
+var psDirty = 0;   // projSlot changed this session       -> ext11 dirty bit 0 (writes C.p<gs>)
+var slotsDirty = 0;// projGradeIdx changed on the WATCH   -> ext11 dirty bit 1 (adopts grades / purges OFF slots in C.p<gs>)
+var sysDirty = 0;
+var migRun = 0, migGap = 0, migNew = 0, migIdx = 0, fM, migNames; // v3 migration: RAM build across ticks, ONE write, readback — completes WITHOUT a display ack
 
 var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 var LEG_SYS = [0, 1, 2, 3, 6, 7, 4, 5];  // current <-> live-2.82 system index (the permutation is its own inverse)
@@ -108,33 +106,26 @@ var stepG = function(v, dy) { var L = GRADE_LENS[gradeSystem]; return ((v + dy) 
 // degradation: an in-session system round-trip (A->B->A) re-reads A's PERSISTED slots, so
 // unsaved in-session slot edits of a departed system are no longer visible until end-write
 // (end-write only ever covered the ACTIVE system — unchanged).
-var fillSlots = function(sv, sys, Z) {
-  for (var i = 0; i < 5; i++) { var p = sv["p" + sys + "_" + (i + 1)]; projGradeIdx[i] = p >= -1 && p < GRADE_LENS[sys] ? p | 0 : -1; }
-  if (Z) for (i = 0; i < 20; i++) projSlot[i] = Z[i] !== undefined ? Z[i] : i < 15 ? 0 : -1;
+var fillSlots = function(C, sys) {
+  var Z = C["p" + sys], i, p;
+  for (i = 0; i < 5; i++) { p = Z && Z[i + 15]; projGradeIdx[i] = p >= -1 && p < GRADE_LENS[sys] ? p | 0 : -1; }
+  for (i = 0; i < 21; i++) projSlot[i] = Z && Z[i] !== undefined ? Z[i] : i < 15 ? 0 : i < 20 ? -1 : "";
 };
 
 
-// INLINE DRAIN (hybrid, #177/#169 follow-up): direct getObject reads — NO evalFile, so no ~2KB
-// contiguous parse block at enable. Runs synchronously in onLoad except legacy migration, whose
-// closed input gate remains until the evaluate-tick parse completes (replaces the churn-sensor
-// machinery). Object-graph reads are many SMALL allocations (fragmentation-tolerant) — dominated-
-// safe vs the on-watch-proven full ext12 parse at onLoad (log 2026-07-07g fresh-enable cycles).
-// Live 2.82 used a string stats.system plus watchSetup/climbProjStats. Its object graph is read by
-// ext13 on a calm tick and remains untouched until the normal END write lazily migrates one system.
-// LOCKSTEP oracle: tools/tests/drain-inline-equiv.js proves equivalence with the deleted ext12.js.
+// INLINE DRAIN (#177/#169 follow-up): one canonical getObject — NO evalFile, so no ~2KB
+// contiguous parse block at enable. A pre-v3 store only closes the input gate; ext16 (live 2.82)
+// or ext17 (numeric v1/v2) builds the complete v3 image in RAM on the migration screen and commits
+// it with exactly one setObject. SETUP is then mounted and acknowledged on separate calm ticks.
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
-  var L = localStorage, sv = L.getObject("stats") || {};
-  if (typeof sv.system === "string") { sessionsNo = (sv.sessions | 0) + 1; if (autoSkip && sv.sessions > 0 && sv.showSetupOnStart === 0) skipP = 1; pendF12 = 1; stOk = 3; return; }
-  // Legacy data stays read-only until ext13 has completed on a calm evaluate tick.
-  if ((sv.mig | 0) < 1 && sv.rou0 !== undefined) { pendF12 = 1; stOk = 2; return; }
-  if (!sysDirty) gradeSystem = sv.system >= 0 && sv.system <= 9 ? sv.system | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
-  fillSlots(sv, gradeSystem, L.getObject("pS" + gradeSystem));
-  leg = 0;
+  var L = localStorage, C = L.getObject("climbProjStats") || {}, sv;
+  if (C.v !== 3) { sv = L.getObject("stats") || {}; migNew = typeof sv.system === "string" ? 0 : -1; migRun = 1; pendF12 = 99; stOk = 2; pendSlots = pendV = 0; return; }
+  if (!sysDirty) gradeSystem = C.g >= 0 && C.g <= 9 ? C.g | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
+  fillSlots(C, gradeSystem);
   currentGrade = DEFAULT_IDX[gradeSystem];
-  sessionsNo = (sv.sessions | 0) + 1;
   pendF12 = 0; stOk = 1;
-  if (autoSkip && sv.sessions > 0 && sv.showSetupOnStart === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
+  if (autoSkip && C["s" + gradeSystem][3] > 0 && C.u === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
 };
 
 // Project-slot cycle (climbMode 1..5): step by ±1, clamp-wrapping over the 5 slots,
@@ -153,8 +144,8 @@ var cycleSlot = function(dy) {
 
 // Output packing — shrink active.html's mount footprint (fewer distinct WB path subscriptions coexist
 // during the inter-app swipe = template-swap peak that evicts the app; see crash-template-swap-eviction).
-//   packedGL    = lockF*1e6 + grade*952 + (lastGrade+1) → 1 path (was 2); lockF = EDIT grade-lock flag
-//                 (empty editor / project-tagged route). Max 1e6+950*952+951 = 1,905,351 < 2^24.
+//   packedGL    = editTag*1e6 + grade*952 + (lastGrade+1) → 1 path (was 2); editTag 1..5
+//                 identifies the editable project slot, 6 locks an empty editor. Max 6,905,351 < 2^24.
 //   packedAct   = READY-P tries*1000+sends (>=0); free EDIT uses -2 SEND / -3 FAIL / -4 DEL / -5 empty.
 //                 Project-route EDIT additionally packs its result + slot T/S into a float32-exact
 //                 negative capsule (see ext22 generator + output-pack-equiv). Positive max stays
@@ -218,7 +209,7 @@ var pub = function(o) {
   // So a lost publisher FOLDS the overlay back to READY. Both overlays live ON the ready template,
   // so this is a pure state change: no unload, no mount, zero allocation. Entry is refused the same
   // way (evReady eid5) — together: state 5/6 => fP !== null, which is exactly the domain FBW covers.
-  if (state > 4) { state = 0; pushEd(); }
+  if (state > 4) { state = 0; setText("#edr", ""); }
   FBW(o);
 };
 
@@ -243,9 +234,8 @@ var finishRoute = function(send, output) {
   goState(2, output);
 };
 
-// SATELLITE ext21 (Stufe 2): the EDIT ACTION bodies (result cycle = arm 1, DEL execution = arm 2).
-// Arm 3 (the BREAK quickfix) has no caller since the quickfix was cut — it stays in the ext, which is
-// free (parsed after enable, dropped before disable, never in the leaked corpse).
+// SATELLITE ext21 (Stufe 2): EDIT result cycle (op 1), DEL execution (op 2), and project-route
+// reassignment to the previous/next configured slot (ops 3/4).
 // Parsed via the M9 GATE: the entry/first-use press arms pendE, the
 // NEXT evaluate tick parses (outside the firmware press context) while onEvent+onLap are gated —
 // gate-until-done, no timers (the pendSlots pattern generalized, user license 2026-07-08). Cached in
@@ -258,24 +248,14 @@ var finishRoute = function(send, output) {
 var fE = null, eBag = [0, 0, 0, 0, 0, 0], pendE = 0;
 var callE = function(op, i) {
   eBag[0] = i; eBag[1] = editDelMark; eBag[2] = sessionH; eBag[3] = routeNumber; eBag[4] = psDirty; eBag[5] = 0;
-  fE(op, eBag, routesA, routesB, projSlot);
-  if (op < 3) editIdx = eBag[0];  // op3 (BREAK quickfix) must not clobber the overlay cursor
+  fE(op, eBag, routesA, routesB, projSlot, projGradeIdx);
+  if (op < 3) editIdx = eBag[0];  // reassignment ops 3/4 leave the overlay cursor untouched
   editDelMark = eBag[1]; sessionH = eBag[2]; routeNumber = eBag[3]; psDirty = eBag[4];
   return eBag[5];
 };
 
-// EDIT overlay bottom-line indicator: "EDIT i/n " via setText into ready.html's #edr node — safe
-// because the overlay never swaps the template (DOM is mounted when this runs). The SEND|FAIL|DEL
-// result word moved to the packedAct output (remount-proof; #edr's setText is NOT) — ready.html
-// renders it in the adjacent span, trailing space here keeps the "EDIT i/n WORD" spacing.
-// state-aware (S5): a lost publisher folds the EDIT overlay back to READY inside pub() — every
-// pushEd after such a fold must CLEAR the line instead of re-printing "EDIT i/n" onto the READY
-// screen. That keeps the fold self-cleaning at all call sites (entry, edits, the idle-tick fold).
-var pushEd = function() {
-  setText("#edr", state !== 5 ? "" : routesA.length === 0 ? "EDIT 0/0" : "EDIT " + (editIdx + 1) + "/" + routesA.length + " ");
-};
-
-// EDIT overlay (state 5) — OLD controls preserved: eid1/2 grade ±1 (free routes, RESIDENT — C3),
+// EDIT overlay (state 5): eid1/2 change the grade of free routes, or reassign a project route to
+// another configured slot. The satellite moves attempts/sends and applies the existing best-time rule.
 // eid4 result cycle SEND->FAIL->DEL, eid6 previous route (executes a DEL mark), eid5 exit (executes
 // a DEL mark). Action bodies live in ext21 via callE; a throw = graceful no-op + press-again retry
 // (C11), EXCEPT eid5 exit which must never trap the user: on throw the armed DEL is dropped and the
@@ -285,7 +265,7 @@ var evEdit = function(output, eid) {
     if (editDelMark) { try { callE(2, editIdx); } catch (e) { if (eid === 6) return; editDelMark = 0; } }
     if (eid === 6 && routesA.length > 0) {
       editIdx = (editIdx - 1 + routesA.length) % routesA.length;
-      pub(output); pushEd();
+      pub(output);
     } else {
       setText("#edr", "");
       goState(0, output);
@@ -295,12 +275,14 @@ var evEdit = function(output, eid) {
   if (routesA.length === 0) return;  // empty editor: stay (old behavior); exit via eid 5/6
   if (eid === 4) {
     try { callE(1, editIdx); } catch (e) { return; }
-    pub(output); pushEd();
+    pub(output);
   } else if (eid === 1 || eid === 2) {
     if (!rCm(editIdx)) {
       wGrade(editIdx, stepG(rGrade(editIdx), eid === 1 ? 1 : -1));
-      pub(output); pushEd();
+    } else {
+      try { callE(eid + 2, editIdx); } catch (e) { return; }
     }
+    pub(output);
   }
 };
 
@@ -314,7 +296,7 @@ var commitDirty = function() {
     if (exFail < 3) {
       try {
         r = (f10 || (f10 = loadExt(10)))(lastGradeIdx, gradeSystem, lastDuration, lastHrAvg, 0,
-          frSend, lastClimbMode, 0, projSlot, sessionsNo, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode.
+          frSend, lastClimbMode, 0, projSlot, 0, lastHeight);  // lazy-parse ext10 on the FIRST route, cached for the session. lastClimbMode (slot at finish), NOT live climbMode.
       } catch (e) {
         if (++exFail < 3) return;  // S2 cap: frDirty stays armed -> retried next evaluate tick (bounded, <=3 attempts; worst case ~3s of the BREAK eid4/6 gate). Pre-S2 this path LOST the route silently.
       }
@@ -377,7 +359,6 @@ var evReady = function(output, eid, dy) {
       if (!routesA.length || rt >= 3) return;  // folded routes are immutable; a terminally cold editor is refused
       editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
       goState(5, output);
-      pushEd();  // state-aware: prints "" if the mount publish folded us back
       if (!fE) pendE = 1;  // capped M9 stager: parse on evaluate, never from an EDIT action press
     }
   } else if (eid === 4) {
@@ -420,7 +401,7 @@ var evBreak = function(output, eid, dy) {
   } else if (eid === 4) {
     if (!f10) return;  // folded/degraded routes are immutable; never parse a satellite from this press
     try { var r14 = f10(-1, climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, 0, projSlot, routesA); } catch (e) { return; }
-    if (r14) { currentGrade = r14[0]; climbMode = r14[1]; psDirty = slotsDirty = 1; goState(0, output); }
+    if (r14) { currentGrade = r14[0]; climbMode = r14[1]; projSlot[20] = ""; psDirty = slotsDirty = 1; goState(0, output); }
   } else if (eid === 6 && !frDirty) {
     goState(0, output);
   }
@@ -430,7 +411,7 @@ var evBreak = function(output, eid, dy) {
 // in RAM, and the choice is written once at the END via sysDirty -> ext11 (v.system=g). No seedSys
 // pre-grow: that ONE flash write at setup-leave stalled the setup->ready mount on a switch (the confirm
 // must stay mount-only, exactly like the clean default-system confirm where s0 is pre-shipped). ext11
-// grows s<g> to the full 14-field shape at that system's end — on the loose post-pre-pop baseline.
+// rewrites C.s<g> to the compact six-value lifetime vector at that system's normal end.
 
 var evSetup = function(output, eid, dy) {
   if (dy) {
@@ -438,12 +419,12 @@ var evSetup = function(output, eid, dy) {
     currentGrade = DEFAULT_IDX[gradeSystem];
     f3 = null;   // drop the stale-system name slice (reloads for the new system at the next commit); switch is pre-routes so no summary needs it in between
     sysChg = 1;  // hybrid: slots load ONCE at the eid6 confirm (per-press LS reads would stall the fluid dy scroll; SETUP shows no slots)
-    for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;  // loadProjectStats inlined (S3): blank slot stats for the new system (persisted pS<g> drains at the next session)
+    for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;  // blank stats until the staged destination preload
     sysDirty = 1;  // persist the system choice via eP even on a routeless session
     pub(output);  // state-4 arm (warm or FBW) covers the old targeted gradeV/wGL/wMode writes exactly
   } else if (eid === 6) {
-    if (sysChg) { sysChg = 0; pendSlots = 1; slTries = 0; }  // slots load one tick AFTER the mount (never AT it); a plain confirm must not clobber in-session slot edits. Fresh switch = fresh retry budget (S2 cap)
-    goState(0, output);  // instant, MOUNT-ONLY — no flash write at the switch confirm; the system choice lives in RAM + persists at end via sysDirty. saveSetup deferred to onExerciseEnd.
+    if (sysChg) { sysChg = 0; pendSlots = 2; slTries = 0; }  // first translate/read under the smaller SETUP tree, then mount READY on a separate tick
+    else goState(0, output);  // unchanged system needs no storage work; mount directly
   }
 };
 
@@ -452,6 +433,7 @@ var evProjSetup = function(output, eid, dy) {
     projGradeIdx[pStep] += dy;
     if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
     else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
+    projSlot[20] = "";  // invalidate a pause-built Companion row; the next normal route/end rebuilds it with the new slot setup
     slotsDirty = 1;
     pub(output);  // state-6 arm republishes the slot grade (zero-alloc, C3-safe)
   } else if (eid === 5) {
@@ -465,6 +447,7 @@ var evProjSetup = function(output, eid, dy) {
 };
 
 function onLoad(_input, output) {
+  migRun = migGap = migNew = migIdx = 0; fM = migNames = null; // restart after a completed/failed migration may reuse the same module instance
   finalized = 0;  // new session → re-arm onExerciseEnd
   lastSummaryCache = null; acc = null; f3 = null; sumStale = 0; rt = 0;  // reset the session summary + the pause-fold aggregate + bounded transient-parse budget
   pv = [1]; fP = null; pendV = 1; pvT = 0;  // fresh publish cache + force flag; stage the ext22 parse for the calm post-enable tick (fresh retry budget)
@@ -483,13 +466,42 @@ function onLoad(_input, output) {
 // dispatcher keeps only the isPaused thin-arm and hands over primitives (h, asc). `output` rides
 // as a bare positional arg down the whole chain (deploy-build output tracking, proven multi-hop).
 var tick = function(output, h, asc) {
-  if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { if (stOk === 2) { loadExt(13)(); drainF12(1); } else if (stOk === 3) { gradeSystem = loadExt(13)(projGradeIdx, projSlot, -1); currentGrade = DEFAULT_IDX[gradeSystem]; leg = 1; psDirty = slotsDirty = 1; pendF12 = 0; stOk = 1; } else drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap/migration path; migration is never parsed from onLoad
-  else if (pendSlots) { pendSlots = 0; try { var sv = localStorage.getObject("stats") || {}, old = gradeSystem < 8 && (typeof sv.system === "string" || sv.lm !== undefined && !(sv.lm & 1 << LEG_SYS[gradeSystem])); if (old) { gradeSystem = loadExt(13)(projGradeIdx, projSlot, gradeSystem); leg = 1; psDirty = slotsDirty = 1; } else { fillSlots(sv, gradeSystem, localStorage.getObject("pS" + gradeSystem)); leg = 0; } } catch (e) { if (++slTries < 3) pendSlots = 1; else { climbMode = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; } } }  // destination labels AND project vector load before the input gate opens; capped at 3 attempts
+  if (migRun) {
+    if (migRun === 1) { currentTemplate = "migration"; unload('_cm'); migRun = 2; migGap = 2; return; }
+    if (migGap) { migGap--; return; }
+    if (migRun === 3) {
+      try {
+        if (migNew < 0) fM(0, 10); else fM();
+        fM = null; migRun = 5; migGap = 3;
+      } catch (e) { migRun = 4; fM = null; setText("#mi", "MIGRATION FAILED"); setText("#ms", "STORAGE STEP"); }
+      return;
+    }
+    if (migRun === 5) { try { drainF12(0); pendF12 = 99; setText("#mi", "MIGRATION COMPLETE"); setText("#ms", "OPENING SETUP"); state = 4; currentTemplate = "setup"; migRun = 6; migGap = 2; unload('_cm'); } catch (e) { migRun = 4; setText("#mi", "MIGRATION FAILED"); setText("#ms", "RESTART ACTIVITY"); } return; }
+    // Completion must NOT wait for the setup-onLoad ack: templates only mount while their screen is
+    // displayed, so off-screen the ack never arrives and a retry-unload('_cm') loop rebuilds the
+    // FOREGROUND co-app template every 3 ticks (proven on-watch 16.07: 7x zzwethen remounts, visible
+    // lag/flicker, Movement evicted at first visit). One unload in arm 5 covers the on-screen case.
+    if (migRun === 6) { migRun = pendF12 = 0; pendV = pv[0] = 1; return; }
+    if (migRun === 2) {
+      try {
+        if (!migNames) { migNames = loadExt(18)(); migGap = 2; setText("#ms", "BUILDING IN RAM"); return; }
+        if (!fM) { fM = loadExt(migNew < 0 ? 17 : 16); migGap = 2; return; }
+        if (migNew < 0) {
+          if (migIdx < 11) { fM(migNames, migIdx - 1); if (migIdx) setText("#ms", "PROJECTS " + migIdx + "/10"); migIdx++; migGap = 1; return; }
+        } else if (!migIdx) { fM(migNames); migIdx = 1; }
+        migNames = null; migRun = 3; migGap = 4; setText("#ms", "WRITING STORE ONCE");
+      } catch (e) { migRun = 4; fM = migNames = null; setText("#mi", "MIGRATION FAILED"); setText("#ms", "STORAGE STEP"); }
+    }
+    return;
+  }
+  if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap path; every pre-v3 schema enters the isolated migration launch
+  else if (pendSlots > 1) { try { loadExt(13)(projGradeIdx, projSlot, gradeSystem); currentGrade = DEFAULT_IDX[gradeSystem]; pendSlots = 1; } catch (e) { if (++slTries >= 3) { climbMode = stOk = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } } }
+  else if (pendSlots) { pendSlots = 0; goState(0, output); }  // one complete evaluate boundary separates storage parsing from the READY mount
   else if (pendE) {
     try { fE = fE || loadExt(21); pendE = 0; } catch (e) { if (++rt >= 3) pendE = 0; }
   }
   else if (skipP) { skipP = 0; if (state === 4) goState(0, output); }  // tick 2: returning user -> READY
-  else if (pendV) { pendV = 0; try { fP = loadExt(22); } catch (e) { if (++pvT < 3) pendV = 1; } }  // S5 pendV stager: parse the PUB satellite on the calm tick AFTER the skipP mount (pendSlots choreography; on the no-skip path this IS the proven ext12 first-tick-drain moment). Capped (S2 doctrine); until warm, pub() publishes the crown via FBW — never gate onEvent/onLap on pendV
+  else if (pendV) { pendV = 0; try { fP = loadExt(22); } catch (e) { if (++pvT < 3) pendV = 1; } }  // S5 pendV stager: parse the PUB satellite on the calm tick AFTER the skipP mount (pendSlots choreography). Capped (S2 doctrine); until warm, pub() publishes the crown via FBW — never gate onEvent/onLap on pendV
   if (asc !== undefined) curAsc = asc;
   if (state === 1) {
     rSec++;
@@ -528,7 +540,7 @@ var sumStale = 0;  // set when foldRoutes folds >=1 route; cleared on a successf
 // S4: the recap ROW BUILDER left main.js -> ext25 (row semantics verbatim: sr > highest-send > Avg HR
 // > Height > Climb Time, caller caps to 4 — the watch drops the whole summary above ~4 rows). ONE
 // transient parse per build moment (parse -> call -> drop), by-ref fb, primitive return (anti-ext20).
-// nm is read by the CALLER while the f3 slice cache is warm (the end nulls f3 before parsing).
+// nm and the Companion project-row labels are read while the f3 slice cache is warm.
 // Fail-soft: at pause a fail keeps the stale rows (the end retries with its own budget); at the END
 // it falls back to the sr tally from the resident acc — the recap never goes blank, never storms.
 var sumUp = function(nm, m) {
@@ -540,12 +552,12 @@ var sumUp = function(nm, m) {
     } catch (e) {}
     return;
   }
-  if (!sumStale || !acc || !acc[1]) return;
+  if ((!sumStale || !acc || !acc[1]) && !(m && slotsDirty && !projSlot[20])) return;
   if (rt >= 3) { if (m) try { lastSummaryCache = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }]; } catch (e) {} return; }
   try {
     var fb = [];
-    loadExt(25)(fb, acc, nm);
-    lastSummaryCache = fb.slice(0, 4); sumStale = 0;
+    loadExt(25)(fb, acc, nm, projSlot, projGradeIdx, f3);
+    if (acc && acc[1]) { lastSummaryCache = fb.slice(0, 4); sumStale = 0; }
   } catch (e) {
     rt++;
     if (m) try { lastSummaryCache = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }]; } catch (e2) {}
@@ -595,8 +607,10 @@ var finishSession = function() {
   try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) {}  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW
   var nm = "";
   try { if (sumStale && acc && acc[1] && acc[6] >= 0 && f3) nm = f3(acc[6] % 100); } catch (e) {}  // name read while the slice is warm (caches null NEXT), ALLOC-GUARDED: the slice call string-concats — a corpse-heap throw here must cost only the name row, never the ext11 save below (S4-review C1: unguarded, it aborted the whole end hook)
-  f10 = null; fE = null; f3 = null;  // release all cached parses before the transient recap parse + the ext11 RMW
+  f10 = null; fE = null;  // release the larger cached parses; keep the tiny grade-name slice through ext25 so it can publish readable Companion project grades
+  if (slotsDirty && !projSlot[20] && !f3 && rt < 3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) { rt++; } }  // config-only END still derives its Companion row before ext11 persists C.p<g>
   sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
+  f3 = null;  // release the name slice before the ext11 RMW
   try {
     loadExt(11)([acc ? acc[0] : 0, acc ? acc[1] : 0, acc && acc[6] >= 0 ? acc[6] % 100 : -1, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0) | (leg ? 4 : 0));  // totals + exactly derivable session peak
   } catch (e) { sumUp(0, 2); }
@@ -628,6 +642,7 @@ var evK = function(output, eventId) {
 
 function onEvent(_input, output, eventId) {
   if (isPaused) return;
+  if (migRun) return;  // input gate stays closed during migration; the setup-onLoad eid 9 is a no-op in normal dispatch
   evK(output, eventId);
 }
 
