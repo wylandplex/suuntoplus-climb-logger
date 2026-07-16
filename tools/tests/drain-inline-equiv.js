@@ -9,8 +9,9 @@ var path = require('path');
 var ROOT = path.join(__dirname, '..', '..');
 var MAIN = path.join(ROOT, 'main.js');
 
+var v3skel = require('./v3skel');
 function clone(v) { return JSON.parse(JSON.stringify(v)); }
-function baseC() { return clone(JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8')).climbProjStats); }
+function baseC() { return v3skel(); }
 function makeLS(seed, calls) {
   var store = clone(seed);
   return {
@@ -30,7 +31,8 @@ function run(seed) {
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(MAIN, 'utf8') +
     '\n;this.__st=function(){return {gradeSystem:gradeSystem,projGradeIdx:projGradeIdx.slice(),' +
-    'projSlot:projSlot.slice(),skipP:skipP,pendF12:pendF12,migRun:migRun,migNew:migNew,stOk:stOk}};' +
+    'projSlot:projSlot.slice(),skipP:skipP,pendF12:pendF12,migPend:migPend,migOK:migOK,' +
+    'slotTouched:slotTouched,stOk:stOk,pendSlots:pendSlots}};' +
     '\n;this.__onLoad=onLoad;', sandbox, { filename: 'main.js' });
   sandbox.__onLoad({}, {});
   var out = sandbox.__st(); out.calls = calls; out.evals = evals; return out;
@@ -49,7 +51,7 @@ function nativeCase(name, edit, expected) {
   check(eq(r.projGradeIdx, expected.grades), name + ': project grades [' + r.projGradeIdx + ']');
   if (expected.slot) check(eq(r.projSlot, expected.slot), name + ': project vector');
   check(r.skipP === expected.skip, name + ': setup auto-skip');
-  check(r.pendF12 === 0 && r.migRun === 0 && r.stOk === 1, name + ': direct bootstrap state');
+  check(r.pendF12 === 0 && r.migPend === 0 && r.migOK === 0 && r.slotTouched === 0 && r.stOk === 1, name + ': direct bootstrap state');
   check(eq(r.calls, [['get', 'climbProjStats']]), name + ': exactly one read and no writes: ' + JSON.stringify(r.calls));
   check(r.evals === 0, name + ': no satellite parse in onLoad');
   if (!fails) console.log('  PASS  ' + name);
@@ -71,17 +73,26 @@ nativeCase('sparse project row uses safe defaults', function (C) {
   C.g = 1; C.p1 = { 0: 9, 15: 4, 20: 'P1 (5a)' };
 }, { g: 1, grades: [4, -1, -1, -1, -1], slot: [9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,-1,-1,-1,-1,'P1 (5a)'], skip: 0 });
 
-function legacyCase(name, seed, kind) {
+function legacyCase(name, seed, expectedSystem) {
   var r = run(seed);
-  check(r.migRun === 1 && r.pendF12 === 99 && r.stOk === 2, name + ': migration input gate');
-  check(r.migNew === kind, name + ': converter selection ' + r.migNew + ' != ' + kind);
+  // END-FOLD: a legacy store (C.v !== 3) only closes the input gate for the session — it seeds
+  // gradeSystem, resets projGradeIdx/projSlot to defaults and runs the session live (stOk=1,
+  // pendF12=0). No state machine, no lock, no write; the fold itself happens later at END
+  // (finishSession), which this onLoad-only harness never reaches.
+  var expFmt = typeof (seed.stats && seed.stats.system) === 'number' ? 2 : 1;  // migPend doubles as the ext12 format code
+  check(r.migPend === expFmt && r.pendF12 === 0 && r.stOk === 1, name + ': legacy session runs fresh (migPend=' + expFmt + ' as format code, no lock)');
+  check(r.slotTouched === 0, name + ': no slot edits yet at bootstrap');
+  check(r.gradeSystem === expectedSystem, name + ': gradeSystem seeded ' + r.gradeSystem + ' != ' + expectedSystem);
+  check(eq(r.projGradeIdx, [-1, -1, -1, -1, -1]), name + ': project grades reset to defaults at onLoad (the ext12 seed runs on the STAGED tick, not here)');
+  check(r.pendSlots === 2, name + ': read-only legacy slot seed staged (pendSlots=2, ext13-choreography)');
+  check(eq(r.calls, [['get', 'climbProjStats'], ['get', 'stats']]), name + ': exactly two reads (container + stats) and no writes: ' + JSON.stringify(r.calls));
   check(!r.calls.some(function (x) { return x[0] === 'set'; }), name + ': onLoad remains read-only');
-  check(r.evals === 0, name + ': converter is not parsed in onLoad');
+  check(r.evals === 0, name + ': no satellite parse in onLoad (converter deferred to END fold)');
   if (!fails) console.log('  PASS  ' + name);
 }
 legacyCase('live 2.82 string schema', { stats: { system: 'French' }, climbProjStats: { French: {} } }, 0);
-legacyCase('numeric v1/v2 schema', { stats: { system: 2, mig: 2 }, pS2: { 15: 5 } }, -1);
-legacyCase('empty/first-install legacy image', {}, -1);
+legacyCase('numeric v1/v2 schema', { stats: { system: 2, mig: 2 }, pS2: { 15: 5 } }, 2);
+legacyCase('empty/first-install legacy image', {}, 0);
 
 console.log(fails ? '\n' + fails + ' FAILURE(S)' : '\nALL PASS');
 process.exit(fails ? 1 : 0);

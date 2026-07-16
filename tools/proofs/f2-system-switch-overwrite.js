@@ -1,9 +1,11 @@
 'use strict';
-var fs = require('fs'), path = require('path'), platform = require('./platform');
+var platform = require('./platform');
+var v3skel = require('../tests/v3skel');
 console.log('CLAIM F2: switching grade systems blanks and overwrites destination project history at END.');
-var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
+// END-FOLD: data.json no longer seeds a v3 climbProjStats container (only a real fold
+// produces one). Model a canonical post-fold user via v3skel(), same shape ext16/ext11 write.
 function seed() {
-  var C = platform.snapshot(defaults.climbProjStats); C.g = 1; C.u = 1;
+  var C = v3skel(); C.g = 1; C.u = 1;
   C.p0 = [12,0,0,0,0, 4,0,0,0,0, 310,0,0,0,0, 18,-1,-1,-1,-1,'7a 12/4|-|-|-|-'];
   return { climbProjStats: C };
 }

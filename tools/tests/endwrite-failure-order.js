@@ -3,11 +3,9 @@
 // ext11 now owns one atomic read/modify/write of the canonical container. A failed write must leave
 // every shard/project/settings value untouched, report NOT SAVED, and recover on the next session.
 
-var fs = require('fs');
-var path = require('path');
 var platform = require('../proofs/platform');
-var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
-var C = platform.snapshot(defaults.climbProjStats);
+var v3skel = require('./v3skel');
+var C = v3skel();
 C.g = 0; C.u = 0; C.s0 = [0, 0, 0, 1, 0, -1];
 C.p0 = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 18,-1,-1,-1,-1,'P1 (7a)'];
 

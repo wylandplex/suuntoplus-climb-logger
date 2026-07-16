@@ -42,8 +42,16 @@ function StrictLocalStorage(options) {
   }
 
   // The schema and initial store are intentionally read from data.json now,
-  // rather than captured in a handwritten fixture.
+  // rather than captured in a handwritten fixture. END-FOLD: the shipped seed no longer
+  // carries a v3 skeleton (a v3 container may only ever come from a real fold) — the
+  // default TEST store still models a canonical post-fold user, so synthesize the skeleton
+  // in exactly the shape ext16/ext11 write it.
   this.defaults = readJson('data.json');
+  if (!this.defaults.climbProjStats) {
+    var skel = { v: 3, g: 0, u: 1 }, gi, ps;
+    for (gi = 0; gi < 10; gi++) { skel['s' + gi] = [0, 0, 0, 0, 0, -1]; ps = {}; ps[20] = ''; skel['p' + gi] = ps; }
+    this.defaults.climbProjStats = skel;
+  }
   this.allowlist = new Set(Object.keys(this.defaults));
   this.store = applySeed(this.defaults, options.seed);
   this.calls = [];
@@ -190,7 +198,7 @@ function buildBags(manifest, inputValues) {
 
 var STATE_EXPORT = [
   "this.__proofApi={getUserInterface:getUserInterface,onLoad:onLoad,evaluate:evaluate,onEvent:onEvent,onLap:onLap,onExercisePause:onExercisePause,onExerciseContinue:onExerciseContinue,onExerciseEnd:onExerciseEnd,getSummaryOutputs:getSummaryOutputs};",
-  "this.__proofState=function(){return {state:state,currentTemplate:currentTemplate,gradeSystem:gradeSystem,currentGrade:currentGrade,routeNumber:routeNumber,routesA:routesA.slice(),routesB:routesB.slice(),lastResult:lastResult,lastDuration:lastDuration,lastGradeIdx:lastGradeIdx,frDirty:frDirty,extLapPending:extLapPending,isPaused:isPaused,finalized:finalized,curAsc:curAsc,startAsc:startAsc,lastHeight:lastHeight,sessionH:sessionH,climbMode:climbMode,lastClimbMode:lastClimbMode,pStep:pStep,projGradeIdx:projGradeIdx.slice(),projSlot:projSlot.slice(),pendF12:pendF12,dfTries:dfTries,stOk:stOk,slTries:slTries,exFail:exFail,psDirty:psDirty,slotsDirty:slotsDirty,sysDirty:sysDirty,skipP:skipP,pendSlots:pendSlots,pendE:pendE,pendV:pendV,migRun:migRun,migGap:migGap,migIdx:migIdx,migNames:!!migNames,fM:!!fM,f3:!!f3,f10:!!f10,fE:!!fE,fP:!!fP,acc:acc?acc.slice():null,sumStale:sumStale,summary:lastSummaryCache};};"
+  "this.__proofState=function(){return {state:state,currentTemplate:currentTemplate,gradeSystem:gradeSystem,currentGrade:currentGrade,routeNumber:routeNumber,routesA:routesA.slice(),routesB:routesB.slice(),lastResult:lastResult,lastDuration:lastDuration,lastGradeIdx:lastGradeIdx,frDirty:frDirty,extLapPending:extLapPending,isPaused:isPaused,finalized:finalized,curAsc:curAsc,startAsc:startAsc,lastHeight:lastHeight,sessionH:sessionH,climbMode:climbMode,lastClimbMode:lastClimbMode,pStep:pStep,projGradeIdx:projGradeIdx.slice(),projSlot:projSlot.slice(),pendF12:pendF12,dfTries:dfTries,stOk:stOk,slTries:slTries,exFail:exFail,psDirty:psDirty,slotsDirty:slotsDirty,sysDirty:sysDirty,skipP:skipP,pendSlots:pendSlots,pendE:pendE,pendV:pendV,migPend:migPend,migOK:migOK,slotTouched:slotTouched,f3:!!f3,f10:!!f10,fE:!!fE,fP:!!fP,acc:acc?acc.slice():null,sumStale:sumStale,summary:lastSummaryCache};};"
 ].join('\n');
 
 function AppDriver(platform) {
@@ -284,7 +292,6 @@ AppDriver.prototype.evaluate = function (values) {
   this._setInput(values || {});
   this.api.evaluate(this.input, this.output);
   var st = this.state();
-  if (st.migRun === 6 && st.currentTemplate === 'setup') this.api.onEvent(this.input, this.output, 9); // setup.html onLoad mount acknowledgement
   return this.state();
 };
 

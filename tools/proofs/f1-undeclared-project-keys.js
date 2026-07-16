@@ -1,9 +1,8 @@
 'use strict';
-var fs = require('fs'), path = require('path'), platform = require('./platform');
+var fs = require('fs'), path = require('path'), platform = require('./platform'), v3skel = require('../tests/v3skel');
 console.log('CLAIM F1: undeclared per-system keys prevent project statistics from surviving a second session.');
-var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
 function seed() {
-  var C = platform.snapshot(defaults.climbProjStats);
+  var C = v3skel();
   C.g = 1; C.u = 0; C.s1 = [0,0,0,1,0,-1];
   C.p1 = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 6,-1,-1,-1,-1,''];
   return { climbProjStats: C };

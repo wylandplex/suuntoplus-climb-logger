@@ -51,17 +51,29 @@ for (let system = 0; system < 10; system++) {
 }
 assert(!manifest.variables.some(v => /(?:Sets|Laps)$/.test(v.shownName)));
 
+// END-FOLD: shipped data no longer seeds a v3 container -- a v3 store may only come from a
+// real fold (update-wipe detectability). The shipped fixtures stay legacy (v!==3, stats.cv=1).
 for (const file of ['data.json', 'data.default.json']) {
   const data = JSON.parse(fs.readFileSync(path.join(ROOT, file), 'utf8'));
   assert.strictEqual(data.stats.projects, undefined);
-  assert.strictEqual(data.climbProjStats.v, 3);
-  assert.strictEqual(data.climbProjStats.u, 1);
+  assert.strictEqual(data.climbProjStats, undefined);
   assert.strictEqual(data.stats.cv, 1);
   for (let i = 0; i < 10; i++) {
-    assert.deepStrictEqual(data.climbProjStats['p' + i], { 20: '' });
-    assert.deepStrictEqual(data.climbProjStats['s' + i], [0, 0, 0, 0, 0, -1]);
     assert.deepStrictEqual(data['pS' + i], {});
     assert.deepStrictEqual(data['s' + i], {});
+  }
+}
+
+// The canonical post-fold shape (used below to exercise ext11/derived-row persistence) comes
+// from v3skel(), never from data.json.
+const v3skel = require('./v3skel');
+{
+  const skel = v3skel();
+  assert.strictEqual(skel.v, 3);
+  assert.strictEqual(skel.u, 1);
+  for (let i = 0; i < 10; i++) {
+    assert.deepStrictEqual(skel['p' + i], { 20: '' });
+    assert.deepStrictEqual(skel['s' + i], [0, 0, 0, 0, 0, -1]);
   }
 }
 
@@ -83,10 +95,10 @@ const cfgP = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, -1, -1, -1, -1, '3
 const cfg = platform.createPlatform({
   policy: 'reject-key',
   seed: {
-    climbProjStats: Object.assign({}, platform.snapshot(JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8')).climbProjStats), { s0: [0, 0, 0, 1, 0, -1], p0: cfgP })
+    climbProjStats: Object.assign({}, platform.snapshot(v3skel()), { s0: [0, 0, 0, 1, 0, -1], p0: cfgP })
   }
 });
-const cfgApp = cfg.createApp(); cfgApp.load(); cfgApp.warm(6); cfgApp.toReady(); cfgApp.selectProject(1);
+const cfgApp = cfg.createApp(); cfgApp.load(); cfgApp.warm(6); cfgApp.toReady(); cfgApp.warm(1); /* evict-hygiene: stager re-warms fP after the READY remount */ cfgApp.selectProject(1);
 cfgApp.press(5); // PROJECT SETUP
 assert.strictEqual(cfgApp.state().state, 6);
 cfgApp.press(1); // 3b+ -> 3c; this invalidates the old derived row
@@ -98,6 +110,7 @@ assert.strictEqual(cfg.storage.peek('climbProjStats').p0[15], 4);
 
 // Bound the row even if a counter grows beyond the display's four useful digits.
 const full = JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
+full.climbProjStats = v3skel();
 const lens = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
 for (let system = 0; system < 10; system++) {
   const P = [...new Array(10).fill(9999), ...new Array(5).fill(86400), ...new Array(5).fill(lens[system] - 1)];

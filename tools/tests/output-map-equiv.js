@@ -279,8 +279,9 @@ function makeInstance(seedStore) {
     n22: function () { return trace.filter(function (t) { return t === 'parse22'; }).length; }
   };
 }
+var v3skel = require('./v3skel');
 function canonical(g, sessions, setup, grades, values) {
-  var C = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8')).climbProjStats));
+  var C = v3skel();
   C.g = g; C.u = setup; C['s' + g] = [0, 0, 0, sessions, 0, -1];
   if (grades) {
     var P = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, -1,-1,-1,-1,-1,''];
@@ -415,7 +416,7 @@ x.clear(); x.tick();                     // idle tick: the publisher CALL throws
 chk(x.io[IDX.vState] === 0, 'F1: a lost publisher did not fold the EDIT overlay back to READY (vState=' + x.io[IDX.vState] + ')');
 chk(x.io[IDX.packedGL] < 1e6, 'F1: the folded frame still carries the EDIT lock flag');
 x.clear(); x.tick();                     // stager re-parses -> warm again
-chk(x.n22() === 2, 'F2: the stager did not re-parse after the call-throw');
+chk(x.n22() === 3, 'F2: the stager did not re-parse after the call-throw (base 2: enable + READY-remount evict-hygiene re-stage)');
 // THE REGRESSION: without pv[0]=1 on the throw, the stale cache would suppress this write and the
 // store would stay on FBW's crown forever.
 chk(x.io[IDX.packedGL] !== SENT, 'F3: the warm republish after a call-throw was SUPPRESSED by the stale pv cache (the blocker)');
@@ -433,7 +434,7 @@ y.pause(); y.clear(); y.cont();
 chk(y.io[IDX.vState] === 0, 'F5: pause inside EDIT left the overlay open across the continue (vState=' + y.io[IDX.vState] + ')');
 chk(y.io[IDX.packedGL] !== SENT, 'F5: the continue mount published nothing (stale pre-pause store)');
 y.tick();
-chk(y.n22() === 2, 'F6: the post-continue tick did not re-parse the publisher');
+chk(y.n22() === 3, 'F6: the post-continue tick did not re-parse the publisher (base 2 incl. the READY-remount re-stage)');
 y.clear(); y.ev(5);
 chk(y.io[IDX.vState] === SENT || y.io[IDX.vState] === 0, 'F6: folded-only EDIT history was exposed as editable');
 // PROJ-SETUP folds identically

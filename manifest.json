@@ -1,454 +1,451 @@
 {
-  "name": "Climb Log",
-  "description": "Track your progress on rock & ice.",
-  "version": "2.0",
-  "author": "skyfi",
-  "modificationTime": 1784015629,
-  "type": "feature",
-  "usage": "workout",
-  "in": [
-    {
-      "name": "H",
-      "source": "Activity/Move/-1/Heartrate/Current",
-      "type": "subscribe"
-    },
-    {
-      "name": "Asc",
-      "source": "Fusion/Altitude/Ascent",
-      "type": "subscribe"
-    }
-  ],
-  "out": [
-    {
-      "name": "packedGL"
-    },
-    {
-      "name": "modeSub"
-    },
-    {
-      "name": "routeHeight",
-      "log": true,
-      "shownName": "Route Height",
-      "format": "Ascent_Fourdigits"
-    },
-    {
-      "name": "vState"
-    },
-    {
-      "name": "hdrGrade"
-    },
-    {
-      "name": "hdrRes"
-    },
-    {
-      "name": "packedAct"
-    },
-    {
-      "name": "climbing",
-      "log": true,
-      "shownName": "Climbing",
-      "format": "Count_Twodigits"
-    },
-    {
-      "name": "gradeLog",
-      "log": true,
-      "shownName": "Grade",
-      "format": "Count_Twodigits"
-    }
-  ],
-  "template": [
-    {
-      "name": "ready.html"
-    },
-    {
-      "name": "active.html"
-    },
-    {
-      "name": "setup.html"
-    },
-    {
-      "name": "saving.html"
-    },
-    {
-      "name": "migration.html"
-    }
-  ],
-  "variables": [
-    {
-      "shownName": "Current Grade System",
-      "path": "climbProjStats.g",
-      "type": "int"
-    },
-    {
-      "shownName": "Show grade-system setup at app start (1=yes, 0=skip)",
-      "path": "climbProjStats.u",
-      "type": "int"
-    },
-    {
-      "shownName": "French Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p0[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "UIAA Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p1[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "YDS Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p2[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "British Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p3[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "V-Scale Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p4[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "Font Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p5[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "Ice Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p6[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "Mixed Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p7[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "Hangboard Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p8[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "Scrambling Projects P1-P5 (grade tries/sends)",
-      "path": "climbProjStats.p9[20]",
-      "type": "string"
-    },
-    {
-      "shownName": "French Routes",
-      "path": "climbProjStats.s0[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "French Sends",
-      "path": "climbProjStats.s0[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "French Send Rate [%]",
-      "path": "climbProjStats.s0[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "French Sessions",
-      "path": "climbProjStats.s0[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "French Total Height [m]",
-      "path": "climbProjStats.s0[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "French Peak Grade",
-      "path": "climbProjStats.s0[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "UIAA Routes",
-      "path": "climbProjStats.s1[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "UIAA Sends",
-      "path": "climbProjStats.s1[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "UIAA Send Rate [%]",
-      "path": "climbProjStats.s1[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "UIAA Sessions",
-      "path": "climbProjStats.s1[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "UIAA Total Height [m]",
-      "path": "climbProjStats.s1[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "UIAA Peak Grade",
-      "path": "climbProjStats.s1[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "YDS Routes",
-      "path": "climbProjStats.s2[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "YDS Sends",
-      "path": "climbProjStats.s2[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "YDS Send Rate [%]",
-      "path": "climbProjStats.s2[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "YDS Sessions",
-      "path": "climbProjStats.s2[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "YDS Total Height [m]",
-      "path": "climbProjStats.s2[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "YDS Peak Grade",
-      "path": "climbProjStats.s2[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "British Routes",
-      "path": "climbProjStats.s3[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "British Sends",
-      "path": "climbProjStats.s3[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "British Send Rate [%]",
-      "path": "climbProjStats.s3[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "British Sessions",
-      "path": "climbProjStats.s3[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "British Total Height [m]",
-      "path": "climbProjStats.s3[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "British Peak Grade",
-      "path": "climbProjStats.s3[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "V-Scale Routes",
-      "path": "climbProjStats.s4[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "V-Scale Sends",
-      "path": "climbProjStats.s4[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "V-Scale Send Rate [%]",
-      "path": "climbProjStats.s4[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "V-Scale Sessions",
-      "path": "climbProjStats.s4[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "V-Scale Total Height [m]",
-      "path": "climbProjStats.s4[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "V-Scale Peak Grade",
-      "path": "climbProjStats.s4[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "Font Routes",
-      "path": "climbProjStats.s5[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "Font Sends",
-      "path": "climbProjStats.s5[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "Font Send Rate [%]",
-      "path": "climbProjStats.s5[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "Font Sessions",
-      "path": "climbProjStats.s5[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "Font Total Height [m]",
-      "path": "climbProjStats.s5[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "Font Peak Grade",
-      "path": "climbProjStats.s5[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "Ice Routes",
-      "path": "climbProjStats.s6[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "Ice Sends",
-      "path": "climbProjStats.s6[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "Ice Send Rate [%]",
-      "path": "climbProjStats.s6[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "Ice Sessions",
-      "path": "climbProjStats.s6[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "Ice Total Height [m]",
-      "path": "climbProjStats.s6[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "Ice Peak Grade",
-      "path": "climbProjStats.s6[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "Mixed Routes",
-      "path": "climbProjStats.s7[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "Mixed Sends",
-      "path": "climbProjStats.s7[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "Mixed Send Rate [%]",
-      "path": "climbProjStats.s7[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "Mixed Sessions",
-      "path": "climbProjStats.s7[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "Mixed Total Height [m]",
-      "path": "climbProjStats.s7[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "Mixed Peak Grade",
-      "path": "climbProjStats.s7[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "Hangboard Routes",
-      "path": "climbProjStats.s8[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "Hangboard Sends",
-      "path": "climbProjStats.s8[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "Hangboard Send Rate [%]",
-      "path": "climbProjStats.s8[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "Hangboard Sessions",
-      "path": "climbProjStats.s8[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "Hangboard Total Height [m]",
-      "path": "climbProjStats.s8[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "Hangboard Peak Grade",
-      "path": "climbProjStats.s8[5]",
-      "type": "int"
-    },
-    {
-      "shownName": "Scrambling Routes",
-      "path": "climbProjStats.s9[0]",
-      "type": "int"
-    },
-    {
-      "shownName": "Scrambling Sends",
-      "path": "climbProjStats.s9[1]",
-      "type": "int"
-    },
-    {
-      "shownName": "Scrambling Send Rate [%]",
-      "path": "climbProjStats.s9[2]",
-      "type": "int"
-    },
-    {
-      "shownName": "Scrambling Sessions",
-      "path": "climbProjStats.s9[3]",
-      "type": "int"
-    },
-    {
-      "shownName": "Scrambling Total Height [m]",
-      "path": "climbProjStats.s9[4]",
-      "type": "int"
-    },
-    {
-      "shownName": "Scrambling Peak Grade",
-      "path": "climbProjStats.s9[5]",
-      "type": "int"
-    }
-  ],
-  "settings": [
-    {
-      "shownName": "Grade System (0=French 1=UIAA 2=YDS 3=British 4=V-Scale 5=Font 6=Ice 7=Mixed 8=Hangboard 9=Scrambling)",
-      "path": "climbProjStats.g",
-      "type": "int",
-      "min": 0,
-      "max": 9
-    },
-    {
-      "shownName": "Show setup screen at app start (1=on, 0=off)",
-      "path": "climbProjStats.u",
-      "type": "int",
-      "min": 0,
-      "max": 1
-    }
-  ]
+ "name": "Climb Log",
+ "description": "Track your progress on rock & ice.",
+ "version": "2.0",
+ "author": "skyfi",
+ "modificationTime": 1784015629,
+ "type": "feature",
+ "usage": "workout",
+ "in": [
+  {
+   "name": "H",
+   "source": "Activity/Move/-1/Heartrate/Current",
+   "type": "subscribe"
+  },
+  {
+   "name": "Asc",
+   "source": "Fusion/Altitude/Ascent",
+   "type": "subscribe"
+  }
+ ],
+ "out": [
+  {
+   "name": "packedGL"
+  },
+  {
+   "name": "modeSub"
+  },
+  {
+   "name": "routeHeight",
+   "log": true,
+   "shownName": "Route Height",
+   "format": "Ascent_Fourdigits"
+  },
+  {
+   "name": "vState"
+  },
+  {
+   "name": "hdrGrade"
+  },
+  {
+   "name": "hdrRes"
+  },
+  {
+   "name": "packedAct"
+  },
+  {
+   "name": "climbing",
+   "log": true,
+   "shownName": "Climbing",
+   "format": "Count_Twodigits"
+  },
+  {
+   "name": "gradeLog",
+   "log": true,
+   "shownName": "Grade",
+   "format": "Count_Twodigits"
+  }
+ ],
+ "template": [
+  {
+   "name": "ready.html"
+  },
+  {
+   "name": "active.html"
+  },
+  {
+   "name": "setup.html"
+  },
+  {
+   "name": "saving.html"
+  }
+ ],
+ "variables": [
+  {
+   "shownName": "Current Grade System",
+   "path": "climbProjStats.g",
+   "type": "int"
+  },
+  {
+   "shownName": "Show grade-system setup at app start (1=yes, 0=skip)",
+   "path": "climbProjStats.u",
+   "type": "int"
+  },
+  {
+   "shownName": "French Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p0[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "UIAA Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p1[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "YDS Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p2[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "British Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p3[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "V-Scale Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p4[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "Font Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p5[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "Ice Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p6[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "Mixed Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p7[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "Hangboard Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p8[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "Scrambling Projects P1-P5 (grade tries/sends)",
+   "path": "climbProjStats.p9[20]",
+   "type": "string"
+  },
+  {
+   "shownName": "French Routes",
+   "path": "climbProjStats.s0[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "French Sends",
+   "path": "climbProjStats.s0[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "French Send Rate [%]",
+   "path": "climbProjStats.s0[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "French Sessions",
+   "path": "climbProjStats.s0[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "French Total Height [m]",
+   "path": "climbProjStats.s0[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "French Peak Grade",
+   "path": "climbProjStats.s0[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "UIAA Routes",
+   "path": "climbProjStats.s1[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "UIAA Sends",
+   "path": "climbProjStats.s1[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "UIAA Send Rate [%]",
+   "path": "climbProjStats.s1[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "UIAA Sessions",
+   "path": "climbProjStats.s1[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "UIAA Total Height [m]",
+   "path": "climbProjStats.s1[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "UIAA Peak Grade",
+   "path": "climbProjStats.s1[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "YDS Routes",
+   "path": "climbProjStats.s2[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "YDS Sends",
+   "path": "climbProjStats.s2[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "YDS Send Rate [%]",
+   "path": "climbProjStats.s2[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "YDS Sessions",
+   "path": "climbProjStats.s2[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "YDS Total Height [m]",
+   "path": "climbProjStats.s2[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "YDS Peak Grade",
+   "path": "climbProjStats.s2[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "British Routes",
+   "path": "climbProjStats.s3[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "British Sends",
+   "path": "climbProjStats.s3[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "British Send Rate [%]",
+   "path": "climbProjStats.s3[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "British Sessions",
+   "path": "climbProjStats.s3[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "British Total Height [m]",
+   "path": "climbProjStats.s3[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "British Peak Grade",
+   "path": "climbProjStats.s3[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "V-Scale Routes",
+   "path": "climbProjStats.s4[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "V-Scale Sends",
+   "path": "climbProjStats.s4[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "V-Scale Send Rate [%]",
+   "path": "climbProjStats.s4[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "V-Scale Sessions",
+   "path": "climbProjStats.s4[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "V-Scale Total Height [m]",
+   "path": "climbProjStats.s4[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "V-Scale Peak Grade",
+   "path": "climbProjStats.s4[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "Font Routes",
+   "path": "climbProjStats.s5[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "Font Sends",
+   "path": "climbProjStats.s5[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "Font Send Rate [%]",
+   "path": "climbProjStats.s5[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "Font Sessions",
+   "path": "climbProjStats.s5[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "Font Total Height [m]",
+   "path": "climbProjStats.s5[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "Font Peak Grade",
+   "path": "climbProjStats.s5[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "Ice Routes",
+   "path": "climbProjStats.s6[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "Ice Sends",
+   "path": "climbProjStats.s6[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "Ice Send Rate [%]",
+   "path": "climbProjStats.s6[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "Ice Sessions",
+   "path": "climbProjStats.s6[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "Ice Total Height [m]",
+   "path": "climbProjStats.s6[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "Ice Peak Grade",
+   "path": "climbProjStats.s6[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "Mixed Routes",
+   "path": "climbProjStats.s7[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "Mixed Sends",
+   "path": "climbProjStats.s7[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "Mixed Send Rate [%]",
+   "path": "climbProjStats.s7[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "Mixed Sessions",
+   "path": "climbProjStats.s7[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "Mixed Total Height [m]",
+   "path": "climbProjStats.s7[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "Mixed Peak Grade",
+   "path": "climbProjStats.s7[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "Hangboard Routes",
+   "path": "climbProjStats.s8[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "Hangboard Sends",
+   "path": "climbProjStats.s8[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "Hangboard Send Rate [%]",
+   "path": "climbProjStats.s8[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "Hangboard Sessions",
+   "path": "climbProjStats.s8[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "Hangboard Total Height [m]",
+   "path": "climbProjStats.s8[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "Hangboard Peak Grade",
+   "path": "climbProjStats.s8[5]",
+   "type": "int"
+  },
+  {
+   "shownName": "Scrambling Routes",
+   "path": "climbProjStats.s9[0]",
+   "type": "int"
+  },
+  {
+   "shownName": "Scrambling Sends",
+   "path": "climbProjStats.s9[1]",
+   "type": "int"
+  },
+  {
+   "shownName": "Scrambling Send Rate [%]",
+   "path": "climbProjStats.s9[2]",
+   "type": "int"
+  },
+  {
+   "shownName": "Scrambling Sessions",
+   "path": "climbProjStats.s9[3]",
+   "type": "int"
+  },
+  {
+   "shownName": "Scrambling Total Height [m]",
+   "path": "climbProjStats.s9[4]",
+   "type": "int"
+  },
+  {
+   "shownName": "Scrambling Peak Grade",
+   "path": "climbProjStats.s9[5]",
+   "type": "int"
+  }
+ ],
+ "settings": [
+  {
+   "shownName": "Grade System (0=French 1=UIAA 2=YDS 3=British 4=V-Scale 5=Font 6=Ice 7=Mixed 8=Hangboard 9=Scrambling)",
+   "path": "climbProjStats.g",
+   "type": "int",
+   "min": 0,
+   "max": 9
+  },
+  {
+   "shownName": "Show setup screen at app start (1=on, 0=off)",
+   "path": "climbProjStats.u",
+   "type": "int",
+   "min": 0,
+   "max": 1
+  }
+ ]
 }

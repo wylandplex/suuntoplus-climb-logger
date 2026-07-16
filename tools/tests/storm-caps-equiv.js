@@ -25,6 +25,7 @@ var path = require('path');
 var ROOT = path.join(__dirname, '..', '..');
 var MAIN = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
 var EXT_SRC = {};
+var v3skel = require('./v3skel');
 
 // ---- shims ------------------------------------------------------------------
 function makeLS(seed) {
@@ -84,7 +85,9 @@ function check(cond, msg) { if (!cond) { console.log('  FAIL  ' + msg); fails++;
 function pass(name) { console.log('  PASS  ' + name); }
 
 function canonical(g, sessions, setup, grade) {
-  var C = JSON.parse(JSON.stringify(JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8')).climbProjStats));
+  // END-FOLD: a v3 store may only come from a real fold, so the fixture is built from the
+  // same skeleton the fold writes (v3skel), not from data.json (which no longer seeds one).
+  var C = v3skel();
   C.g = g; C.u = setup; C['s' + g] = [0, 0, 0, sessions, 0, -1];
   var P = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, -1,-1,-1,-1,-1,''];
   if (grade !== undefined) P[15] = grade;

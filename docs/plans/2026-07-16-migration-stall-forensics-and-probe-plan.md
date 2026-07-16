@@ -143,12 +143,47 @@ State-Machine: **843 B** (Build-Delta-Messung); Konverter bleiben in ext16/17/18
 Determinismus, No-Start-Pre-Start-Lauf, Erstmount — alles grün. Offen bleiben nur noch
 Sparse-Store/ext17-Läufe + Atomizitäts-Gate (unverändert) — und der NEUE Thread unten.
 
-### ⚠️ NEUER THREAD (nicht Migration): Movement-Evicts an climbl02-Mount-Momenten
+### ⚠️ EVICT-THREAD — ANALYSE 16.07 spät (5-Agenten-Vermessung + adversarialer Judge)
+
+**Korrigierte Faktenlage (Judge):** 10 relMemCb heute (nicht 5); **9/10 an climbl02-ready.xml-
+Mounts**, 1 ohne jede climb-logger-Beteiligung (13:33:19, Kabel-Rescue-Nachlauf) ⇒ Ventil ist
+systemweit, wir sind der dominante Trigger. Opferwahl deterministisch: **zzmoveen 10/10**
+(„Zapp 3", Weather nie). **Der Evict überspringt Movements Teardown** (kein ext2.js-Finalize):
+dessen Workout-Daten truncated + Modul wird Leiche ⇒ jeder Evict verschärft den Heap. Movement
+bleibt bis Session-Ende tot, kehrt erst mit der nächsten Session zurück. **Alle 10 Evicts kamen
+4–60 s nach Session-Start** — das Defizit besteht ab Minute 1 (Tages-Leichen, kein
+Intra-Session-Drift). Templates: **null clip-paths/radius/gradients in allen vier** — Kosten
+sind Measure-Passes (44 proportions in ready/active) + Box-Count + Tinted-imgs; Rim-Gauge ist
+mit 35 B/Template firmware-gezeichnet und UNSCHULDIG. ready.xml +808 B durch PR =
+Tooth-Backdrop (+719, reine Deko) + onLoad-Script (+683), teils kompensiert.
+
+**Umgesetzt (Hygiene, main.js goState):** Free-then-mount am READY-Remount — `f10`+`fP` frei +
+pendV-Re-Stage (Pause-Pfad-Maschinerie, 1 Trigger mehr; f3 bewusst behalten: 26–105 B vs
+End-Recap-Namen). Adressiert die Route-Commit-Teilklasse; als „der Fix" NICHT verkaufbar
+(Judge: 4+ Evicts feuern ohne warme Caches).
+
+**Offene Entscheidungen/Gates:** (a) Tooth-Backdrop raus (−719 B, User-Design-Call);
+(b) **No-Valve-Lauf** (Solo, Leichen-Heap, Route→READY provozieren — klärt, ob der verlorene
+Fresh-Store-Crash die „Ventil-ohne-Opfer→Watchdog"-Klasse war; HIGH-Risk-Label, Kabel-Import
+sofort danach); (c) Reboot-Fresh-Kontrolle (Leichen vs intrinsisch); (d) master-A/B (ist der
+Evict überhaupt neu?); (e) **Forum-Case: Skipped-Teardown = Firmware-Defekt** (Suuntos Ventil
+kostet Suuntos App ihre Daten) für Topic 15490; (f) Alloc-Probe-Trick für JsTotMem-Messung
+(`try{new Array(N)}catch{}` vor dem Mount → JSalloc:N loggt die Fehlgröße — nur Probe-Branch).
+
+### Ursprüngliche Befundlage (16.07 abends): Movement-Evicts an climbl02-Mount-Momenten
 
 Rep 3 evictete Movement 2× — Session 2 OHNE Migration, 4 s nach Start, am ready.xml-Mount
 VOR jedem Satelliten-Parse ⇒ generelle v2.0-Heap-Nähe zur 133-KB-Decke im 3-App-Ensemble.
-Verdächtige: ready/active-Mount-Payload (Rim-Gauge-Ausbau) + ext10/ext35-Doppelparse am
-Commit-Moment. Nächste Schritte: Solo-Kontrastlauf; Template-/Parse-Diät-Analyse.
+**User-Muster (16.07 abends, Fresh-Install-Normalbetrieb): Evicts treffen konsistent den
+ready-RE-Mount nach einer Route (Break).** Mechanik: Zwischen Mount 1 und Mount 2 kommen die
+Commit-Caches dazu (ext10 + ext35 gecacht referenziert, ext22 ohnehin) — der Re-Mount baut die
+volle Sibling-Kette auf den beladenen Heap (Log-Beleg Rep-3-S1: active → ext10+ext35 →
+ready-Remount → relMemCb, 2 s). Session-2-Evict beim ERSTEN ready-Mount = gleicher Nenner mit
+Leichen-Heap der Vorsession. Diät-Hebel: (1) Free-then-mount (pendSlots-Muster): ext35-Cache
+nach Companion-Row-Bau freigeben (Slice 25–105 B, Re-Parse pro Route billig); (2) ready.xml
+schlanker (+808 B durch PR, Rim-Gauge-Erbe; meistgemountetes Template); (3) ext10-Cache-Politik
+prüfen. Dazu: Fresh-Store-CRASH vom Abend noch unanalysiert (Trace: scratchpad/crash.log).
+Nächste Schritte: Solo-Kontrastlauf; Diät-Analyse; Crash-Forensik.
 
 ### RUN B — Marker-Build (lokalisiert den Sink) — OBSOLET für den Fix, optional für Forum-Forensik
 Marker-Exts (`ext90…`, Inhalt `0`; evalFile = einziges log-sichtbares JS-Primitiv) klammern
