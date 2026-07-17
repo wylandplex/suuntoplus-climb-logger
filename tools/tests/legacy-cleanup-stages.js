@@ -69,9 +69,9 @@ console.log('[legacy-cleanup-stages] END-FOLD lifecycle: enable -> live session 
 var m = p.storage.calls.length, me = p.evals.calls.length;
 var app1 = p.createApp();
 var st = app1.load();
-assert.deepStrictEqual(ops(m), ['getObject:climbProjStats', 'getObject:stats'],
-  'legacy enable is not exactly the 2-read drain (climbProjStats sniff + stats seed)');
-assert.strictEqual(st.migPend, 2, 'legacy store did not arm the END-fold (2 = numeric format code)');
+assert.deepStrictEqual(ops(m), ['getObject:climbProjStats'],
+  'legacy enable is not exactly the 1-read sniff (resident diet 17.07: the stats read moved into the ext12 staged tick)');
+assert.strictEqual(st.migPend, 1, 'legacy store did not arm the END-fold (migPend is a plain 0/1 flag since the diet)');
 assert.strictEqual(st.pendSlots, 2, 'read-only legacy slot seed not staged');
 assert.strictEqual(st.migOK, 0);
 assert.strictEqual(st.slotTouched, 0);
@@ -79,10 +79,10 @@ assert.strictEqual(st.stOk, 1, 'drained legacy session must be trusted (stOk)');
 assert.strictEqual(st.pendF12, 0, 'input gate stayed closed after a clean legacy drain');
 assert.strictEqual(st.state, 4);
 assert.strictEqual(st.currentTemplate, 'setup', 'legacy enable mounted something other than the normal SETUP');
-assert.strictEqual(st.gradeSystem, 0, 'numeric stats.system was not seeded');
+assert.strictEqual(st.gradeSystem, 0, 'gradeSystem must stay default at onLoad (ext12 derives it on the staged tick)');
 assert.strictEqual(st.currentGrade, 18, 'currentGrade was not reset to DEFAULT_IDX[system]');
 assert.deepStrictEqual(st.projGradeIdx, [-1, -1, -1, -1, -1], 'onLoad leaves defaults; the ext12 seed fills slots on the staged tick');
-console.log('  PASS  stage 1: 2-read drain, migPend armed, fresh-app session, no migration screen');
+console.log('  PASS  stage 1: 1-read sniff, migPend armed, fresh-app session, no migration screen');
 console.log('        op-trace: ' + ops(m).join(' '));
 
 // ---- Stage 2: live session (fully live input, zero storage traffic) ------------------------
@@ -91,7 +91,7 @@ app1.warm(8);  // publisher (ext22) staged + warmed on calm ticks
 app1.toReady();
 // Slot edit on the watch: slot 2 (index 1) set to grade 0 -> slotTouched bit 1. Slot 1 (index 0)
 // stays untouched so the fold must adopt its legacy counterpart.
-app1.warm(1);                                      // evict-hygiene: the READY remount freed fP; one stager tick re-warms the publisher (cold-overlay refusal window)
+app1.warm(1);                                      // one calm tick after the READY mount (fP stays warm across mounts since the 17.07 hygiene falsification)
 app1.press(4);                                     // free -> project mode (no slot configured yet)
 assert(app1.state().climbMode > 0, 'project mode refused pre-fold');
 st = app1.press(5);                                // proj-setup overlay
@@ -109,9 +109,9 @@ assert.strictEqual(st.currentGrade, 6, 'grade cycling gated during migPend sessi
 app1.press(2);
 st = app1.climb({ seconds: 2, height: 3, send: true });
 assert.strictEqual(st.routesA.length, 1, 'route did not commit');
-assert.strictEqual(st.migPend, 2, 'migPend lost during the session');
-assert.deepStrictEqual(ops(m), ['getObject:watchSetup', 'getObject:climbProjStats', 'getObject:stats', 'getObject:pS0'],
-  'staged ext12 seed reads expected, then zero LS traffic: ' + ops(m).join(' '));
+assert.strictEqual(st.migPend, 1, 'migPend lost during the session');
+assert.deepStrictEqual(ops(m), ['getObject:stats', 'getObject:watchSetup', 'getObject:climbProjStats', 'getObject:pS0'],
+  'staged ext12 seed reads expected (stats first — ext12 derives the system itself now), then zero LS traffic: ' + ops(m).join(' '));
 assert.strictEqual(exts(me).filter(function (e) { return ['15', '16', '17', '18', '19'].indexOf(e) >= 0; }).length, 0,
   'fold/migration satellites parsed before the END');
 console.log('  PASS  stage 2: session fully live (overlay, slot edit -> slotTouched, climb), zero LS ops');
@@ -127,8 +127,8 @@ for (var g2 = 5; g2 < 10; g2++) expectedFold.push('getObject:s' + g2, 'getObject
 expectedFold.push('setObject:climbProjStats');
 assert.deepStrictEqual(foldTrace, expectedFold,
   'fold END op sequence drifted:\n  got      ' + foldTrace.join(' ') + '\n  expected ' + expectedFold.join(' '));
-assert.deepStrictEqual(exts(me), ['18', '17', '19', '25', '11'],
-  'fold parse chain drifted (must be ext18 -> ext17 -> ext19 -> ext25 -> ext11): ' + exts(me).join(','));
+assert.deepStrictEqual(exts(me), ['18', '17', '19', '15', '25', '11'],
+  'fold parse chain drifted (must be ext18 -> ext17 -> ext19 -> ext15 merge -> ext25 -> ext11): ' + exts(me).join(','));
 assert.strictEqual(st.migPend, 0, 'fold did not disarm migPend after the successful write');
 assert.strictEqual(st.migOK, 1);
 assert.strictEqual(st.currentTemplate, 'saving', 'fold ran under the big template');

@@ -104,7 +104,7 @@ function trace(p, sMark, eMark) {
   var b = p2.createApp(); b.load(); b.warm(5); b.press(6); b.climb({ seconds: 2, height: 2, send: true }); b.end();
   chk(writes(p2).length === 0, 'a2/' + policy + ': partial converter output (ext17 ok, ext19 throw) must never be written');
   chk(J(p2.storage.store) === before2, 'a2/' + policy + ': legacy store must stay byte-untouched after a partial-A abort');
-  chk(notSaved(b) && b.state().migPend === 2 && b.state().migOK === 0, 'a2/' + policy + ': partial-A abort must be NOT SAVED + retryable (migPend keeps the numeric format code 2)');
+  chk(notSaved(b) && b.state().migPend === 1 && b.state().migOK === 0, 'a2/' + policy + ': partial-A abort must be NOT SAVED + retryable (migPend stays armed)');
 
   // a3: the END "stats" read itself throws
   var p3 = platform.createPlatform({ policy: policy, seed: stringSeed() });
@@ -132,7 +132,7 @@ function trace(p, sMark, eMark) {
   chk(w.length === 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written', 'b1: END must be exactly one canonical climbProjStats write');
   chk(reads(p, sm, 'climbProjStats').length === 1, 'b1: only the converter may read climbProjStats at END — ext11 must consume A (C0) instead of re-reading');
   var evs = p.evals.calls.slice(em).map(function (c) { return c.extension; });
-  chk(J(evs) === J(['18', '16', '25', '11']), 'b1: END parse chain must be 18->16->25->11 with ext11 exactly once and LAST (got ' + evs.join(',') + ')');
+  chk(J(evs) === J(['18', '16', '15', '25', '11']), 'b1: END parse chain must be 18->16->15(merge)->25->11 with ext11 exactly once and LAST (got ' + evs.join(',') + ')');
   chk(a.state().migPend === 0 && a.state().migOK === 1 && !notSaved(a), 'b1: successful fold must clear migPend and save normally');
 
   // oracle: OLD migrate + OLD ext11(deltas) composition on the same legacy bytes
@@ -151,15 +151,17 @@ function trace(p, sMark, eMark) {
   var pn = platform.createPlatform({ policy: 'reject-key', seed: numSeed() });
   var preN = platform.snapshot(pn.storage.store);
   var an = pn.createApp(); an.load();
-  chk(an.state().gradeSystem === 7, 'b2: numeric legacy drain must seed gradeSystem 7 (got ' + an.state().gradeSystem + ')');
-  an.warm(5); an.press(6); an.climb({ seconds: 2, height: 2, send: true });
+  chk(an.state().gradeSystem === 0, 'b2: numeric legacy drain must leave gradeSystem default at onLoad (diet 17.07; got ' + an.state().gradeSystem + ')');
+  an.warm(5);
+  chk(an.state().gradeSystem === 7, 'b2: the staged ext12 tick must derive gradeSystem 7 (got ' + an.state().gradeSystem + ')');
+  an.press(6); an.climb({ seconds: 2, height: 2, send: true });
   var smn = pn.storage.calls.length, emn = pn.evals.calls.length;
   an.end();
   var wn = writes(pn, smn);
   chk(wn.length === 1 && wn[0].key === 'climbProjStats', 'b2: numeric END must be exactly one canonical write');
   chk(reads(pn, smn, 'climbProjStats').length === 2, 'b2: only ext17+ext19 may read climbProjStats at END (ext11 consumes A)');
   var evn = pn.evals.calls.slice(emn).map(function (c) { return c.extension; });
-  chk(J(evn) === J(['18', '17', '19', '25', '11']), 'b2: numeric END parse chain must be 18->17->19->25->11 (got ' + evn.join(',') + ')');
+  chk(J(evn) === J(['18', '17', '19', '15', '25', '11']), 'b2: numeric END parse chain must be 18->17->19->15(merge)->25->11 (got ' + evn.join(',') + ')');
   var stubN = new Stub(preN);
   var Nn = loadSat(src18old, stubN)();
   var m17 = loadSat(src17old, stubN);
@@ -208,7 +210,7 @@ function trace(p, sMark, eMark) {
   var w = writes(p, sm);
   chk(w.length === 1 && w[0].key === 'climbProjStats', 'c: config-only fold must still be exactly one write');
   var evs = p.evals.calls.slice(em).map(function (c) { return c.extension; });
-  chk(J(evs) === J(['18', '16', '30', '25', '11']), 'c: config-only END chain must be 18->16->30(name slice)->25->11 (got ' + evs.join(',') + ')');
+  chk(J(evs) === J(['18', '16', '15', '30', '25', '11']), 'c: config-only END chain must be 18->16->15(merge)->30(name slice)->25->11 (got ' + evs.join(',') + ')');
 
   // expected = converter output alone + slotTouched overlay semantics (NOT wholesale ext11).
   // The overlay baseline is the converter's own p0 (seed==fold guarantees the session edited

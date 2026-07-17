@@ -30,13 +30,20 @@ function foldContainer(store) {
     return A;
   } finally { delete global.localStorage; }
 }
-function seedSlots(store, fmt, g) {
+function seedSlots(store, gi) {  // resident diet 17.07: ext12 derives format+system from stats itself; gi>=0 = authoritative in-session choice, -1 = derive
   global.localStorage = mkLS(store);
   try {
     var pji = [-1, -1, -1, -1, -1], ps = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,-1,-1,-1,-1,''];
-    loadFn('ext12.js')(fmt, pji, ps, g);
-    return { pji: pji, ps: ps };
+    var g = loadFn('ext12.js')(pji, ps, gi);
+    return { pji: pji, ps: ps, g: g };
   } finally { delete global.localStorage; }
+}
+// frozen oracle of the OLD drain derivation (pre-diet main.js) — ext12's derive mode must match it
+function deriveG(store) {
+  var x = (store.stats || {}).system, g = 0, n, i;
+  if (typeof x === 'number') g = x >= 0 && x <= 9 ? x | 0 : 0;
+  else if (x) { n = 'French,UIAA,YDS,British,V-Scale,Font,Ice,Mixed'.split(','); for (i = 0; i < 8; i++) if (x.indexOf(n[i]) >= 0) g = i; }
+  return g;
 }
 function pVec(p) { var a = [], i; for (i = 0; i < 20; i++) a.push(p[i] !== undefined ? p[i] : (i < 15 ? 0 : -1)); return a; }
 
@@ -67,13 +74,21 @@ fixtures.push({ name: 'numeric-v2', fmt: 2, store: {
 var checked = 0;
 fixtures.forEach(function (fx) {
   var A = foldContainer(JSON.parse(JSON.stringify(fx.store)));
-  for (var g = 0; g < 10; g++) {
-    var seed = seedSlots(JSON.parse(JSON.stringify(fx.store)), fx.fmt, g);
+  for (var g = 0; g < 10; g++) {  // override mode (gi>=0): the in-session system-switch re-seed path
+    var seed = seedSlots(JSON.parse(JSON.stringify(fx.store)), g);
+    assert.strictEqual(seed.g, g, fx.name + ' g=' + g + ': override gi not returned');
     var foldP = pVec(A['p' + g]);
     var seedP = seed.ps.slice(0, 20);
     assert.deepStrictEqual(seedP, foldP, fx.name + ' g=' + g + ': seed != fold baseline\nseed=' + JSON.stringify(seedP) + '\nfold=' + JSON.stringify(foldP));
     assert.deepStrictEqual(seed.pji, foldP.slice(15, 20), fx.name + ' g=' + g + ': pji != fold grades');
     checked++;
   }
+  // derive mode (gi=-1): the first staged tick — ext12's own system derivation must match the
+  // frozen old-drain oracle AND seed exactly like the explicit call for that system
+  var gd = deriveG(fx.store);
+  var der = seedSlots(JSON.parse(JSON.stringify(fx.store)), -1);
+  assert.strictEqual(der.g, gd, fx.name + ': derive mode returned g=' + der.g + ' expected ' + gd);
+  assert.deepStrictEqual(der.ps.slice(0, 20), pVec(A['p' + gd]), fx.name + ': derive-mode seed != fold baseline for its own system');
+  checked++;
 });
 console.log('SEED==FOLD: ' + checked + ' system/fixture combinations byte-equal — ALL PASS');

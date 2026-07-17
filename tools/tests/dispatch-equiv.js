@@ -259,11 +259,9 @@ function runScenario(name, seed, steps, blobs) {
     for (var t2 = 0; t2 < cs.length; t2++) {
       if (cs[t2][0] === 'evalFile' && cs[t2][1] === '22') { cold = false; saw22 = true; }
       else if (cs[t2][0] === 'callTHROW' && cs[t2][1] === '22') cold = true;
-      else if (cs[t2][0] === 'unload') cold = true;  // evict-hygiene (16.07): every template-changing mount into ready frees fP (goState); marking ALL unloads cold is over-approximation-safe — the (c) waiver only fires when a slot actually froze on its previous value
     }
     if (st[0] === 'pause' || st[0] === 'end') cold = true;  // pause/end drop fP (pendV re-arms at pause only)
-    var is10 = function (e) { return (e[0] === 'evalFile' || e[0] === 'evalTHROW') && e[1] === '10'; };  // evict-hygiene (16.07): the candidate re-parses ext10 after READY remounts (f10 freed at the mount); the frozen oracle caches it session-long. Parse-count/lifecycle guarantees for ext10 live in output-map-equiv + legacy-cleanup-stages.
-    var fX = function (e) { return !is25(e) && !is22(e) && !is10(e); };
+    var fX = function (e) { return !is25(e) && !is22(e); };
     rows.push({ s: s, st: st, rets: rets, trA: inst[0].trace.slice(marks[0]).filter(fX), trB: inst[1].trace.slice(marks[1]).filter(fX) });
     snaps[0].push(io[0].slice(2)); snaps[1].push(io[1].slice(2));
     kinds.push(st[0]); colds.push(cold);

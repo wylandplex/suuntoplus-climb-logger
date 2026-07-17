@@ -20,11 +20,14 @@ function makeLS(seed, calls) {
     setObject: function (k, v) { calls.push(['set', k]); store[k] = clone(v); }
   };
 }
-function run(seed) {
+function run(seed, ticks) {
   var calls = [], evals = 0;
   var sandbox = {
     localStorage: makeLS(seed, calls),
-    evalFile: function () { evals++; return function () {}; },
+    // the staged tick parses the REAL ext12 (resident diet 17.07: system derivation lives there now);
+    // every other satellite stays stubbed — this harness binds the drain + seed choreography only.
+    // ext12 compiles INSIDE the vm context so its localStorage resolves to the sandbox store.
+    evalFile: function (p) { evals++; if (String(p).indexOf('ext12') >= 0) return vm.runInContext('(' + fs.readFileSync(path.join(ROOT, 'ext12.js'), 'utf8') + ')', sandbox); return function () {}; },
     setText: function () {}, setStyle: function () {}, unload: function () {},
     Math: Math, JSON: JSON
   };
@@ -33,9 +36,12 @@ function run(seed) {
     '\n;this.__st=function(){return {gradeSystem:gradeSystem,projGradeIdx:projGradeIdx.slice(),' +
     'projSlot:projSlot.slice(),skipP:skipP,pendF12:pendF12,migPend:migPend,migOK:migOK,' +
     'slotTouched:slotTouched,stOk:stOk,pendSlots:pendSlots}};' +
-    '\n;this.__onLoad=onLoad;', sandbox, { filename: 'main.js' });
+    '\n;this.__onLoad=onLoad;\n;this.__ev=evaluate;', sandbox, { filename: 'main.js' });
   sandbox.__onLoad({}, {});
-  var out = sandbox.__st(); out.calls = calls; out.evals = evals; return out;
+  var out = sandbox.__st(); out.calls = calls.slice(); out.evals = evals;
+  for (var t = 0; t < (ticks || 0); t++) sandbox.__ev({}, {});
+  out.post = sandbox.__st(); out.post.calls = calls; out.post.evals = evals;
+  return out;
 }
 function P(grades) {
   var p = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, ''];
@@ -74,20 +80,23 @@ nativeCase('sparse project row uses safe defaults', function (C) {
 }, { g: 1, grades: [4, -1, -1, -1, -1], slot: [9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,-1,-1,-1,-1,'P1 (5a)'], skip: 0 });
 
 function legacyCase(name, seed, expectedSystem) {
-  var r = run(seed);
-  // END-FOLD: a legacy store (C.v !== 3) only closes the input gate for the session — it seeds
-  // gradeSystem, resets projGradeIdx/projSlot to defaults and runs the session live (stOk=1,
-  // pendF12=0). No state machine, no lock, no write; the fold itself happens later at END
-  // (finishSession), which this onLoad-only harness never reaches.
-  var expFmt = typeof (seed.stats && seed.stats.system) === 'number' ? 2 : 1;  // migPend doubles as the ext12 format code
-  check(r.migPend === expFmt && r.pendF12 === 0 && r.stOk === 1, name + ': legacy session runs fresh (migPend=' + expFmt + ' as format code, no lock)');
+  var r = run(seed, 2);  // onLoad + the two staged ticks (seed tick + seedStay consume)
+  // END-FOLD (resident diet 17.07): a legacy store (C.v !== 3) only closes the input gate for the
+  // session — onLoad is a 1-read sniff (defaults + migPend arm); the stats read, the string->system
+  // map and the slot seed ALL live in ext12 on the staged tick. The fold itself happens later at
+  // END (finishSession), which this harness never reaches.
+  check(r.migPend === 1 && r.pendF12 === 0 && r.stOk === 1, name + ': legacy session runs fresh (migPend=1, no lock)');
   check(r.slotTouched === 0, name + ': no slot edits yet at bootstrap');
-  check(r.gradeSystem === expectedSystem, name + ': gradeSystem seeded ' + r.gradeSystem + ' != ' + expectedSystem);
+  check(r.gradeSystem === 0, name + ': gradeSystem stays default at onLoad (' + r.gradeSystem + ') — the system derives at the staged tick now');
   check(eq(r.projGradeIdx, [-1, -1, -1, -1, -1]), name + ': project grades reset to defaults at onLoad (the ext12 seed runs on the STAGED tick, not here)');
   check(r.pendSlots === 2, name + ': read-only legacy slot seed staged (pendSlots=2, ext13-choreography)');
-  check(eq(r.calls, [['get', 'climbProjStats'], ['get', 'stats']]), name + ': exactly two reads (container + stats) and no writes: ' + JSON.stringify(r.calls));
-  check(!r.calls.some(function (x) { return x[0] === 'set'; }), name + ': onLoad remains read-only');
-  check(r.evals === 0, name + ': no satellite parse in onLoad (converter deferred to END fold)');
+  check(eq(r.calls, [['get', 'climbProjStats']]), name + ': exactly ONE read (container sniff) and no writes: ' + JSON.stringify(r.calls));
+  check(r.evals === 0, name + ': no satellite parse in onLoad (seed staged, converter deferred to END fold)');
+  // staged tick: ext12 derives the system from stats (gi=-1, sysDirty=0) and returns it
+  check(r.post.gradeSystem === expectedSystem, name + ': staged tick seeded gradeSystem ' + r.post.gradeSystem + ' != ' + expectedSystem);
+  check(r.post.pendSlots === 0 && r.post.stOk === 1 && r.post.migPend === 1, name + ': staged choreography consumed, fold still armed');
+  check(r.post.evals === 1, name + ': exactly one satellite parse (ext12) across the staged ticks, got ' + r.post.evals);
+  check(!r.post.calls.some(function (x) { return x[0] === 'set'; }), name + ': the whole pre-start path remains read-only');
   if (!fails) console.log('  PASS  ' + name);
 }
 legacyCase('live 2.82 string schema', { stats: { system: 'French' }, climbProjStats: { French: {} } }, 0);

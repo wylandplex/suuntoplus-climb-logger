@@ -89,9 +89,9 @@ function enableLegacy(p) {
   app.warm(3);  // tick 1: ext12 read-only seed; tick 2: READY mount; tick 3: publisher (ext22)
   st = app.state();
   var seedOps = p.storage.calls.slice(sFrom).map(function (c) { return c.op + ':' + c.key; });
-  var wantSeed = ['getObject:watchSetup', 'getObject:climbProjStats'];
-  if (seedOps.length > 2) wantSeed.push('getObject:pS' + st.gradeSystem);  // fmt-1 seed reads pS<g> ONLY when the raw store has no content for the active system
-  assert.deepStrictEqual(seedOps, wantSeed, 'staged ext12 seed op-trace drifted (fmt 1: watchSetup, climbProjStats [, pS<g>])');
+  var wantSeed = ['getObject:stats', 'getObject:watchSetup', 'getObject:climbProjStats'];  // stats first: ext12 derives format+system itself (resident diet 17.07)
+  if (seedOps.length > 3) wantSeed.push('getObject:pS' + st.gradeSystem);  // fmt-1 seed reads pS<g> ONLY when the raw store has no content for the active system
+  assert.deepStrictEqual(seedOps, wantSeed, 'staged ext12 seed op-trace drifted (string store: stats, watchSetup, climbProjStats [, pS<g>])');
   assert.deepStrictEqual(p.evals.calls.slice(eFrom).map(function (c) { return c.extension; }), ['12', '22'],
     'staged ticks must parse exactly the slot seed (ext12) and the publisher (ext22)');
   assert.strictEqual(st.state, 4, 'the seeded first launch STAYS in SETUP (seedStay) — auto-READY was the on-watch bug of 16.07');
@@ -122,7 +122,7 @@ assert.strictEqual(extCalls(p, 18), 1, 'grade table is not loaded exactly once')
 assert.strictEqual(extCalls(p, 16), 1, 'live converter is not loaded exactly once');
 assert.strictEqual(extCalls(p, 17), 0, 'numeric converter must not run on a string-system store');
 assert.strictEqual(extCalls(p, 19), 0, 'numeric part-2 converter must not run on a string-system store');
-assert.strictEqual(extCalls(p, 15), 0, 'retired multi-write migrator was loaded');
+assert.strictEqual(extCalls(p, 15), 1, 'the working-array merge satellite must parse exactly once at the fold END (ext15 = the merge since the 17.07 diet; the retired multi-write migrator of the same number is gone)');
 assert.strictEqual(extCalls(p, 12), 1, 'the read-only slot seed must parse exactly once (staged tick) and never at the END');
 assert.strictEqual(extCalls(p, 11), 1, 'the single setObject must go through one ext11 call');
 assert.strictEqual(C.v, 3);

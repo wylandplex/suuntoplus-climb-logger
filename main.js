@@ -118,15 +118,11 @@ var fillSlots = function(C, sys) {
 // and commits it with exactly one setObject through ext11 (END-FOLD; no migration phase exists).
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
-  var L = localStorage, C = L.getObject("climbProjStats") || {}, sv, x, n, i;
-  if (C.v !== 3) {  // LEGACY (END-FOLD): no migration phase — the session runs fresh and fully live; the first end-write folds. Seed the system HERE or session-1 routes fold into the wrong s<g>.
-    sv = L.getObject("stats") || {}; x = sv.system;
-    if (typeof x === "number") gradeSystem = x >= 0 && x <= 9 ? x | 0 : 0;
-    else if (x) { n = "French,UIAA,YDS,British,V-Scale,Font,Ice,Mixed".split(","); for (i = 0; i < 8; i++) if (x.indexOf(n[i]) >= 0) gradeSystem = i; }
-    for (i = 0; i < 21; i++) { if (i < 5) projGradeIdx[i] = -1; projSlot[i] = i < 15 ? 0 : i < 20 ? -1 : ""; }
+  var L = localStorage, C = L.getObject("climbProjStats") || {};
+  if (C.v !== 3) {  // LEGACY (END-FOLD): no migration phase — the session runs fresh and fully live; the first end-write folds. System + slots seed at the ext12 staged tick (resident diet 17.07: the string->system map lives in ext12 now, so gradeSystem is default until that tick — 1-2 s, SETUP only).
+    fillSlots(C, gradeSystem);  // pre-v3 store carries no p<g> key -> pure defaults, sanitized the same way
     currentGrade = DEFAULT_IDX[gradeSystem];
-    migPend = typeof x === "number" ? 2 : 1;  // doubles as the format code for the ext12 seed (2 = numeric v1/v2)
-    slotTouched = 0; pendF12 = 0; stOk = 1;
+    migPend = 1; slotTouched = 0; pendF12 = 0; stOk = 1;
     pendSlots = 2; seedStay = 1;  // stage the READ-ONLY legacy slot seed on the proven ext13 tick; seedStay keeps the first launch in SETUP (the stager's goState(0) is only right for the in-session system switch)
     return;
   }
@@ -229,12 +225,9 @@ var goState = function(s, output) {
   currentTemplate = t;
   if (tChanged) unload('_cm');
   fE = null;  // C10: any state change releases the cached satellite (overlay exit, BREAK exit, mounts) — zero-alloc assignment, mount-safe
-  // EVICT HYGIENE (16.07): every relMemCb in today's logs fired at a ready.xml mount — free the two
-  // heavy caches BEFORE the mount transient (pause-path machinery, one more trigger). f10 re-parses
-  // at the next commit (capped, M8 moment; auto-lap BREAK->CLIMB chains never pass here so the T7
-  // per-route-churn case keeps its cache); fP re-stages via pendV on the first calm post-mount tick,
-  // FBW covers the cold window and the eid-5 cold-overlay refusal already guards state 5/6.
-  if (tChanged && t === "ready" && !finalized) { f10 = null; fP = null; pendV = 1; pvT = 0; }
+  // NO cache-freeing at ready mounts: falsified on-watch 2x (17.07) — Duktape's GC reclaims too
+  // late for the mount transient, freed refs only buy parse churn (T7 class). Eviction is decided
+  // by RESIDENT main.js size (<500 B swing deterministic/never), not by references dropped here.
   if (s === 1) dwell = 1;
   pv[0] = 1;  // force a FULL republish on this template mount — the freshly-mounted template must read every Output, not just the ones changed since the last publish (ext22 clears the flag after a full publish; FBW leaves it set)
   if (output) pub(output);
@@ -482,7 +475,7 @@ function onLoad(_input, output) {
 // as a bare positional arg down the whole chain (deploy-build output tracking, proven multi-hop).
 var tick = function(output, h, asc) {
   if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap path; every pre-v3 schema enters the isolated migration launch
-  else if (pendSlots > 1) { try { if (migPend) loadExt(12)(migPend, projGradeIdx, projSlot, gradeSystem); else loadExt(13)(projGradeIdx, projSlot, gradeSystem); currentGrade = DEFAULT_IDX[gradeSystem]; pendSlots = 1; } catch (e) { if (++slTries >= 3) { if (migPend) { projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } else { climbMode = stOk = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } } } }  // migPend: seed failure degrades to fresh defaults WITHOUT killing stOk (the END fold must still run)
+  else if (pendSlots > 1) { try { if (migPend) gradeSystem = loadExt(12)(projGradeIdx, projSlot, sysDirty ? gradeSystem : -1); else loadExt(13)(projGradeIdx, projSlot, gradeSystem); currentGrade = DEFAULT_IDX[gradeSystem]; pendSlots = 1; } catch (e) { if (++slTries >= 3) { if (!migPend) climbMode = stOk = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } } }  // migPend: seed failure degrades to fresh defaults WITHOUT killing stOk (the END fold must still run)
   else if (pendSlots) { pendSlots = 0; if (seedStay) seedStay = 0; else goState(0, output); }  // one complete evaluate boundary separates storage parsing from the READY mount; the first-launch seed stays in SETUP
   else if (pendE) {
     try { fE = fE || loadExt(21); pendE = 0; } catch (e) { if (++rt >= 3) pendE = 0; }
@@ -582,10 +575,11 @@ var finishSession = function() {
     routeNumber++;
   }
   if (frDirty && exFail < 2) exFail = 2;  // S2: the end window gets NO further ticks to re-drive the bounded retry, and the pause already nulled f10 (cold parse guaranteed) — pre-seed the budget so a single throw falls THROUGH to the degraded inline commit instead of returning with the route still armed (silent loss)
-  migOK = migPend ? 1 : 0;  // END-FOLD transaction flag: a commit/fold throw may never leak partial deltas into the v3 stamp
+  migOK = migPend;  // END-FOLD transaction flag (migPend is strictly 0/1): a commit/fold throw may never leak partial deltas into the v3 stamp
   try { commitDirty(); } catch (e) { migOK = 0; }
   try { foldRoutes(); } catch (e) { migOK = 0; }  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
-  if (!migPend && (!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty) return;  // nothing logged/changed -> skip the save burst — EXCEPT migPend: even an empty session 1 must fold (pure adoption, T=null below)
+  var e0 = (!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty;  // "empty session" — shared by the skip below and the T=null pure-adoption arm at the ext11 call
+  if (!migPend && e0) return;  // nothing logged/changed -> skip the save burst — EXCEPT migPend: even an empty session 1 must fold (pure adoption, T=null below)
   if (stOk !== 1) {  // S2 READ-ONLY session: bootstrap/migration never established a trustworthy snapshot
     // grow-rewrite a store we never read (clobber + landmine class). Skip the save entirely —
     // psDirty/slotsDirty/sysDirty never reach ext11 — and say so on the summary instead of losing data silently.
@@ -593,19 +587,17 @@ var finishSession = function() {
     return;
   }
   try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) { migOK = 0; }  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW — the fold never runs under the big template
-  var A = 0, sv, k, ap;
+  var A = 0, sv, k, sS;
   if (migPend && migOK) {
     try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
       sv = localStorage.getObject("stats") || {};
       k = loadExt(18)();  // grade names for adopted Companion rows
-      A = loadExt(typeof sv.system === "string" ? 16 : 17)(k, sv);
-      if (typeof sv.system !== "string") A = loadExt(19)(A, k, sv);  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
+      sS = typeof sv.system === "string";
+      A = loadExt(sS ? 16 : 17)(k, sv);
+      if (!sS) A = loadExt(19)(A, k, sv);  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
       k = sv = 0;
-      ap = A["p" + gradeSystem];  // merge adopted active-system slots into the WORKING arrays so recap + Companion row build over the merged vector; slotTouched slots (incl. deliberate OFF) win
-      if (ap && ap[19] !== undefined) for (k = 0; k < 5; k++) if (!(slotTouched >> k & 1) && projGradeIdx[k] === -1 && ap[k + 15] >= 0) {
-        projGradeIdx[k] = ap[k + 15]; projSlot[k] = ap[k] | 0; projSlot[k + 5] = ap[k + 5] | 0; projSlot[k + 10] = ap[k + 10] | 0; projSlot[k + 15] = ap[k + 15]; projSlot[20] = "";
-      }
-      ap = 0;
+      if ((pendSlots > 1 || slTries > 2) && !sysDirty) gradeSystem = A.g;  // the staged seed never ran (instant END) or exhausted its retries: adopt the container's own system — the drain no longer derives it (resident diet 17.07; Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
+      loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // merge adopted active-system slots into the WORKING arrays (by-ref satellite, resident diet 17.07) so recap + Companion row build over the merged vector; slotTouched slots (incl. deliberate OFF) win
     } catch (e) { A = 0; migOK = 0; }
   }
   if (migPend && !migOK) { sumUp(0, 2); return; }  // NOT SAVED; legacy byte-untouched; auto-retry next END. Plain ext11 can never run while migPend — the single call site below always receives A here.
@@ -616,7 +608,7 @@ var finishSession = function() {
   sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
   f3 = null;  // release the name slice before the ext11 RMW
   try {
-    loadExt(11)(migPend && (!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty ? null : [acc ? acc[0] : 0, acc ? acc[1] : 0, acc && acc[6] >= 0 ? acc[6] % 100 : -1, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, (psDirty ? 1 : 0) | (slotsDirty ? 2 : 0), A);  // totals + exactly derivable session peak; T=null ONLY for a pure-adoption END (no sessions++), A = fold container or 0
+    loadExt(11)(migPend && e0 ? null : [acc ? acc[0] : 0, acc ? acc[1] : 0, acc && acc[6] >= 0 ? acc[6] % 100 : -1, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, psDirty | slotsDirty << 1, A);  // totals + exactly derivable session peak; T=null ONLY for a pure-adoption END (no sessions++), A = fold container or 0
     migPend = 0;  // fold committed — a reused module instance must not re-fold next session
   } catch (e) { sumUp(0, 2); }
 };

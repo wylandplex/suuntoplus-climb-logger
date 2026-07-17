@@ -2,7 +2,8 @@
 'use strict';
 
 // Numeric v1/v2 -> canonical v3 container, END-FOLD edition. There is no migration state machine:
-// drainF12 only DETECTS the legacy schema (C.v!==3 -> migPend=2, the numeric format code) and
+// drainF12 only DETECTS the legacy schema (C.v!==3 -> migPend=1; since the 17.07 resident diet
+// ext12 derives the numeric format itself from stats on the staged tick) and
 // stages the READ-ONLY ext12 slot seed (pendSlots=2). On the staged tick ext12 seeds the ACTIVE
 // system's slots byte-equal to the fold baseline (endfold-seed-equiv proves seed==fold 40/40;
 // fmt-2 reads: watchSetup, climbProjStats, stats, pS<g>), the next tick mounts READY, and the
@@ -73,17 +74,17 @@ var legacyImage = platform.snapshot(p.storage.store); // the on-watch legacy sto
 // migration template, no lock, no write -- the session starts like a fresh app.
 var first = p.createApp(); first.load();
 var st = first.state();
-assert.strictEqual(st.migPend, 2, 'legacy numeric schema must arm migPend with format code 2');
+assert.strictEqual(st.migPend, 1, 'legacy numeric schema must arm the END-FOLD (migPend=1, plain flag since the diet)');
 assert.strictEqual(st.migOK, 0);
 assert.strictEqual(st.pendSlots, 2, 'read-only legacy slot seed not staged');
 assert.strictEqual(st.pendF12, 0, 'legacy drain must complete inside the enable');
 assert.strictEqual(st.stOk, 1, 'legacy session must not be read-only');
-assert.strictEqual(st.gradeSystem, 6, 'numeric stats.system must seed the grade system');
-assert.strictEqual(st.currentGrade, 3, 'currentGrade must reset to DEFAULT_IDX[6]');
+assert.strictEqual(st.gradeSystem, 0, 'gradeSystem stays default at onLoad (ext12 derives it on the staged tick since the 17.07 diet)');
+assert.strictEqual(st.currentGrade, 18, 'currentGrade must reset to DEFAULT_IDX[0] until the staged tick');
 assert.deepStrictEqual(st.projGradeIdx, [-1, -1, -1, -1, -1], 'onLoad leaves defaults; the ext12 seed fills the slots on the staged tick');
 assert.strictEqual(st.slotTouched, 0);
 assert.strictEqual(st.currentTemplate, 'setup', 'no migration template exists anymore');
-assert.deepStrictEqual(trace(p, 0), ['getObject:climbProjStats', 'getObject:stats'], 'legacy drain is detect+seed, nothing else');
+assert.deepStrictEqual(trace(p, 0), ['getObject:climbProjStats'], 'legacy drain is the 1-read sniff, nothing else (stats read moved into ext12)');
 assert.strictEqual(writes(p).length, 0, 'detection must stay read-only');
 console.log('  PASS  legacy detect: migPend armed, seed staged, session fresh, zero writes');
 
@@ -95,8 +96,10 @@ assert.strictEqual(first.state().state, 4, 'presses inside the staged-seed windo
 var seedFrom = p.storage.calls.length, seedEv = p.evals.calls.length;
 first.warm(3);  // tick 1: ext12 read-only seed; tick 2: READY mount; tick 3: publisher (ext22)
 st = first.state();
-assert.deepStrictEqual(trace(p, seedFrom), ['getObject:watchSetup', 'getObject:climbProjStats', 'getObject:stats', 'getObject:pS6'],
-  'staged ext12 seed must read exactly watchSetup, climbProjStats, stats, pS6 (fmt 2) and nothing else');
+assert.deepStrictEqual(trace(p, seedFrom), ['getObject:stats', 'getObject:watchSetup', 'getObject:climbProjStats', 'getObject:pS6'],
+  'staged ext12 seed must read exactly stats (format+system derivation), watchSetup, climbProjStats, pS6 and nothing else');
+assert.strictEqual(st.gradeSystem, 6, 'staged tick must derive the numeric stats.system');
+assert.strictEqual(st.currentGrade, 3, 'currentGrade must land on DEFAULT_IDX[6] after the staged tick');
 assert.deepStrictEqual(p.evals.calls.slice(seedEv).map(function (c) { return c.extension; }), ['12', '22'],
   'staged ticks must parse exactly the slot seed (ext12) and the publisher (ext22)');
 assert.strictEqual(st.state, 4, 'the seeded first launch STAYS in SETUP (seedStay) — auto-READY was the on-watch bug of 16.07');
@@ -130,7 +133,7 @@ console.log('    ' + T.join('\n    '));
 assert.deepStrictEqual(T, expected, 'fold must read stats + every sN/pSN old-C source, then write exactly once');
 assert.strictEqual(T.lastIndexOf('setObject:climbProjStats'), T.length - 1, 'the sole write must come after all reads');
 assert.deepStrictEqual(p.evals.calls.slice(evalFrom).map(function (c) { return c.extension; }),
-  ['18', '17', '19', '25', '11'], 'end window: names -> ext17 (g0-4) -> ext19 (g5-9) -> recap -> single ext11 write');
+  ['18', '17', '19', '15', '25', '11'], 'end window: names -> ext17 (g0-4) -> ext19 (g5-9) -> ext15 merge -> recap -> single ext11 write');
 assert.strictEqual(extCalls(p, 16), 0, 'string-system converter must not run on a numeric store');
 assert.strictEqual(extCalls(p, 12), 1, 'the read-only slot seed must not re-parse at the END (fold reads legacy directly)');
 console.log('  PASS  fold reads all old-C sources before the single setObject');
@@ -200,7 +203,7 @@ var rou = clone(defaults.stats); rou.system = 0; rou.mig = 0; rou.rou0 = 12; rou
 var rp = platform.createPlatform({ policy: 'reject-key', seed: { stats: rou, climbProjStats: { '0_1': { attempts: 5, sends: 2, bestTime: 80, g: 4 } } } });
 var rImage = platform.snapshot(rp.storage.store);
 var ra = rp.createApp(); ra.load();
-assert.strictEqual(ra.state().migPend, 2);
+assert.strictEqual(ra.state().migPend, 1);
 ra.end(); // no routes, no edits -- an empty legacy session still folds
 assert.deepStrictEqual(writes(rp).map(function (c) { return c.key; }), ['climbProjStats']);
 var R = rp.storage.peek('climbProjStats');
@@ -246,19 +249,73 @@ ca.press(6);  // user confirm -> READY
 ca.climb({ seconds: 30, height: 5, send: true });
 ca.end();
 assert.deepStrictEqual(crash.storage.peek('climbProjStats'), {}, 'failed sole write must leave the legacy container byte-untouched');
-assert.strictEqual(ca.state().migPend, 2, 'a failed fold must stay pending for the next END');
+assert.strictEqual(ca.state().migPend, 1, 'a failed fold must stay pending for the next END');
 assert.strictEqual(ca.state().summary[0].id, 'ns', 'failed fold must surface NOT SAVED');
 assert.deepStrictEqual(crash.storage.peek('s7'), fullNativeSeed().s7);
 crash.storage.clearFailures();
 var cb = crash.createApp(); cb.load();
-assert.strictEqual(cb.state().migPend, 2, 'legacy must be re-detected after a failed fold (numeric format code again)');
+assert.strictEqual(cb.state().migPend, 1, 'legacy must be re-detected after a failed fold');
 cb.end();
 assert.strictEqual(crash.storage.peek('climbProjStats').v, 3);
 assert.strictEqual(crash.storage.peek('climbProjStats').s7[3], 9);
 console.log('  PASS  numeric one-write failure retries without partial state');
 
+// In-session system switch DURING the migPend session (diet 17.07): the re-seed re-runs ext12
+// with gi = the user's choice (sysDirty gate) — it must NOT clobber the choice back to the
+// stats-derived system, and the fold must land under the chosen system, byte-equal to the
+// old-converter -> old-ext11 composition.
+var swp = platform.createPlatform({ policy: 'reject-key', seed: {
+  stats: clone(stats), climbProjStats: {}, pS6: p6, pS2: p2, pS9: p9,
+  s6: { totalRoutes:12,totalSends:7,sendPct:58,sessions:4,totalHeight:30,peakGrade:3 },
+  s2: { totalRoutes:5,totalSends:2,sendPct:40,sessions:2,totalHeight:12,peakGrade:5 },
+  s9: { totalRoutes:2,totalSends:1,sendPct:50,sessions:1,totalHeight:0,peakGrade:0 }
+} });
+var swImage = platform.snapshot(swp.storage.store);
+var sw = swp.createApp(); sw.load(); sw.warm(3);
+assert.strictEqual(sw.state().gradeSystem, 6, 'staged seed must derive system 6 first');
+sw.pickGradeSystem(2);
+var swst = sw.state();
+assert.strictEqual(swst.gradeSystem, 2, 'in-session switch was clobbered by the ext12 re-seed (gi must win over the derived system)');
+assert.strictEqual(swst.migPend, 1, 'switch must not disarm the fold');
+assert.deepStrictEqual(slot(swst.projSlot), [9, 4, 88, 5], 'switch re-seed must show the READ-ONLY legacy pS2 vector');
+sw.selectProject(1); sw.climb({ seconds: 70, height: 8, send: false });
+sw.end();
+var swPre = sw.state();  // post-END working arrays == exactly what ext11 received (the deferred route commit builds the Companion row inside the END)
+var SW = swp.storage.peek('climbProjStats');
+assert.strictEqual(SW.g, 2, 'fold must stamp the chosen system');
+assert.deepStrictEqual(slot(SW.p2), [10, 4, 88, 5], 'session delta must land in the chosen system slot');
+assert.deepStrictEqual(SW.p9.slice(0, 20), p9, 'inactive systems adopted untouched');
+assert.strictEqual(JSON.stringify(SW), JSON.stringify(oracleEndWrite(oracleConvert(swImage), [0, 1, -1, 0, 0, 0, 8], swPre.projGradeIdx, swPre.projSlot, swPre.climbMode, 2, 1)),
+  'switched fold is not byte-identical to old-converter -> old-ext11 under the chosen system');
+console.log('  PASS  migPend in-session system switch: gi wins, fold lands under the chosen system');
+
+// Seed-retry exhaustion (Codex finding 17.07): three failed ext12 ticks leave gradeSystem at the
+// default 0 — the END fold must still adopt the container's own system (slTries arm of the A.g
+// fallback), never stamp C.g=0 over a system-6 legacy store.
+var exh = platform.createPlatform({ policy: 'reject-key', seed: {
+  stats: clone(stats), climbProjStats: {}, pS6: p6, pS2: p2, pS9: p9,
+  s6: { totalRoutes:12,totalSends:7,sendPct:58,sessions:4,totalHeight:30,peakGrade:3 },
+  s2: { totalRoutes:5,totalSends:2,sendPct:40,sessions:2,totalHeight:12,peakGrade:5 },
+  s9: { totalRoutes:2,totalSends:1,sendPct:50,sessions:1,totalHeight:0,peakGrade:0 }
+}, failures: [{ op: 'getObject', key: 'stats', times: 3 }] });
+var exImage = platform.snapshot(exh.storage.store);
+var ex = exh.createApp(); ex.load(); ex.warm(5);
+var exSt = ex.state();
+assert.strictEqual(exSt.gradeSystem, 0, 'precondition: the seed must have exhausted its retries (gradeSystem still default)');
+assert.strictEqual(exSt.pendSlots, 0, 'precondition: the staged window must be over');
+assert.strictEqual(exSt.stOk, 1, 'seed exhaustion must NOT kill stOk (the fold must still run)');
+assert.strictEqual(exSt.migPend, 1);
+ex.end();
+var EX = exh.storage.peek('climbProjStats');
+assert.strictEqual(EX.g, 6, 'exhausted-seed fold stamped C.g=' + EX.g + ' — must adopt the legacy system 6 (slTries arm)');
+assert.strictEqual(exh.storage.peek('climbProjStats').s6[3], 4, 'pure adoption must not sessions++');
+assert.strictEqual(JSON.stringify(EX), JSON.stringify(oracleConvert(exImage).store.climbProjStats),
+  'exhausted-seed pure adoption must be byte-identical to the converter image');
+assert.strictEqual(ex.state().migPend, 0, 'fold must disarm after the successful write');
+console.log('  PASS  exhausted seed: END still folds under the legacy system (C.g=6, pure adoption)');
+
 // Global: across every scenario, the only key ever written is the canonical container.
-[p, rp, full, crash].forEach(function (pl) {
+[p, rp, full, crash, swp, exh].forEach(function (pl) {
   writes(pl).forEach(function (c) { assert.strictEqual(c.key, 'climbProjStats', 'legacy shard write detected: ' + c.key); });
 });
 
