@@ -36,7 +36,8 @@ var lsOld = new LS({ climbProjStats: skel }), saveOld = new Function('localStora
 var model = clone(skel), R = rng(0xC11B5A7), writes = 0;
 for (var run = 0; run < 1200; run++) {
   var g = R(10), routes = R(12), sends = routes ? R(routes + 1) : 0, height = R(400), peak = sends ? R([41,24,29,11,14,30,11,12,1,1][g]) : -1;
-  var a = [sends, routes, peak, 0, 0, 0, height];
+  var a = [sends, routes, height, 0, 0, 0, peak >= 0 ? g * 100 + peak : -1];  // NEW contract (audit C5): the resident acc rides through — height at [2], RAW peakEnc (system*100+idx) at [6], ext11 does the %100 itself
+  var aOld = [sends, routes, peak, 0, 0, 0, height];  // the retired precomputed-T shape for the frozen oracle
   var P = fullP(model['p' + g]), pgi = P.slice(15, 20), dirty = R(4) === 0 ? 0 : R(3) + 1;
   if (dirty) {
     var slot = R(5), turnOff = R(5) === 0;
@@ -47,8 +48,9 @@ for (var run = 0; run < 1200; run++) {
 
   var beforeCalls = ls.calls.length, inactive = [];
   for (var n = 0; n < 10; n++) if (n !== g) inactive.push(JSON.stringify([model['s' + n], model['p' + n]]));
-  save(a, pgi.slice(), P.slice(), R(6), g, dirty);
-  saveOld(a, pgi.slice(), P.slice(), R(6), g, dirty);
+  var cm6 = R(6);
+  save(a, pgi.slice(), P.slice(), cm6, g, dirty);
+  saveOld(aOld, pgi.slice(), P.slice(), cm6, g, dirty);
   var calls = ls.calls.slice(beforeCalls);
   assert.deepStrictEqual(calls.map(function (x) { return x.slice(0, 2); }), [['get', 'climbProjStats'], ['set', 'climbProjStats']], 'run ' + run + ': not one canonical RMW');
   writes++;
