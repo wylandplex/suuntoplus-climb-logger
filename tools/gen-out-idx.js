@@ -114,6 +114,17 @@ while ((m2 = re.exec(mainSrc))) written[m2[1]] = 1;
 OUTS.forEach(function (n) { if (!written[n]) bad('manifest out "' + n + '" has NO writer (neither ext22 token nor main.js literal)'); });
 Object.keys(written).forEach(function (n) { if (IDX[n] === undefined) bad('write to "' + n + '" is not declared in manifest out[]'); });
 
+// audit U18: log:true outputs feed recorded activity GRAPHS — each must keep its OWN dedicated
+// write (one o[@name@]= block in the satellite, or a main.js literal). Packing one into a
+// composite (climbing+gradeLog share Count_Twodigits = merge bait) silently corrupts the graph.
+man.out.forEach(function (e) {
+  if (!e.log) return;
+  var own = (TPL.match(new RegExp('o\\[@' + e.name + '@\\]=', 'g')) || []).length;
+  var lit = new RegExp('\\b(?:output|o)\\.' + e.name + '\\s*=(?!=)').test(mainSrc) ? 1 : 0;
+  if (own + lit === 0) bad('log output "' + e.name + '" has no dedicated write — packed into a composite?');
+  if (own > 1) bad('log output "' + e.name + '" written in ' + own + ' satellite blocks');
+});
+
 // pendV must NEVER join the onEvent/onLap guard chains (fluidity law: grade flicks stay live
 // through the cold window — FBW publishes them; only the tick stager may parse)
 var chains = mainSrc.match(/pendF12\s*\|\|\s*pendSlots\s*\|\|\s*pendE/g) || [];
