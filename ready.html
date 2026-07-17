@@ -88,14 +88,18 @@
     <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- READY and PROJ-SETUP keep the standalone T/S row. Project-route EDIT renders one compact
-         result line below, e.g. FAIL (1T 0S), so action and association stats cannot straddle rows. -->
-    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);"><span id="ps" class="sp-b-s"></span></div>  <!-- empty SPAN, the proven #edr setText shape — an empty DIV compiles with no text slot (unproven target) -->
+    <!-- ONE shared 73%-row directly ABOVE the bottom tooth for BOTH packedAct renderings: the
+         READY/PROJ-SETUP T/S line (pS, x>=0) and the EDIT result line (pA, x<=-2) are mutually
+         exclusive by value, so the two spans never show together — the proven edr+pA pair shape.
+         U16 (setText-merge into one eval) REVERTED: an eval-context setText needs a compiled text
+         node; the return-rendered eval is the only on-watch-proven mechanism for these rows. -->
+    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" /></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" /></span>
+    </div>
 
     <div class="p-hc sp-vertical-center" style="top:calc(79% - 20.5px);">
       <span id="edr" class="sp-b-s"></span>
-      <!-- Audit U16: ONE packedAct eval drives both rows (the duplicate subscription on the most-mounted template is gone) -->
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => (setText('#ps',pS(x)),pA(x))" /></span>
     </div>
 
     <div id="rm" class="sp-b-s p-hc" style="top:calc(90% - 50%e - 6px)">ROUTE MODE</div>
