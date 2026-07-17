@@ -1,11 +1,11 @@
 <uiView>
-  <div id="climblogger">
+  <div>
     <!-- Minimal pause/save screen. ZERO onLoad, ZERO G table, ZERO eval bindings — mounted at onExercisePause
          so unloading the heavy active.html frees its ~1.3-2KB G-table + DOM + evals BEFORE the onExerciseEnd
-         ext-parse save burst (pause always runs before End), giving the GC max time to reclaim it. -->
-    <div id="sc7" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-      <div class="sp-t-l p-hc" style="top:calc(40% - 50%e);">PAUSE</div>
-    </div>
+         ext-parse save burst (pause always runs before End), giving the GC max time to reclaim it.
+         Audit U4: the dead #sc7 full-screen wrapper + the unused climblogger id are gone — the root
+         div provides the identical frame; ALL siblings build at mount, every box costs. -->
+    <div class="sp-t-l p-hc" style="top:calc(40% - 50%e);">PAUSE</div>
     <import src="#zone-g" />
     <:if test="{{ HAS_ON_EVENT }}">
     <userInput>
