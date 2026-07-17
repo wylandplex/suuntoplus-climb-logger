@@ -24,10 +24,13 @@ function check(cond, msg) { if (!cond) { console.log('  FAIL  ' + msg); fails++;
 
 // ---- sandbox with REAL main.js + REAL ext files -----------------------------
 function mkApp() {
+  var store = JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
+  store.climbProjStats = require('./v3skel')();  // canonical post-fold user: this test proves EDIT/fold mechanics, not migration
   var sandbox = {
     localStorage: {
       getItem: function () { return null; }, setItem: function () {},
-      getObject: function () { return null; }, setObject: function () {},
+      getObject: function (k) { return store[k] === undefined ? null : JSON.parse(JSON.stringify(store[k])); },
+      setObject: function (k, v) { store[k] = JSON.parse(JSON.stringify(v)); },
     },
     evalFile: function (p) {
       var m = /ext(\d+)\.js/.exec(p);
@@ -41,7 +44,7 @@ function mkApp() {
   var src = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8') +
     '\n;this.__st=function(){return {state:state,routesA:routesA.slice(),routesB:routesB.slice(),' +
     'editIdx:editIdx,editDelMark:editDelMark,sessionH:sessionH,routeNumber:routeNumber,' +
-    'bestSendIdx:bestSendIdx,lastResult:lastResult,pendE:pendE,fE:!!fE,climbMode:climbMode,projSlot:projSlot.slice()}};' +
+    'lastResult:lastResult,pendE:pendE,fE:!!fE,climbMode:climbMode,projSlot:projSlot.slice()}};' +
     '\n;this.__onLoad=onLoad;this.__evaluate=evaluate;this.__onEvent=onEvent;';
   vm.runInContext(src, sandbox, { filename: 'main.js' });
   var out = {};
@@ -103,7 +106,7 @@ function mkOracle(st) {
     }
   };
   o.nav = function () { if (o.A.length > 0) o.idx = (o.idx - 1 + o.A.length) % o.A.length; };
-  // (o.quick removed with the BREAK quickfix — ext21 keeps arm 3, but main has no caller for it.)
+  // (o.quick removed with the BREAK quickfix; ext21 ops 3/4 now belong to project reassignment.)
   return o;
 }
 

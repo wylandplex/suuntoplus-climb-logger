@@ -15,6 +15,11 @@ re-grading a project erased its sends and best time, switching grade systems ove
 system's stats, and a failed save could quietly roll your lifetime totals backwards. All of it is
 fixed and covered by automated tests.
 
+After updating from 2.82, the first launch is reserved for migration. Keep the Activity open; after
+copying projects from every grade system, the app opens SETUP automatically and normal logging can begin.
+The complete new store is rebuilt compactly in RAM and committed in one storage write before SETUP
+opens. If that single write fails, the untouched legacy store can be retried on the next launch.
+
 **What's new**
 - **Project stats now work on every grade system.** Previously only the first system could store them
   at all — Ice, Mixed and the rest silently lost their project stats. If you climbed on those, their
@@ -40,7 +45,7 @@ routes can no longer be edited. The screen no longer pretends otherwise.
 ## Features
 
 - **10 Grade Systems** — French, UIAA, YDS, British Trad, V-Scale, Font, Ice (WI), Mixed, Hangboard, Scrambling
-- **5 on-watch project slots per system** (50 total) — enable or configure each slot on the watch; the companion app exposes the 40 slots in the first eight grade systems
+- **5 on-watch project slots per system** (50 total) — enable and configure every slot directly on the watch
 - **Save as project from BREAK** — in free mode, Mid long assigns the last route to the first free project slot, when one is available, and switches to it
 - **Live HR display and climb-phase averages** — valid samples are collected only while CLIMB is active; each route uses one simple average, not rolling peak windows
 - **Finished-activity graphs in the Suunto app** — an on-route/resting trace, a route-height sawtooth, and a grade step graph show how the session progressed; these graphs are not shown on the watch during the workout
@@ -49,7 +54,7 @@ routes can no longer be edited. The screen no longer pretends otherwise.
 - **Session summary tiles** — sends/routes plus up to three available rows for hardest send, avg HR, height, and climb time
 - **All-time aggregates** — route/send totals, send rate, session count, and height
 - **Long-session guard** — after 35 routes without pausing, START is ignored; pause and continue the activity, or save and restart it, to log more
-- **Companion app** — read-only aggregates and active-project stats; editable grade system plus project grades and names for the first eight systems
+- **Companion app** — read-only aggregates and all 50 project slots grouped across all ten grade systems; grade system and the startup SETUP-screen toggle are editable, while project configuration stays on the watch
 - **Full touch + button support** — gloves-friendly for outdoor, ice, and mixed climbing
 
 ## Screen flow
@@ -87,8 +92,8 @@ CLIMB is safety-locked — only the two long-press outcomes (FAIL / SEND) work, 
 
 ## Companion app (Suunto mobile)
 
-- **Editable settings** — grade system; 40 project grade slots (5 each for French, UIAA, YDS, British Trad, V-Scale, Font, Ice, and Mixed); and project-name lists for those eight systems. Hangboard and Scrambling project slots are configured on the watch.
-- **Read-only stats** — current-system route/send totals, send rate, sessions, and height; per-system route/send/session breakdowns; stored grade records; and the active project's grade, attempts, sends, and best time. HR statistics are not exposed by the current companion schema.
+- **Editable settings** — grade system and `Show setup screen at app start` (`1` = on, the default; `0` = skip for returning users). Project grades and slots are configured exclusively on the watch; the companion app cannot edit them.
+- **Read-only stats** — the same six fields for every grade system: routes, sends, send rate, sessions, total height, and peak grade. There is no separate duplicate current-system statistics block. One P1–P5 row for each of all ten systems shows real grade labels and tries/sends (`-` means OFF). HR statistics are not exposed by the current companion schema.
 
 ## Session summary (after the workout)
 

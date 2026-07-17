@@ -1,98 +1,24 @@
 'use strict';
-
-var fs = require('fs');
-var path = require('path');
-var platform = require('./platform');
-
-console.log('CLAIM F1: undeclared pS1-pS9 keys prevent project statistics from surviving a second session.');
-
-var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
-
-function result(policy, p, slot, blocked, state) {
-  var keyCalls = p.storage.calls.filter(function (call) { return call.key === 'pS1'; });
-  return {
-    policy: policy,
-    blocked: blocked,
-    state: state.state,
-    stOk: state.stOk,
-    pendF12: state.pendF12,
-    pendSlots: state.pendSlots,
-    pendE: state.pendE,
-    attempts: slot[0] || 0,
-    sends: slot[5] || 0,
-    best: slot[10] || 0,
-    materialized: p.storage.materializedKeys().indexOf('pS1') >= 0,
-    outcomes: keyCalls.map(function (call) { return call.op + ':' + call.outcome; }).join(',')
-  };
+var fs = require('fs'), path = require('path'), platform = require('./platform'), v3skel = require('../tests/v3skel');
+console.log('CLAIM F1: undeclared per-system keys prevent project statistics from surviving a second session.');
+function seed() {
+  var C = v3skel();
+  C.g = 1; C.u = 0; C.s1 = [0,0,0,1,0,-1];
+  C.p1 = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 6,-1,-1,-1,-1,''];
+  return { climbProjStats: C };
 }
-
-function run(policy) {
-  var stats = platform.snapshot(defaults.stats);
-  stats.system = 1;
-  stats.sessions = 1;
-  stats.showSetupOnStart = 0;
-  stats.p1_1 = 6;
-  var p = platform.createPlatform({ policy: policy, seed: { stats: stats } });
-  var first = p.createApp();
-  first.load();
-  first.warm(20);
-  // Warm generously: under a failing store the capped bootstrap (pendF12) and the pendSlots
-  // pS<sys> load each retry before giving up, so the onEvent gate stays shut for >5 ticks.
-  if (first.state().state === 4) {
-    first.press(6);
-    first.warm(20);
-  }
-  first.selectProject(1);
-  first.warm(20);
-
-  // Press START directly so a legitimate read-only refusal becomes evidence instead of
-  // AppDriver.start throwing before this proof can report a verdict.
-  first.press(6);
-  var started = first.state();
-  if (started.state !== 1) {
-    return result(policy, p, started.projSlot, true, started);
-  }
-
-  first.climb({ seconds: 60, height: 10, send: true });
-  first.end();
-
-  var second = p.createApp();
-  second.load();
-  second.warm(20);
-  var secondState = second.state();
-  return result(policy, p, secondState.projSlot, false, secondState);
-}
-
-var verdicts = {};
-
+var bad = 0;
 ['reject-key', 'poison-store', 'permissive'].forEach(function (policy) {
-  var r = run(policy);
-  if (r.blocked) {
-    verdicts[policy] = 'INCONCLUSIVE';
-    console.log('INCONCLUSIVE under policy=' + policy +
-      ': START was refused after bootstrap settled (state=' + r.state + ', stOk=' + r.stOk +
-      ', pendF12=' + r.pendF12 + ', pendSlots=' + r.pendSlots + ', pendE=' + r.pendE +
-      '); expected a startable session before testing pS1 persistence; pS1 materialized=' +
-      (r.materialized ? 1 : 0) + '; calls=' + r.outcomes);
-    return;
-  }
-  var status = r.attempts === 1 && r.sends === 1 && r.best === 60 ? 'REFUTED' : 'PROVEN';
-  verdicts[policy] = status;
-  console.log(status + ' under policy=' + policy + ': observed reload attempts/sends/best=' +
-    r.attempts + '/' + r.sends + '/' + r.best + ', expected-if-correct=1/1/60; pS1 materialized=' +
-    (r.materialized ? 1 : 0) + '; calls=' + r.outcomes);
+  var p = platform.createPlatform({ policy: policy, seed: seed() }), app = p.createApp();
+  app.load(); app.warm(6); app.selectProject(1); app.climb({ seconds: 60, send: true }); app.end();
+  var again = p.createApp(); again.load(); again.warm(4);
+  var P = p.storage.peek('climbProjStats').p1;
+  var legacyWrites = p.storage.calls.filter(function (c) { return c.op === 'setObject' && /^pS\d+$/.test(c.key); });
+  var ok = P[0] === 1 && P[5] === 1 && P[10] === 60 && again.state().projSlot[0] === 1 && !legacyWrites.length;
+  if (!ok) bad++;
+  console.log((ok ? 'REFUTED' : 'PROVEN') + ' under policy=' + policy + ': canonical p1 reload=' +
+    [P[0],P[5],P[10]].join('/') + ', legacy writes=' + legacyWrites.length + '.');
 });
-
-console.log('Git archaeology (`git log -p -- data.json` and `git log --all -S\'"pS1"\'`): pS1-pS9 history matches=0' +
-  ' (expected-if-ever-declared>=1); pS0 was first added by 299100c29974bb006c98f38b0d40b686b127a419 and was never accompanied by pS1-pS9.');
-
-var logRel = 'docs/watch-logs/2026-07-07_trim-active-ready_ext13-always-fires-98pct.log';
-var logLines = fs.readFileSync(path.join(platform.ROOT, logRel), 'utf8').split(/\r?\n/);
-var evidence = logLines.filter(function (line) { return line.indexOf('localStorage: reading b:/zapp/storage/climbl01/data.jsn') >= 0; })[0];
-console.log('Watch-log archaeology: no committed line names an undeclared key. Closest direct storage evidence is ' +
-  logRel + ':966: "' + (evidence || 'not found') + '"; it cannot distinguish the three policies.');
-
-console.log('INCONCLUSIVE: F1 is ' + verdicts['reject-key'] + ' under reject-key, ' +
-  verdicts['poison-store'] + ' under poison-store, and ' + verdicts['permissive'] +
-  ' under permissive; firmware undeclared-key semantics require the on-watch data.jsn experiment.');
-process.exit(2);
+console.log(bad ? 'PROVEN: a policy still loses project history.' :
+  'REFUTED: all systems persist inside the declared canonical container; no dynamic pS key is used.');
+process.exit(bad ? 1 : 0);

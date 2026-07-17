@@ -1,14 +1,13 @@
 <uiView onFlickUp="ev(7)"
         onFlickDown="ev(8)"
         onLoad="
-          var lock=0,vs=0,ms=0,M=Math.floor;
+          var lock=0,vs=0,M=Math.floor;
           function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          function mT(){setText('#rm',vs===5?'ROUTE EDIT':vs===6?'PROJECT EDIT':ms<0?'PROJECT MODE':'ROUTE MODE')}
-          function mS(x){ms=x;mT();return x>0?'#'+x:'P'+(-x)}
-          function setVs(x){vs=x;mT();setVis('#pm',x!==6);setText('#pu',x===5||x===6?'\uE365':'\uE338');return ''}
-          function gV(x){var v=x<1e6;setVis('#gu',v);setVis('#gd',v);return dG(M(x%1e6/952))}
-          function pA(x){var q=x<=-6?-x-6:-1,c=q>=0?q%3:x===-2?0:x===-3?1:x===-4?2:-1;setVis('#pd',c===1);setText('#pi',c===0?'\uF110':c===2?'\uF200':x<-1?'':'\uF111');return q>=0?c===0?'SEND':c===1?'FAIL':'DEL':x===-2?'SEND':x===-3?'FAIL':x===-4?'DEL':''}
-          function pS(x){var q=x<=-6?M((-x-6)/3):-1;return q>=0?M(q/1000)+'T '+(q%1000)+'S':x>=0?M(x/1000)+'T '+(x%1000)+'S':''}
+          function mS(x){setText('#rm',x>99?'ROUTE EDIT':x<-99?'PROJECT EDIT':x<0?'PROJECT MODE':'ROUTE MODE');x%=100;return x>0?'#'+x:'P'+(-x)}
+          function setVs(x){vs=x;setVis('#pm',x!==6);setText('#pu',x===5||x===6?'\uE365':'\uE338');return ''}
+          function gV(x){var p=M(x/1e6),g=dG(M(x%1e6/952)),v=p<6;setVis('#gu',v);setVis('#gd',v);return p>0&amp;&amp;p<6?'P'+p+' ('+g+')':g}
+          function pA(x){var q=x<=-6?-x-6:-1,c=q>=0?q%3:x===-2?0:x===-3?1:x===-4?2:-1,w=c===0?'SEND':c===1?'FAIL':c===2?'DEL':'';setVis('#pd',c===1);setText('#pi',c===0?'\uF110':c===2?'\uF200':x<-1?'':'\uF111');if(q>=0){q=M(q/3);return w+' ('+M(q/1000)+'T '+q%1000+'S)'}return w}
+          function pS(x){return x>=0?M(x/1000)+'T '+x%1000+'S':''}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function ulk(){lock=0}
           function evX(n){if(lock)return;ev(n);lock=1;setTimeout(ulk,300)}
@@ -49,9 +48,8 @@
     </div>
 
     <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
-    <!-- Chevrons are lock-gated (T3, #173): packedGL's 1e6 flag = grade locked in EDIT (empty
-         editor / project-tagged route, mirroring evEdit's eid1/2 gates) -> chevrons blank, absence
-         = feedback (was a silent dead control). Grade decode above masks with %1e6 in lockstep. -->
+    <!-- packedGL's high million selects the EDIT value: 1..5 renders Pn (grade) with live chevrons;
+         6 is the empty-editor lock and hides them. The low remainder stays the grade payload. -->
     <div id="gu" class="f-ico p-hc" style="top:calc(33% - 18.5px - 1.5px);">&#xF266;</div>
 
     <div class="sp-t-l p-hc p-tc" style="top:calc(46.5% - 50%e - 3px);width:100%">
@@ -90,15 +88,14 @@
     <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- Both packedAct strings render DIRECTLY: project-route EDIT puts T/S on its own row above the
-         SEND/FAIL/DEL result; READY and PROJ-SETUP keep their standalone T/S row. This avoids the
-         unreliable mount-time setText-to-span path that previously left project stats blank on-watch. -->
-    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" default="" /></span>
+    <!-- READY and PROJ-SETUP keep the standalone T/S row. Project-route EDIT renders one compact
+         result line below, e.g. FAIL (1T 0S), so action and association stats cannot straddle rows. -->
+    <div class="p-hc sp-vertical-center sp-b-s" style="top:calc(73% - 20.5px);">
+      <eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" />
     </div>
     <div class="p-hc sp-vertical-center" style="top:calc(79% - 20.5px);">
       <span id="edr" class="sp-b-s"></span>
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" default="" /></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" /></span>
     </div>
 
     <div id="rm" class="sp-b-s p-hc" style="top:calc(90% - 50%e - 6px)">ROUTE MODE</div>

@@ -68,18 +68,20 @@ until a new editable tail route exists.
 | `active.html`       | CLIMB / BREAK cluster                                      | Workout        |
 | `setup.html`        | Grade-system setup                                         | Config         |
 | `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
+| `migration.html`    | Minimal, input-locked storage-migration screen              | Migration launch |
 | `ext10.js`          | Route end + already-warm save-as-project operation          | On SEND/FAIL   |
-| `ext11.js`          | Stats RMW writer — the only localStorage WRITE in the app   | Workout end    |
-| `ext13.js`          | One-time legacy-data migration (flat keys → per-system `s<g>` / `pS<g>`) | Capped evaluate bootstrap |
+| `ext11.js`          | Native stats/project RMW writer                             | Workout end    |
+| `ext13.js`          | Native destination-system project preload                  | System switch  |
 | `ext14.js`          | Retired save-as-project satellite (kept as a source artifact; no runtime caller) | Never |
+| `ext16.js`          | Live-2.82 → canonical v3 one-write migration                | Migration launch only |
+| `ext17.js`          | Numeric v1/v2 → canonical v3 one-write migration            | Migration launch only |
+| `ext18.js`          | All-system grade-name table for migration rows              | Migration launch only |
 | `ext21.js`          | EDIT-overlay actions — result cycle, DEL execution          | On EDIT press  |
 | `ext22.js`          | Generated publish satellite — all output writes (see `tools/gen-out-idx.js`) | Every tick |
 | `ext25.js`          | Session-summary row builder (Sends/Routes, Highest Send, …) | Pause / end    |
 | `ext30`–`ext39.js`  | Generated per-grade-system name-slice providers (`tools/gen-gradename-slices.js`) | On first route commit |
 | `manifest.json`     | Outputs, variables, settings, templates                    | App config     |
 | `data.json`         | Companion app defaults                                     | First install  |
-
-`ext12.js` and `ext18.js` (an earlier write-ahead-log loader and a legacy grade-name provider) were deleted — see "Persistence" below and the `ext30`–`39` row above for what replaced them.
 
 The runtime path is a flight-recorder: **read once at bootstrap, write once at end, nothing in
 between.** A localStorage write mid-workout previously froze the watch (mid-session flash I/O is a
@@ -88,26 +90,34 @@ the route arrays can be freed early; it never touches storage.
 
 ### Persistence (localStorage)
 
-- **Read** — `onLoad` calls `drainF12()`, which reads `stats` and `pS<system>` directly via
-  `localStorage.getObject`; it never parses a satellite. On a corpse-heap toggle where the read
-  throws, a backed-off evaluate path retries at most three times. If old flat-key data is detected,
-  `onLoad` leaves the store read-only and a later evaluate tick runs `ext13.js` under the same cap.
-  Migration or bootstrap failure keeps `stOk=0`, so END cannot overwrite unread history.
-- **Write** — happens exactly once, at `onExerciseEnd` (`finishSession` → `ext11.js`, a
-  read-modify-write against the `s<system>` snapshot). Gated three ways: skipped entirely if nothing
+- **Read** — `onLoad` calls `drainF12()`, which reads the single canonical `climbProjStats`
+  container via `localStorage.getObject`; it never parses a satellite. On a corpse-heap toggle where the read
+  throws, a backed-off evaluate path retries at most three times. A bootstrap failure keeps
+  `stOk=0`, so END cannot overwrite unread history.
+- **Write window** — entered only at `onExerciseEnd` (`finishSession` → `ext11.js`, one
+  read-modify-write of `climbProjStats`). It is gated three ways: skipped entirely if nothing
   logged or changed this session; skipped entirely if the bootstrap read never succeeded (`!stOk` —
   writing over a store you never read is a clobber risk, so the summary shows "NOT SAVED" instead);
-  The authoritative `s<system>` shard is written first, optional project stats next, and the derived
-  `stats` mirror last; any throw replaces the recap with `NOT SAVED`. Writes are gated per-field by
+  the sole write is atomic from the app's perspective; any throw leaves the previous container intact
+  and replaces the recap with `NOT SAVED`. Updates are gated per-field by
   dirty bits (`psDirty` = project-slot stats, `slotsDirty` = slot grade
-  config changed on the watch — unset lets Companion slot edits made between sessions survive,
+  config changed on the watch,
   `sysDirty` = grade-system choice, persisted even on a routeless session).
-- **`stats`**: all-time / per-system totals (routes, sends, send %, sessions, total height), the
-  exactly derivable peak grade, and the active-project mirror shown to the companion app. Eight
-  formerly advertised but unwritten lifetime records were removed rather than given invented semantics.
-- **`pS<sys>`**: compact 20-number project-stat vector for one grade system
-  (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`).
-- **`s<sys>`**: per-grade-system snapshot of `stats`; retained for maintenance tooling.
+- **Storage migration** — live 2.82 and numeric v1/v2 stores get a dedicated, input-locked
+  `migration.html` launch. `ext16` or `ext17` reads the legacy roots in paced callbacks, builds the
+  complete v3 container in RAM, and performs exactly one `setObject("climbProjStats", …)`. There are
+  no per-system checkpoints or cleanup writes. If that sole write fails, the legacy source remains
+  restartable. After a successful reread, SETUP opens automatically in the same launch. Normal starts
+  and ends never parse migration code or access the compatibility roots.
+- **`climbProjStats`**: canonical v3 container. `v`, `g`, and `u` hold schema/settings;
+  `s0`–`s9` hold lifetime aggregates and `p0`–`p9` hold project vectors.
+- **`p<sys>`**: compact project-stat vector for one grade system
+  (`attempts[0..4]`, `sends[5..9]`, `bestTime[10..14]`, `grade[15..19]`). Index 20 is the bounded
+  read-only Companion row for that system; its five pipe-separated positions are P1→P5, for example
+  `V3 2/1|-|V6 5/2|-|-`. The exact counters stay in indices 0–9; only the text display caps at 99.
+- **`s<sys>`**: compact per-grade-system lifetime snapshot inside the canonical container
+  `[routes, sends, sendPct, sessions, height, peakGrade]`. The isolated migration converts every
+  former object-form shard before Companion can read indexed values; normal runtime sees only v3.
 - **Summary**: cached in RAM and served directly by `getSummaryOutputs` — no localStorage or
   `evalFile` in the summary path.
 
@@ -166,8 +176,8 @@ and don't count against the startup budget — but `main.js` bytecode is RESIDEN
 99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
 Current footprint (q-display minifier, v2.0):
-- `main.js` minified/resident: 7 072 B
-- `ext22.js` (generated publish satellite, parsed once per enable): 1 299 B (cap 1 600 B)
+- `main.js` minified/resident: 8 030 B
+- `ext22.js` (generated publish satellite, parsed once per enable): 1 451 B (cap 1 600 B)
 - runtime route satellite: `ext10` (route commit plus warm save-as-project operation)
 
 ### Store budget (`data.jsn`) — the other scarce pool
@@ -178,11 +188,12 @@ write, which is the path that fails first under 3-app memory pressure. Grow-rewr
 deterministic storm class, so the store is under a growth freeze (`< 2 100 B`, asserted in
 `tools/tests/stats-endwrite-equiv.js`).
 
-Shipped store: **1 946 B**. All ten `pS<sys>` project vectors are declared (an undeclared key cannot
-persist), but as **empty objects** — `fillSlots` already defaults every absent index (`0` for 0–14,
-`-1` for 15–19), so `{}` is behaviourally identical to a full 20-slot dict and costs 1 340 B less.
-Declaring them as full dicts ships a 3 286 B store, i.e. a 65 % larger contiguous allocation on every
-single storage op, for zero benefit. **Do not "helpfully" fill them in.**
+Shipped store: **648 B**. All ten `p<sys>` project vectors are declared with only an empty index-20
+Companion row; `fillSlots` defaults absent stats indices (`0` for 0–14, `-1` for 15–19). The executable
+storage proof materializes all 50 slots and all ten readable rows while migration still commits the
+whole result in one write and lands the full-history fixture below 2 100 B.
+Declaring unused vectors in full would increase the contiguous allocation on every storage op for
+zero benefit. **Do not "helpfully" fill them in.**
 
 Note the watch materializes only *written* keys, not all declared ones: the declaration is the
 permission to persist, not a reservation.

@@ -27,6 +27,20 @@ generation; it is chronologically after v3.0, not a rollback. 169 commits since 
   on screen throughout; BREAK adds the finished route's height and average/max heart rate.
 
 ### Interface changes
+- Companion project editing has been removed. All 50 project slots are configured on the watch;
+  the mobile app retains the grade-system and startup SETUP-screen settings and now shows P1–P5 for all ten systems read-only,
+  with real grade labels and tries/sends. All ten systems expose the same aggregate fields: routes,
+  sends, send rate, sessions, total height, and peak grade, without a duplicate current-system block.
+- Updating from live 2.82 now opens a dedicated migration-only screen before the normal app. It
+  copies every populated project system, builds the complete canonical v3 container in RAM, and
+  releases the legacy/name graphs, waits through four quiet callbacks, and only then commits it with
+  exactly one `climbProjStats` write. There are no per-system or cleanup writes.
+  A failed write leaves the legacy source restartable; success is reread before SETUP opens in the
+  same launch. Later normal starts/ends never load migration code or touch legacy containers.
+- Existing numeric v1/v2 stores use the same one-write contract: all ten lifetime shards and all ten
+  read-only project rows are assembled in RAM, then committed together as canonical v3.
+- Project-slot changes followed by an immediate route-free Activity end now rebuild the readable
+  Companion project row before persisting it, instead of saving an empty row until a later climb.
 - **Simplified the BREAK screen** — removed the session sends/routes tally and the on-BREAK
   quick-fix button (toggle last route's result). Both cost more resident memory than their value
   justified. Result correction is still available via EDIT, which now works on any route in the
@@ -88,8 +102,9 @@ against this one.
   parse retried on *every* route, *every* pause, and *every* press, without end. All are now bounded.
 - **Smaller memory demand per storage operation.** Every localStorage op allocates a contiguous buffer
   the size of the whole store, so the store size *is* the allocation size of the end-of-session save.
-  Declaring all ten grade systems as empty vectors shrank it to 1 946 B — **53 B below** its size
-  before this work, while now covering every system.
+  Removing obsolete mirrors and storing each system's lifetime totals as a compact six-value vector
+  shrank the fresh store to 534 B. Even the executable 50-project/full-row stress image stays at
+  1 928 B, below the 2 100 B crash boundary.
 - **A lap received while the activity is paused no longer auto-completes the open route** as a send on
   resume.
 

@@ -26,6 +26,7 @@ var vm = require('vm');
 var path = require('path');
 var cp = require('child_process');
 var os = require('os');
+var v3skel = require('./v3skel');
 
 var ROOT = path.join(__dirname, '..', '..');
 var SENT = -424242;  // "this output slot has not been written yet" — never 0, which is a legal value
@@ -99,27 +100,73 @@ function makeInstance(blobDir, seed) {
   return { disp: disp, trace: trace, store: store, faults: faults };
 }
 
-// The frozen dispatcher oracle predates store schema v2 and therefore writes mig=1 at END.
-// Ignore only that version marker here; tools/tests/store-v1-v2-projects.js separately binds
-// the v1 -> v2 transition and checks every project vector byte-for-byte.
-function withoutStoreVersion(value) {
+// The frozen dispatcher oracle predates the canonical v3 store. Storage traffic and persistence are
+// therefore bound by the dedicated migration/end-write tests, not by this dispatcher oracle. This
+// proof remains strict for UI outputs, returns, lifecycle traffic and satellite parse moments.
+var REMOVED_STATS = "sessionsAtPeak,lastSessionGrade,bestOfLast5,bestSessionHm,longestProjectSes,longestProjectGrade,mostTriesProject,mostTriesGrade,activeGrade,activeTries,activeSends,activeBest,projects".split(",");
+function normalizeStats(v) {
+  if (!v) return v;
+  delete v.mig;
+  delete v.cv;
+  for (var i = 0; i < REMOVED_STATS.length; i++) delete v[REMOVED_STATS[i]];
+  for (var k in v) if (/^p\d+_\d+$/.test(k)) delete v[k];
+  return v;
+}
+function normalizeShard(v) {
+  return Array.isArray(v) ? { totalRoutes: v[0], totalSends: v[1], sendPct: v[2], sessions: v[3], totalHeight: v[4], peakGrade: v[5] } : v;
+}
+function withoutDerivedStoreFields(value) {
   var copy = JSON.parse(JSON.stringify(value));
-  if (copy && copy.stats) delete copy.stats.mig;
+  if (copy && copy.stats) normalizeStats(copy.stats);
+  if (copy) for (var k in copy) {
+    if (/^s\d+$/.test(k)) copy[k] = normalizeShard(copy[k]);
+    else if (/^pS\d+$/.test(k) && Array.isArray(copy[k])) copy[k] = copy[k].slice(0, 20);
+  }
   return copy;
 }
 
-function withoutVersionInTraffic(trace) {
-  return trace.map(function (entry) {
-    if (entry[0] !== 'lsSet' || entry[1] !== 'stats') return entry;
-    var copy = JSON.parse(JSON.stringify(entry));
-    if (copy[2]) delete copy[2].mig;
-    return copy;
+function withoutDerivedFieldsInTraffic(trace) {
+  return trace.filter(function (entry) {
+    if (/^ls(Get|Set)/.test(entry[0])) return false;
+    return !(entry[0] === 'setText' && entry[1] === '#edr' && /^EDIT /.test(entry[2]));
   });
+}
+
+// Feed the candidate the v3 equivalent of the oracle's legacy fixture. Without this projection the
+// candidate would correctly enter migration mode, which would compare two intentionally different
+// boot contracts instead of the activity dispatcher behavior this proof owns.
+function canonicalSeed(seed) {
+  var out = JSON.parse(JSON.stringify(seed));
+  var C = v3skel();
+  var st = seed.stats || {}, g = st.system === undefined ? 0 : st.system | 0;
+  C.g = g;
+  C.u = st.showSetupOnStart === undefined ? 1 : st.showSetupOnStart | 0;
+  var oldS = seed['s' + g];
+  C['s' + g] = oldS ? (Array.isArray(oldS) ? oldS.slice(0, 6) : [
+    oldS.totalRoutes | 0, oldS.totalSends | 0, oldS.sendPct | 0,
+    oldS.sessions | 0, oldS.totalHeight | 0, oldS.peakGrade === undefined ? -1 : oldS.peakGrade | 0
+  ]) : [st.totalRoutes | 0, st.totalSends | 0, st.sendPct | 0,
+    st.sessions | 0, st.totalHeight | 0, st.peakGrade === undefined ? -1 : st.peakGrade | 0];
+  for (var n = 0; n < 10; n++) {
+    var oldP = seed['pS' + n], has = !!oldP;
+    for (var m = 1; m <= 5; m++) if (st['p' + n + '_' + m] !== undefined) has = true;
+    if (!has) continue;
+    var P = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, ''];
+    if (oldP) for (var k in oldP) if (+k >= 0 && +k <= 20) P[+k] = oldP[k];
+    for (m = 1; m <= 5; m++) if (st['p' + n + '_' + m] !== undefined) P[14 + m] = st['p' + n + '_' + m] | 0;
+    C['p' + n] = P;
+  }
+  out.climbProjStats = C;
+  return out;
 }
 
 function editResultCode(value) {
   if (value <= -6) return (-value - 6) % 3; // project EDIT capsule: SEND=0, FAIL=1, DEL=2
   return value === -2 ? 0 : value === -3 ? 1 : value === -4 ? 2 : -1;
+}
+
+function visibleMode(value) {
+  return value > 99 ? value - 100 : value < -99 ? value + 100 : value;
 }
 
 // ---- scenario runner -----------------------------------------------------------
@@ -156,7 +203,7 @@ function editResultCode(value) {
 //   guard). ext25 keeps its S4 moment rules. Both are filtered from the trace compare afterwards.
 //   Absolute cold-window values (FBW correctness per state) are pinned by output-map-equiv.js.
 function runScenario(name, seed, steps, blobs) {
-  var inst = blobs.map(function (b) { return makeInstance(b, seed); });
+  var inst = blobs.map(function (b, side) { return makeInstance(b, side ? canonicalSeed(seed) : seed); });
   var io = inst.map(function () { return [0, 0, SENT, SENT, SENT, SENT, SENT, SENT, SENT, SENT]; });  // outputs start UNWRITTEN (io[0]/io[1] are the H/Asc inputs)
   var snaps = [[], []];        // per-step io.slice(2) snapshots per side
   var kinds = [];              // step kind per recorded step
@@ -164,6 +211,8 @@ function runScenario(name, seed, steps, blobs) {
   var rows = [];               // {s, st, rets, trA, trB}
   var cold = true;             // candidate starts cold (fP parses at the first stager tick)
   var sawFault = false, saw22 = false;
+  var reassigned = false;      // intentional new project-route EDIT mutation (frozen oracle locked it)
+  var readOnlyPreloadFault = name.indexOf('FLT D slTries cap') === 0;
   for (var s = 0; s < steps.length; s++) {
     var st = steps[s], rets = [], marks = inst.map(function (i) { return i.trace.length; });
     if (st[0] === 'fault') {  // ['fault','ls'|'call22'|extN,count] — arm the injection countdown on BOTH instances
@@ -221,6 +270,7 @@ function runScenario(name, seed, steps, blobs) {
   var nextTick = new Array(rows.length);
   var nt = rows.length - 1;
   for (var q2 = rows.length - 1; q2 >= 0; q2--) { if (kinds[q2] === 'tick') nt = q2; nextTick[q2] = nt; }
+  var preloadWindow = false;
   for (var r2 = 0; r2 < rows.length; r2++) {
     var row = rows[r2], oa = snaps[0][r2], ob = snaps[1][r2];
     var fail = function (msg) {
@@ -229,15 +279,39 @@ function runScenario(name, seed, steps, blobs) {
       console.log('    candidate: ' + JSON.stringify({ io: ob, ret: row.rets[1], tr: row.trB }));
       return false;
     };
-    if (JSON.stringify(row.rets[0]) !== JSON.stringify(row.rets[1])) return fail('returns differ');
-    if (JSON.stringify(withoutVersionInTraffic(row.trA)) !== JSON.stringify(withoutVersionInTraffic(row.trB))) return fail('traffic differs');
+    // The current build deliberately keeps SETUP mounted while a changed system is read and then
+    // mounts READY on a separate tick. The frozen oracle mounted READY at the confirm and read on
+    // the following tick. Skip only that bounded staging window; store-v282-v2-projects and
+    // storm-caps-equiv bind its read set, retry cap, landing state and read-only failure behavior.
+    if (!preloadWindow && row.st[0] === 'ev' && row.st[1] === 6 && oa[3] === 0 && ob[3] === 4 &&
+        row.trA.length === 1 && row.trA[0][0] === 'unload' && row.trB.length === 0) preloadWindow = true;
+    if (preloadWindow) {
+      if (ob[3] === 0) preloadWindow = false;
+      continue;
+    }
+    // FLT D deliberately kills every destination preload. The current recovery contract is
+    // read-only after that cap, while the frozen oracle wrote an untrusted destination snapshot.
+    // storm-caps-equiv binds the stronger no-write + NOT-SAVED landing directly.
+    if (readOnlyPreloadFault && (row.st[0] === 'end' || row.st[0] === 'sum')) continue;
+    if (!(reassigned && row.st[0] === 'sum') && JSON.stringify(row.rets[0]) !== JSON.stringify(row.rets[1])) return fail('returns differ');
+    var projectReassignStep = row.st[0] === 'ev' && (row.st[1] === 1 || row.st[1] === 2) && ob[1] >= 101 && ob[6] <= -6;
+    if (projectReassignStep) reassigned = true;
+    if (!projectReassignStep && !(reassigned && (row.st[0] === 'end' || row.st[0] === 'sum')) &&
+        JSON.stringify(withoutDerivedFieldsInTraffic(row.trA)) !== JSON.stringify(withoutDerivedFieldsInTraffic(row.trB))) return fail('traffic differs');
     var isTick = kinds[r2] === 'tick';
     var inBurst = !isTick && r2 + 1 < rows.length && kinds[r2 + 1] !== 'tick';
     for (var n2 = 0; n2 < 8; n2++) {
       var oc = oa[n2], cb = ob[n2], ont = snaps[0][nextTick[r2]][n2];
+      // modeSub's +/-100 prefix is an internal overlay-type marker. ready.html strips it before
+      // rendering, so compare the visible route/project number against the frozen contract.
+      if (n2 === 1) cb = visibleMode(cb);
       if (cb === oc) continue;                                                   // (a) lockstep
       if (cb === ont) continue;                                                  // (b) heal-ahead to the oracle's next tick
       if (oc === SENT) continue;                                                 // (e) the oracle has NEVER written this slot yet (it publishes targeted values at presses and only goes full at its first tick) — there is nothing to compare against. The candidate's crown in that window is pinned ABSOLUTELY by output-map-equiv [D] instead.
+      // Project-route EDIT now exposes the actual slot in packedGL's high million (P1..P5) instead
+      // of the frozen oracle's generic 1e6 grade-lock. packedAct<=-6 proves this is precisely that
+      // branch; output-map-equiv binds slot/grade encoding and the empty-editor 6e6 lock separately.
+      if (n2 === 0 && oc >= 1e6 && cb >= 1e6 && Math.floor(cb / 1e6) <= 5 && ob[6] <= -6) continue;
       // packedAct (io[8], n2=6) intentionally enriches a project-tagged route EDIT with T/S while
       // preserving the frozen oracle's SEND/FAIL/DEL state. The shared packedGL lock flag proves
       // this is exactly the project-route branch; output-map-equiv + output-pack-equiv bind the
@@ -250,17 +324,17 @@ function runScenario(name, seed, steps, blobs) {
       return fail((n2 < 4 ? 'CROWN' : 'non-crown') + ' slot io[' + (n2 + 2) + '] = ' + cb + ' matches neither oracle[s]=' + oc + ' nor next-tick=' + ont + (colds[r2] ? ' (cold)' : ''));
     }
   }
+  if (preloadWindow) { console.log('  FAIL  ' + name + ': staged system preload never reached READY'); return false; }
   if (!sawFault && !saw22) { console.log('  FAIL  ' + name + ': candidate never parsed ext22 (stager dead?)'); return false; }
-  // end-of-scenario: persisted stores must match too
-  var sa = JSON.stringify(withoutStoreVersion(inst[0].store)), sb = JSON.stringify(withoutStoreVersion(inst[1].store));
-  if (sa !== sb) { console.log('  FAIL  ' + name + ' final store\n    ' + sa + '\n    ' + sb); return false; }
+  // Persisted v3 semantics are bound by store-v282-v2-projects.js,
+  // store-v1-v2-projects.js and companion-project-summary.js.
   console.log('  PASS  ' + name + ' (' + steps.length + ' steps)');
   return true;
 }
 
 // ---- scenarios -----------------------------------------------------------------
-var FRESH = { stats: { system: 0, sessions: 0, showSetupOnStart: 1, mig: 1, p0_1: -1, p0_2: -1, p0_3: -1, p0_4: -1, p0_5: -1 } };
-var RETURN = { stats: { system: 2, sessions: 7, showSetupOnStart: 0, p2_1: 5, p2_2: 11, p2_3: -1, p2_4: 28, p2_5: 0 }, pS2: { 0: 3, 5: 2, 10: 61, 15: 5, 16: -1, 17: 1, 18: -1, 19: -1 } };
+var FRESH = { stats: { system: 0, sessions: 0, showSetupOnStart: 1, mig: 1, cv: 1, p0_1: -1, p0_2: -1, p0_3: -1, p0_4: -1, p0_5: -1 } };
+var RETURN = { stats: { system: 2, sessions: 7, showSetupOnStart: 0, cv: 1, p2_1: 5, p2_2: 11, p2_3: -1, p2_4: 28, p2_5: 0 }, pS2: { 0: 3, 5: 2, 10: 61, 15: 5, 16: -1, 17: 1, 18: -1, 19: -1 } };
 
 function T(n, h) { var a = []; for (var i = 0; i < n; i++) a.push(['tick', h === undefined ? 1.5 : h, 10 + i]); return a; }
 function seq() { var a = []; for (var i = 0; i < arguments.length; i++) a = a.concat(Array.isArray(arguments[i][0]) ? arguments[i] : [arguments[i]]); return a; }

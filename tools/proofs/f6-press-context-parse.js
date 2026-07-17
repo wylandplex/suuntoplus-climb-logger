@@ -1,19 +1,16 @@
 'use strict';
 
-var fs = require('fs');
-var path = require('path');
 var platform = require('./platform');
+var v3skel = require('../tests/v3skel');
 
 console.log('CLAIM F6: an onEvent dispatch can call evalFile for ext14 or ext21.');
 
-var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
-
+// END-FOLD: data.json no longer seeds a v3 climbProjStats container (only a real fold
+// produces one). Model a canonical post-fold user via v3skel(), same shape ext16/ext11 write.
 function seed() {
-  var stats = platform.snapshot(defaults.stats);
-  stats.system = 0;
-  stats.sessions = 1;
-  stats.showSetupOnStart = 0;
-  return { stats: stats };
+  var C = v3skel();
+  C.g = 0; C.u = 0; C.s0 = [0,0,0,1,0,-1];
+  return { climbProjStats: C };
 }
 
 function drive(fail21) {
