@@ -132,7 +132,7 @@ function trace(p, sMark, eMark) {
   chk(w.length === 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written', 'b1: END must be exactly one canonical climbProjStats write');
   chk(reads(p, sm, 'climbProjStats').length === 1, 'b1: only the converter may read climbProjStats at END — ext11 must consume A (C0) instead of re-reading');
   var evs = p.evals.calls.slice(em).map(function (c) { return c.extension; });
-  chk(J(evs) === J(['18', '16', '15', '25', '11']), 'b1: END parse chain must be 18->16->15(merge)->25->11 with ext11 exactly once and LAST (got ' + evs.join(',') + ')');
+  chk(J(evs) === J(['18', '16', '25', '11']), 'b1: END parse chain must be 18->16(incl. merge, audit U13)->25->11 with ext11 exactly once and LAST (got ' + evs.join(',') + ')');
   chk(a.state().migPend === 0 && a.state().migOK === 1 && !notSaved(a), 'b1: successful fold must clear migPend and save normally');
 
   // oracle: OLD migrate + OLD ext11(deltas) composition on the same legacy bytes
@@ -210,7 +210,7 @@ function trace(p, sMark, eMark) {
   var w = writes(p, sm);
   chk(w.length === 1 && w[0].key === 'climbProjStats', 'c: config-only fold must still be exactly one write');
   var evs = p.evals.calls.slice(em).map(function (c) { return c.extension; });
-  chk(J(evs) === J(['18', '16', '15', '30', '25', '11']), 'c: config-only END chain must be 18->16->15(merge)->30(name slice)->25->11 (got ' + evs.join(',') + ')');
+  chk(J(evs) === J(['18', '16', '30', '25', '11']), 'c: config-only END chain must be 18->16(incl. merge)->30(name slice)->25->11 (got ' + evs.join(',') + ')');
 
   // expected = converter output alone + slotTouched overlay semantics (NOT wholesale ext11).
   // The overlay baseline is the converter's own p0 (seed==fold guarantees the session edited

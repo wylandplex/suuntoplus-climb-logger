@@ -587,17 +587,18 @@ var finishSession = function() {
     return;
   }
   try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) { migOK = 0; }  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW — the fold never runs under the big template
-  var A = 0, sv, k, sS;
+  var A = 0, sv, k, sS, u;
   if (migPend && migOK) {
     try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
       sv = localStorage.getObject("stats") || {};
       k = loadExt(18)();  // grade names for adopted Companion rows
       sS = typeof sv.system === "string";
-      A = loadExt(sS ? 16 : 17)(k, sv);
-      if (!sS) A = loadExt(19)(A, k, sv);  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
+      u = (pendSlots > 1 || slTries > 2) && !sysDirty;  // adopt the container's own system: the staged seed never ran (instant END) or exhausted its retries (Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
+      if (sS) A = loadExt(16)(k, sv, u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain
+      else { A = loadExt(17)(k, sv); A = loadExt(19)(A, k, sv); }  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
       k = sv = 0;
-      if ((pendSlots > 1 || slTries > 2) && !sysDirty) gradeSystem = A.g;  // the staged seed never ran (instant END) or exhausted its retries: adopt the container's own system — the drain no longer derives it (resident diet 17.07; Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
-      loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // merge adopted active-system slots into the WORKING arrays (by-ref satellite, resident diet 17.07) so recap + Companion row build over the merged vector; slotTouched slots (incl. deliberate OFF) win
+      if (u) gradeSystem = A.g;
+      if (!sS) loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // numeric path keeps the standalone merge satellite; slotTouched slots (incl. deliberate OFF) win — recap + Companion row build over the merged vector
     } catch (e) { A = 0; migOK = 0; }
   }
   if (migPend && !migOK) { sumUp(0, 2); return; }  // NOT SAVED; legacy byte-untouched; auto-retry next END. Plain ext11 can never run while migPend — the single call site below always receives A here.
