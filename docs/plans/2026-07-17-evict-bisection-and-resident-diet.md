@@ -91,6 +91,20 @@ Harness-Updates: drain-inline (Staged-Tick-Modus mit echtem ext12 im vm-Kontext)
 neue Read-Reihenfolge stats→watchSetup→climbProjStats→pS<g>, Kette 18→17→19→15→25→11),
 store-v1-v2/v282, f4 (Staged-Tick-Assert verschoben, Ketten +15).
 
+## ABNAHME (17.07 nachmittags) — BESTANDEN
+
+- 12:41 (7.344-Build, pre-Codex-Fix): 1× Evict 15 s nach Start (`relMemCb`/`Zapp 3:RelMem->unload`)
+  — **Byte-Schwelle ist nahe der Linie nicht der einzige Faktor, Heap-Vorgeschichte entscheidet mit**
+  (7.344 < Parität 7.392, trotzdem 1× Evict nach dem deploy-schweren Vormittag). END hat TROTZDEM
+  korrekt gefoldet (Evict trifft Movement, nicht uns).
+- 13:36 + 13:53 (7.351-Final): beide Sessions clean, **kein relMemCb**. 13:53 = expliziter
+  Migrationstest: Log zeigt die Soll-Kette ext12@Staged-Tick … END ext18→ext16→ext15→ext11 in
+  derselben Sekunde; Store byte-korrekt (g:5 Font, Lifetime+Session-Deltas in einem Write,
+  Companion-Rows adoptiert, Legacy-Roots intakt).
+- Falls künftig wieder ein Evict auf 7.351: nächste Stufe Richtung B1 (7.076) steht oben — die
+  restlichen ~275 B sind der irreduzible Migrations-Preis; tiefer nur per evalFile-im-ext-Experiment
+  (Crash-Klassen-Risiko) oder Zwei-Build-Ansatz.
+
 ## Ist-Zustand (für die Fortsetzung nach dem Compact)
 
 - Checkout: **master @ c730af7**, Tree sauber (diese Datei untracked).
