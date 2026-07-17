@@ -21,6 +21,15 @@ function enableLegacy(p) {
   return app;
 }
 
+function fired(p, ext) { return p.evals.calls.some(function (c) { return c.extension === String(ext) && c.outcome === 'injected-throw'; }); }
+// the healed container must equal a NEVER-failed control fold of the same seed (Codex finding 2:
+// asserting only v===3 would let a history-zeroing "heal" pass) — the heal session is empty, so
+// the control is an empty pure-adoption END on a fresh platform.
+function controlFold(seed) {
+  var c = platform.createPlatform({ policy: 'reject-key', seed: clone(seed) });
+  var app = enableLegacy(c); app.end();
+  return c.storage.peek('climbProjStats');
+}
 function notSavedCase(name, seed, ext, writerFail) {
   var p = platform.createPlatform({ policy: 'reject-key', seed: clone(seed), evalFailures: [{ extension: ext, times: 1 }] });
   var pre = platform.snapshot(p.storage.store);
@@ -28,6 +37,7 @@ function notSavedCase(name, seed, ext, writerFail) {
   app.climb({ seconds: 5, height: 2, send: true });
   app.end();
   var st = app.state();
+  assert(fired(p, ext), name + ': the injected ext' + ext + ' failure never fired — the case gates nothing (Codex finding 3)');
   assert.strictEqual(writes(p).length, 0, name + ': a fold-chain failure must not attempt ANY write');
   assert.strictEqual(st.migPend, 1, name + ': migPend must stay armed for the next END');
   if (!writerFail) assert.strictEqual(st.migOK, 0, name + ': the transaction flag must clear');  // an ext11 throw lands AFTER the migOK gate — the stale 1 is dead state, onLoad resets it
@@ -35,9 +45,10 @@ function notSavedCase(name, seed, ext, writerFail) {
   Object.keys(pre).forEach(function (k) {
     assert.deepStrictEqual(p.storage.peek(k), pre[k], name + ': legacy root ' + k + ' changed under a failed fold');
   });
-  // heal: the next END (failure consumed) folds losslessly
+  // heal: the next END (failure consumed) folds losslessly — byte-equal to a never-failed control
   var app2 = p.createApp(); app2.load(); app2.warm(3); app2.press(6); app2.end();
-  assert.strictEqual(p.storage.peek('climbProjStats').v, 3, name + ': the next END did not heal');
+  assert.deepStrictEqual(p.storage.peek('climbProjStats'), controlFold(seed),
+    name + ': the healed container is not byte-equal to the never-failed control fold');
   assert.strictEqual(app2.state().migPend, 0, name + ': heal did not disarm the fold');
   console.log('  PASS  ' + name + ': NOT SAVED, zero writes, roots inert, next END heals');
 }
@@ -59,6 +70,7 @@ notSavedCase('P5 ext15 (numeric merge)', NUM_SEED, 15);
   app.press(4); app.press(5);      // free -> project mode -> proj-setup overlay
   app.press(1); app.press(5);      // slot grade edit (slotsDirty) -> leave overlay
   app.end();
+  assert(fired(p, 37), 'P6: the injected ext37 failure never fired — the case gates nothing');
   assert.strictEqual(writes(p).length, 1, 'P6: the save must still commit in ONE write despite the ext37 row failure');
   var C = p.storage.peek('climbProjStats');
   assert.strictEqual(C.v, 3, 'P6: fold container missing');
@@ -73,6 +85,7 @@ notSavedCase('P5 ext15 (numeric merge)', NUM_SEED, 15);
   var app = enableLegacy(p);
   app.climb({ seconds: 5, height: 2, send: true });
   app.end();
+  assert(fired(p, 25), 'P7: the injected ext25 failure never fired — the case gates nothing');
   assert.strictEqual(writes(p).length, 1, 'P7: the save must still commit despite the recap failure');
   assert.strictEqual(p.storage.peek('climbProjStats').v, 3, 'P7: fold container missing');
   var st = app.state();

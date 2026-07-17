@@ -90,7 +90,8 @@
 
     <!-- READY and PROJ-SETUP keep the standalone T/S row. Project-route EDIT renders one compact
          result line below, e.g. FAIL (1T 0S), so action and association stats cannot straddle rows. -->
-    <div id="ps" class="p-hc sp-vertical-center sp-b-s" style="top:calc(73% - 20.5px);"></div>
+    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);"><span id="ps" class="sp-b-s"></span></div>  <!-- empty SPAN, the proven #edr setText shape — an empty DIV compiles with no text slot (unproven target) -->
+
     <div class="p-hc sp-vertical-center" style="top:calc(79% - 20.5px);">
       <span id="edr" class="sp-b-s"></span>
       <!-- Audit U16: ONE packedAct eval drives both rows (the duplicate subscription on the most-mounted template is gone) -->

@@ -11,7 +11,7 @@ var routeNumber = 1;
 //   A = grade*1e6 + send*1e5 + cm*1e4 + height(0..9999)   B = dur(0..86399)*1000 + hrAvgHz(0..~4, fractional kept)
 var routesA = [], routesB = [];
 // Space-capsule project state: routes are packed, project slot stats are one flat 20-number vector.
-var cl0 = function(v) { return Math.max(0, Math.round(v)); };  // shared non-negative rounder (6 sites — audit U3)
+var cl0 = function(v) { return Math.max(0, Math.round(v)) || 0; };  // shared non-negative rounder (6 sites — audit U3); ||0 hardens NaN input (Codex: a NaN Asc sample passes the !==undefined guard — pre-diet only the ext10 echo path caught it)
 var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, cl0(h)); };
 var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
 var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
