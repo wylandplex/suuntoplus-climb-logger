@@ -105,7 +105,16 @@ store-v1-v2/v282, f4 (Staged-Tick-Assert verschoben, Ketten +15).
   restlichen ~275 B sind der irreduzible Migrations-Preis; tiefer nur per evalFile-im-ext-Experiment
   (Crash-Klassen-Risiko) oder Zwei-Build-Ansatz.
 
-## Ist-Zustand (für die Fortsetzung nach dem Compact)
+## Ist-Zustand (HISTORISCH — Stand vor der Umsetzung; aktueller Stand siehe UMSETZUNG/ABNAHME)
+
+AKTUELL (17.07 nachmittags): Branch `agent/canonical-v3-store-migration` @ a44e470 gepusht (PR #196);
+Uhr trägt den 7.351-Final-Build + post-Migrationstest-Store (gefoldet, g:5). Offene Gates unverändert:
+W0b Update-Überleben (Prerequisite vor Store-Submission!), W0 Atomizität, W2 Sparse-Grow,
+pS-Pensionierungs-Frage, Forum-Report (Skipped-Teardown + <500-B-Schwelle + NEU: Heap-Vorgeschichte
+entscheidet nahe der Linie mit). climbl01 ist von der Uhr deinstalliert (b:/zapp zeigt nur climbl02).
+
+Ursprünglicher Handover-Text (vor Umsetzung):
+
 
 - Checkout: **master @ c730af7**, Tree sauber (diese Datei untracked).
 - **Uhr: B1-Probe geflasht** (climbl02, 7.067 B) + kanonischer v3-Store (Seed-Test-Ergebnis von
