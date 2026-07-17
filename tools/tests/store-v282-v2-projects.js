@@ -17,14 +17,13 @@
 //                                  (no ext11 merge, NO sessions++)
 //   lifetime-only session deltas -> container byte-identical to OLD ext16-migrate -> OLD
 //                                  ext11(deltas) composition (sessions++ exactly once)
-// The OLD satellites are loaded from git (origin/agent/canonical-v3-store-migration) so the
-// oracle stays independent of the code under test.
+// The OLD satellites are frozen fixtures so the oracle stays independent of the code under
+// test and of the current branch name.
 
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
-var cp = require('child_process');
 var platform = require('../proofs/platform');
 
 var liveStats = { system: 'V-Scale', p1: 'V3', p2: 'OFF', p3: 'OFF', p4: 'OFF', p5: 'OFF', totalRoutes: 7, totalSends: 5, sendPct: 71, sessions: 3 };
@@ -48,12 +47,12 @@ function legacyUntouched(p, s) {
   assert.deepStrictEqual(p.storage.peek('climbRoutes'), s.climbRoutes, 'legacy route root was needlessly rewritten');
 }
 
-// Independent oracle: the OLD (pre-END-FOLD) migration satellites, straight from git.
+// Independent oracle: the OLD (pre-END-FOLD) migration satellites, frozen as fixtures.
 // Old ext16 is a closure: first call builds the image internally (reads stats itself), second
 // call writes it. Old ext11 always reads the store and always does sessions++.
-var OLD_REF = 'origin/agent/canonical-v3-store-migration';
-var old16src = cp.execSync('git show ' + OLD_REF + ':ext16.js', { cwd: platform.ROOT }).toString();
-var old11src = cp.execSync('git show ' + OLD_REF + ':ext11.js', { cwd: platform.ROOT }).toString();
+var OLD_DIR = path.join(__dirname, 'oracles', 'pre-endfold');
+var old16src = fs.readFileSync(path.join(OLD_DIR, 'ext16.js'), 'utf8');
+var old11src = fs.readFileSync(path.join(OLD_DIR, 'ext11.js'), 'utf8');
 var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)')();
 
 function oracle(store, deltas, g) {

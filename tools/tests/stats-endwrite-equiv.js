@@ -16,7 +16,7 @@ var assert = require('assert');
 var ROOT = path.join(__dirname, '..', '..');
 var v3skel = require('./v3skel');
 var extSrc = fs.readFileSync(path.join(ROOT, 'ext11.js'), 'utf8').trim().replace(/;$/, '');
-var extSrcOld = require('child_process').execSync('git show origin/agent/canonical-v3-store-migration:ext11.js', { cwd: ROOT }).toString('utf8').trim().replace(/;$/, '');
+var extSrcOld = fs.readFileSync(path.join(__dirname, 'oracles', 'pre-endfold', 'ext11.js'), 'utf8').trim().replace(/;$/, '');
 function clone(v) { return JSON.parse(JSON.stringify(v)); }
 function fullP(v) {
   var p = [0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, -1,-1,-1,-1,-1,''];

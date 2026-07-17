@@ -17,15 +17,14 @@
 var assert = require('assert');
 var fs = require('fs');
 var path = require('path');
-var cp = require('child_process');
 var platform = require('../proofs/platform');
 var defaults = JSON.parse(fs.readFileSync(path.join(platform.ROOT, 'data.json'), 'utf8'));
 
 // END-FOLD invariant: the shipped store must NOT contain a v3 container (one may only come from a real fold).
 assert.strictEqual(defaults.climbProjStats, undefined, 'shipped data.json seeds a v3 container');
 
-var OLD = 'origin/agent/canonical-v3-store-migration';
-function oldSrc(f) { return cp.execSync('git show ' + OLD + ':' + f, { cwd: platform.ROOT }).toString('utf8').trim().replace(/;$/, ''); }
+var OLD = path.join(__dirname, 'oracles', 'pre-endfold');
+function oldSrc(f) { return fs.readFileSync(path.join(OLD, f), 'utf8').trim().replace(/;$/, ''); }
 var oldExt17 = oldSrc('ext17.js'), oldExt11 = oldSrc('ext11.js');
 var oldNames = new Function('return (' + oldSrc('ext18.js') + ')')()();
 assert(Array.isArray(oldNames) && oldNames.length === 10, 'grade-name table shape changed');

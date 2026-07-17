@@ -10,7 +10,6 @@
 //   (c) session-1 slot edits (on the seeded slots) wholesale-replace the adopted legacy slots.
 var fs = require('fs');
 var path = require('path');
-var cp = require('child_process');
 var platform = require('./platform');
 
 console.log('CLAIM F4 (END-FOLD): the migPend fold can clobber legacy history.');
@@ -29,7 +28,7 @@ Stub.prototype.setObject = function (k, v) { this.s[k] = platform.snapshot(v); }
 Stub.prototype.getItem = function () { return undefined; };
 Stub.prototype.setItem = function () {};
 function loadSat(src, ls) { return new Function('localStorage', 'return (' + src.trim().replace(/;+$/, '') + ')')(ls); }
-function oldSrc(name) { return cp.execSync('git show origin/agent/canonical-v3-store-migration:' + name, { cwd: platform.ROOT }).toString('utf8'); }
+function oldSrc(name) { return fs.readFileSync(path.join(platform.ROOT, 'tools', 'tests', 'oracles', 'pre-endfold', name), 'utf8'); }
 function newSrc(name) { return fs.readFileSync(path.join(platform.ROOT, name), 'utf8'); }
 var src16old = oldSrc('ext16.js'), src17old = oldSrc('ext17.js'), src11old = oldSrc('ext11.js'), src18old = oldSrc('ext18.js');
 var src16new = newSrc('ext16.js'), src18new = newSrc('ext18.js');
