@@ -69,8 +69,10 @@ var mark2 = p.storage.calls.length;
 second.end();
 var end2 = p.storage.calls.slice(mark2);
 var end2Writes = end2.filter(function (c) { return c.op === 'setObject' || c.op === 'setItem'; });
-var oneAtomicCommit = end2Writes.length === 1 && end2Writes[0].op === 'setObject' &&
-  end2Writes[0].key === 'climbProjStats' && end2Writes[0].outcome === 'written';
+var CLEANUP = ['climbRoutes', 'watchSetup', 'stats'];
+var oneAtomicCommit = end2Writes.length >= 1 && end2Writes[0].op === 'setObject' &&
+  end2Writes[0].key === 'climbProjStats' && end2Writes[0].outcome === 'written' &&
+  end2Writes.slice(1).every(function (c) { return CLEANUP.indexOf(c.key) >= 0 && c.outcome === 'written'; });  // 3.02: authorized cleanup shrinks ride AFTER the canonical commit
 var foldDone = second.state().migPend === 0;
 var savedClean = !second.summary().some(function (r) { return r.id === 'ns' || r.name === 'NOT SAVED'; });
 
@@ -94,8 +96,9 @@ var complete = JSON.stringify(finalC) === JSON.stringify(expected) &&
 var allCps = p.storage.calls.filter(function (c) { return (c.op === 'setObject' || c.op === 'setItem') && c.key === 'climbProjStats'; });
 var allWritten = p.storage.calls.filter(function (c) { return c.outcome === 'written'; });
 var wholeRun = allCps.length === 2 && allCps[0].outcome === 'injected-throw' && allCps[1].outcome === 'written' &&
-  allWritten.length === 1 && allWritten[0] === allCps[1];
-var legacySourcesIntact = JSON.stringify(p.storage.peek('stats')) === JSON.stringify(legacySeed().stats);
+  allWritten[0] === allCps[1] &&  // the FIRST landed write of the whole run is the canonical container
+  allWritten.slice(1).every(function (c) { return CLEANUP.indexOf(c.key) >= 0; });  // everything after = cleanup only (3.02)
+var legacySourcesIntact = JSON.stringify(p.storage.peek('stats')) === '{}';  // 3.02: intact until the fold LANDS, emptied by the cleanup right after (END-1 intactness asserted separately above)
 
 console.log('op-trace END-1: ' + fmt(end1));
 console.log('op-trace END-2: ' + fmt(end2));
