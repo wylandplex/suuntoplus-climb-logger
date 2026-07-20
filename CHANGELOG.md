@@ -1,5 +1,51 @@
 # Changelog
 
+## v3.02 — 2026-07-20
+
+- **Legacy store cleanup after migration.** Once the migration fold has verifiably landed
+  (read-back guard: the canonical write is re-read before anything else happens — a silently
+  dropped write can never be followed by legacy erasure), the old 2.82 roots are emptied
+  (`climbRoutes`, `watchSetup`, `stats`) as the last action of the same session end. Permanent
+  store shrink for every migrated user (worst-case fixture: 2 607 → 1 341 B); absent keys are
+  never created; a cleanup failure is silent and the fold still counts. Zero resident cost —
+  the tail lives in the once-per-install `ext11` satellite. (#201)
+
+## v3.01 — 2026-07-20
+
+Same-day field hotfix for the first real 2.82 upgrade on the released store build:
+
+- **2.82 stores without a `stats` root migrated through the wrong converter** — 2.82 only wrote
+  `stats` on rare occasions (see below), so real stores can lack it entirely; the format detector
+  mis-routed them into the numeric converter, stamping an empty v3 container and orphaning the
+  configured projects. Detection is now `typeof stats.system !== "number"` (2.82 = string OR
+  absent), and the converter self-derives the system from `watchSetup.sys`. (#199)
+- **Crash on system switch during a pending migration** — the initial seed used to land on French
+  instead of the user's own system, forcing a switch whose confirm re-parsed the seed satellite
+  right next to the READY mount (exec:ui exhaustion → co-app eviction → firmware assert →
+  reboot). The seed now derives the correct system (no switch needed), and the parse is cached
+  for the whole SETUP dwell, surviving pause/continue. (#199)
+- Root-cause find along the way: **v2.82 dropped most of its own stats writes** — only the first
+  storage write per button event ever landed on-watch, which is why lifetime totals and project
+  counters rarely moved on real 2.82 watches. The single-write END design is the structural fix.
+
+## v3.0 — 2026-07-20
+
+The stability + migration release (public version jumps v2.0 → v3.0; the July architecture line).
+
+- **END-FOLD storage migration**: legacy stores (live 2.82 and numeric dev formats) migrate to
+  the canonical v3 container inside the first finished session — one atomic write, failure-safe,
+  retried on the next END. No migration screen; the session is fully live meanwhile. (#196)
+- **Resource diet**: resident `main.js` cut 7 351 → 6 894 B, 28 → 23 module units, no feature
+  cuts — the currency that decides 3-app heap survival. Dual-reviewed (multi-agent + Codex). (#197)
+- **Suunto HR-zone ring** with a live needle on every screen. Header turns green/orange on
+  send/fail. Per-system lifetime stats (10 grade systems incl. new Hangboard + Scrambling),
+  companion dashboard broken down per system, richer post-activity graphs (height, climb/rest
+  timeline, grade over time).
+- Route editor for the whole live session (grade, SEND/FAIL/DELETE, move between project slots);
+  lap-button integration (start climb / log send); pause folds routes into the summary
+  (35-route live cap, freed at every pause).
+
+
 ## v2.0 — 2026-07-13
 
 **Version-scheme note:** the manifest `version` field bumps on every watch-test build (project
