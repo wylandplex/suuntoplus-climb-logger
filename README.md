@@ -1,6 +1,6 @@
-# Climb Log v3.0
+# Climb Log v3.02
 
-[![Latest](https://img.shields.io/badge/release-v3.0-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
+[![Latest](https://img.shields.io/badge/release-v3.02-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
 A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 10 grade systems, 5 project slots per system (50 total), heart rate, height gain, and multi-year grade progression.
 
@@ -54,8 +54,9 @@ until a new editable tail route exists.
 - Touch tap-zones mirror the long-press action on their respective button pills.
 - Flicks fire the short-press grade step ×3; in project mode (READY/BREAK) flicks are a no-op
   (project cycling is single-step only).
-- At 35 logged routes (`ROUTE_LIMIT`), START is silently refused (the dedicated LIMIT screen was
-  cut in the resident diet) — save & restart to log more.
+- At 35 **live** routes (`ROUTE_LIMIT`), START is silently refused (the dedicated LIMIT screen was
+  cut in the resident diet). The cap gates the un-folded tail only: **pausing the workout folds the
+  tail** into the RAM aggregate and frees all 35 slots — pause once and keep climbing.
 
 ---
 
@@ -68,14 +69,15 @@ until a new editable tail route exists.
 | `active.html`       | CLIMB / BREAK cluster                                      | Workout        |
 | `setup.html`        | Grade-system setup                                         | Config         |
 | `saving.html`       | Near-empty pause/end de-load screen                        | Pause / end    |
-| `migration.html`    | Minimal, input-locked storage-migration screen              | Migration launch |
 | `ext10.js`          | Route end + already-warm save-as-project operation          | On SEND/FAIL   |
-| `ext11.js`          | Native stats/project RMW writer                             | Workout end    |
+| `ext11.js`          | Native stats/project RMW writer + fold-gated legacy cleanup (v3.02, read-back-guarded) | Workout end    |
+| `ext12.js`          | Legacy slot seed for a migration-pending session (staged tick; f12-cached for the SETUP dwell) | Legacy enable |
 | `ext13.js`          | Native destination-system project preload                  | System switch  |
+| `ext15.js`          | Numeric-path working-array merge (END-FOLD)                | First END after a numeric legacy install |
 | `ext14.js`          | Retired save-as-project satellite (kept as a source artifact; no runtime caller) | Never |
-| `ext16.js`          | Live-2.82 → canonical v3 one-write migration                | Migration launch only |
-| `ext17.js`          | Numeric v1/v2 → canonical v3 one-write migration            | Migration launch only |
-| `ext18.js`          | All-system grade-name table for migration rows              | Migration launch only |
+| `ext16.js`          | Live-2.82 → canonical v3 converter (string OR absent stats root) | First END after a 2.82 install (END-FOLD) |
+| `ext17.js`+`ext19.js` | Numeric v1/v2 → canonical v3 converter pair              | First END after a numeric legacy install |
+| `ext18.js`          | All-system grade-name table for adopted Companion rows      | Fold END only |
 | `ext21.js`          | EDIT-overlay actions — result cycle, DEL execution          | On EDIT press  |
 | `ext22.js`          | Generated publish satellite — all output writes (see `tools/gen-out-idx.js`) | Every tick |
 | `ext25.js`          | Session-summary row builder (Sends/Routes, Highest Send, …) | Pause / end    |
@@ -103,12 +105,16 @@ the route arrays can be freed early; it never touches storage.
   dirty bits (`psDirty` = project-slot stats, `slotsDirty` = slot grade
   config changed on the watch,
   `sysDirty` = grade-system choice, persisted even on a routeless session).
-- **Storage migration** — live 2.82 and numeric v1/v2 stores get a dedicated, input-locked
-  `migration.html` launch. `ext16` or `ext17` reads the legacy roots in paced callbacks, builds the
-  complete v3 container in RAM, and performs exactly one `setObject("climbProjStats", …)`. There are
-  no per-system checkpoints or cleanup writes. If that sole write fails, the legacy source remains
-  restartable. After a successful reread, SETUP opens automatically in the same launch. Normal starts
-  and ends never parse migration code or access the compatibility roots.
+- **Storage migration (END-FOLD)** — a legacy store (2.82 string/absent-stats, or numeric v1/v2)
+  only arms `migPend` at the drain; the session runs fully live on a staged read-only slot seed
+  (`ext12`, derived from `stats.system` or `watchSetup.sys`). The FIRST finished session folds the
+  legacy roots → complete v3 container in RAM (`ext16`, or `ext17`+`ext19`) and commits it in one
+  `setObject`. A failed fold leaves the legacy bytes untouched and retries at the next END.
+  **v3.02:** after the canonical write, `ext11` re-reads the container (read-back guard — a silently
+  dropped write must never be followed by legacy erasure) and then empties the 2.82 roots
+  (`climbRoutes`→`[]`, `watchSetup`→`{}`, `stats`→`{}`; probe-first, absent keys never materialized,
+  throw-silent) — a permanent store shrink, since every LS op allocates a whole-file buffer.
+  Normal starts and ends never parse migration code.
 - **`climbProjStats`**: canonical v3 container. `v`, `g`, and `u` hold schema/settings;
   `s0`–`s9` hold lifetime aggregates and `p0`–`p9` hold project vectors.
 - **`p<sys>`**: compact project-stat vector for one grade system
@@ -175,8 +181,8 @@ and don't count against the startup budget — but `main.js` bytecode is RESIDEN
 ~133 KB three-app JS heap, and that residency is what decides whether the pool sits at a
 99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
-Current footprint (q-display minifier, v3.0):
-- `main.js` minified/resident: 6 894 B
+Current footprint (q-display minifier, v3.02):
+- `main.js` minified/resident: 6 944 B
 - `ext22.js` (generated publish satellite, parsed once per enable): 1 455 B (cap 1 600 B)
 - runtime route satellite: `ext10` (route commit plus warm save-as-project operation)
 
@@ -188,7 +194,7 @@ write, which is the path that fails first under 3-app memory pressure. Grow-rewr
 deterministic storm class, so the store is under a growth freeze (`< 2 100 B`, asserted in
 `tools/tests/stats-endwrite-equiv.js`).
 
-Shipped store: **648 B**. All ten `p<sys>` project vectors are declared with only an empty index-20
+Shipped seed (`data.json`): **244 B**. All ten `p<sys>` project vectors are declared with only an empty index-20
 Companion row; `fillSlots` defaults absent stats indices (`0` for 0–14, `-1` for 15–19). The executable
 storage proof materializes all 50 slots and all ten readable rows while migration still commits the
 whole result in one write and lands the full-history fixture below 2 100 B.
