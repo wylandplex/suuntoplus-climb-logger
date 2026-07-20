@@ -71,7 +71,7 @@ notSavedCase('P5 ext15 (numeric merge)', NUM_SEED, 15);
   app.press(1); app.press(5);      // slot grade edit (slotsDirty) -> leave overlay
   app.end();
   assert(fired(p, 37), 'P6: the injected ext37 failure never fired — the case gates nothing');
-  assert.strictEqual(writes(p).length, 1, 'P6: the save must still commit in ONE write despite the ext37 row failure');
+  assert.strictEqual(writes(p).length, 2, 'P6: the save must still commit (canonical + stats cleanup shrink) despite the ext37 row failure');
   var C = p.storage.peek('climbProjStats');
   assert.strictEqual(C.v, 3, 'P6: fold container missing');
   assert.strictEqual(C.g, 7, 'P6: adopted system lost');
@@ -86,7 +86,7 @@ notSavedCase('P5 ext15 (numeric merge)', NUM_SEED, 15);
   app.climb({ seconds: 5, height: 2, send: true });
   app.end();
   assert(fired(p, 25), 'P7: the injected ext25 failure never fired — the case gates nothing');
-  assert.strictEqual(writes(p).length, 1, 'P7: the save must still commit despite the recap failure');
+  assert.strictEqual(writes(p).length, 2, 'P7: the save must still commit (canonical + stats cleanup shrink) despite the recap failure');
   assert.strictEqual(p.storage.peek('climbProjStats').v, 3, 'P7: fold container missing');
   var st = app.state();
   assert(st.summary && st.summary[0] && st.summary[0].id === 'sr', 'P7: sr fallback row missing');

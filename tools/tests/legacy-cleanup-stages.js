@@ -23,7 +23,15 @@ var ROOT = path.join(__dirname, '..', '..');
 // may only ever come from a real fold).
 var ext11src = fs.readFileSync(path.join(ROOT, 'ext11.js'), 'utf8');
 assert(/climbProjStats/.test(ext11src), 'normal END does not target the canonical store');
-assert(!/climbRoutes|watchSetup|"pS|"s\+/.test(ext11src), 'normal END still touches a legacy root');
+// 3.02: ext11 grew a FOLD-GATED legacy cleanup tail. The canonical-write body (everything up to
+// and including the container setObject) must stay legacy-free; the tail must be gated on C0
+// (fold ENDs only — a plain END may never touch legacy) and throw-silent (a dropped cleanup must
+// never fail a landed fold).
+var ext11parts = ext11src.split('L.setObject("climbProjStats",C);');
+assert.strictEqual(ext11parts.length, 2, 'ext11 canonical write anchor missing/moved');
+assert(!/climbRoutes|watchSetup|"pS|"s\+/.test(ext11parts[0]), 'the canonical END body touches a legacy root');
+assert(/^if\(C0\)try\{x=L\.getObject\("climbProjStats"\);if\(x&&x\.v===3\)/.test(ext11parts[1]),
+  'legacy cleanup tail must be fold-gated + throw-silent + READ-BACK-GUARDED (a silently dropped canonical write must never be followed by legacy erasure — Codex 3.02 finding 1)');
 var mainSrc = fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8');
 assert(!/migRun|migGap|migNew|migIdx|migNames|migMount/.test(mainSrc),
   'the retired staged-migration state machine is back in main.js');
@@ -45,10 +53,20 @@ var p = platform.createPlatform({ policy: 'reject-key', seed: {
 
 function ops(from) { return p.storage.calls.slice(from).map(function (c) { return c.op + ':' + c.key; }); }
 function exts(from) { return p.evals.calls.slice(from).map(function (c) { return c.extension; }); }
-function assertLegacyRootsInert(label) {
-  assert.deepStrictEqual(p.storage.peek('stats'), oldStats, label + ': stats was rewritten');
-  assert.deepStrictEqual(p.storage.peek('watchSetup'), oldSetup, label + ': watchSetup was rewritten');
-  assert.deepStrictEqual(p.storage.peek('climbRoutes'), oldRoutes, label + ': climbRoutes was rewritten');
+function assertLegacyRoots(label, cleaned) {
+  // 3.02 contract: a SUCCESSFUL fold empties the three 2.82 roots (last action of the fold END,
+  // inside ext11, after the container write). Keys are emptied, never deleted (no delete API on
+  // the FW) and never materialized. The numeric-era pS<g>/s<g> roots stay byte-inert forever
+  // (dev-only shape, deliberately out of cleanup scope).
+  if (cleaned) {
+    assert.deepStrictEqual(p.storage.peek('stats'), {}, label + ': stats not emptied by the fold cleanup');
+    assert.deepStrictEqual(p.storage.peek('watchSetup'), {}, label + ': watchSetup not emptied by the fold cleanup');
+    assert.deepStrictEqual(p.storage.peek('climbRoutes'), [], label + ': climbRoutes not emptied by the fold cleanup');
+  } else {
+    assert.deepStrictEqual(p.storage.peek('stats'), oldStats, label + ': stats was rewritten');
+    assert.deepStrictEqual(p.storage.peek('watchSetup'), oldSetup, label + ': watchSetup was rewritten');
+    assert.deepStrictEqual(p.storage.peek('climbRoutes'), oldRoutes, label + ': climbRoutes was rewritten');
+  }
   assert.deepStrictEqual(p.storage.peek('pS0'), P, label + ': pS0 was rewritten');
   assert.deepStrictEqual(p.storage.peek('s0'), [4, 2, 50, 2, 12, 5], label + ': s0 was rewritten');
   for (var g = 1; g < 10; g++) {
@@ -125,6 +143,12 @@ for (var g1 = 0; g1 < 5; g1++) expectedFold.push('getObject:s' + g1, 'getObject:
 expectedFold.push('getObject:climbProjStats', 'getObject:watchSetup');
 for (var g2 = 5; g2 < 10; g2++) expectedFold.push('getObject:s' + g2, 'getObject:pS' + g2);
 expectedFold.push('setObject:climbProjStats');
+// 3.02: the fold-gated legacy cleanup runs as the LAST action, strictly AFTER the canonical
+// container write — probe-read then shrink-write per existing 2.82 root, biggest first.
+expectedFold.push('getObject:climbProjStats',  /* read-back guard: cleanup only if v:3 actually landed */
+  'getObject:climbRoutes', 'setObject:climbRoutes',
+  'getObject:watchSetup', 'setObject:watchSetup',
+  'getObject:stats', 'setObject:stats');
 assert.deepStrictEqual(foldTrace, expectedFold,
   'fold END op sequence drifted:\n  got      ' + foldTrace.join(' ') + '\n  expected ' + expectedFold.join(' '));
 assert.deepStrictEqual(exts(me), ['18', '17', '19', '15', '25', '11'],
@@ -147,8 +171,8 @@ assert.deepStrictEqual(C1, expectedContainer(
   [5, 3, 60, 3, 15, 5],  // peak 5: the free-mode climb committed at the SEEDED slot grade (project-mode visit adopts it), not at a fresh default
   [2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 40, 0, 0, 0, 0, 5, 0, -1, -1, -1, '3c+ 2/1|3a 0/0|-|-|-']
 ), 'folded container is not the canonical legacy+session image');
-assertLegacyRootsInert('post-fold');
-console.log('  PASS  stage 3: one-write fold transaction, canonical container, legacy roots byte-inert');
+assertLegacyRoots('post-fold', 1);
+console.log('  PASS  stage 3: canonical fold write + fold-gated legacy cleanup as last action');
 console.log('        op-trace: ' + foldTrace.join(' '));
 
 // ---- Stage 4: post-fold enable (canonical path, no re-fold) --------------------------------
@@ -192,8 +216,8 @@ assert.deepStrictEqual(C2, expectedContainer(
   [3, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 5, 0, -1, -1, -1, '3c+ 3/2|3a 0/0|-|-|-']
 ), 'plain END container drifted (sessions++/project tally/best-time)');
 assert.strictEqual(C2.s0[3], 4, 'plain END lost sessions++');
-assertLegacyRootsInert('post-plain-END');
-console.log('  PASS  stage 5: plain ext11 END (A=0), sessions++, legacy roots stay inert');
+assertLegacyRoots('post-plain-END', 1);  // cleanup happened at the fold END; the plain END adds no legacy ops (trace assert above)
+console.log('  PASS  stage 5: plain ext11 END (A=0), sessions++, no legacy ops, cleaned roots stay empty');
 console.log('        op-trace: ' + plainTrace.join(' '));
 
 console.log('\nfull run op-trace: ' + ops(0).join(' '));

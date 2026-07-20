@@ -128,10 +128,14 @@ for (g = 0; g < 5; g++) expected.push('getObject:s' + g, 'getObject:pS' + g);
 expected.push('getObject:climbProjStats', 'getObject:watchSetup');
 for (g = 5; g < 10; g++) expected.push('getObject:s' + g, 'getObject:pS' + g);
 expected.push('setObject:climbProjStats');
+// 3.02 fold-gated cleanup tail: probe each 2.82 root, shrink only the non-empty ones (this
+// fixture: climbRoutes absent, watchSetup {} -> probes only; stats non-empty -> shrink write).
+expected.push('getObject:climbProjStats',  /* read-back guard */
+  'getObject:climbRoutes', 'getObject:watchSetup', 'getObject:stats', 'setObject:stats');
 console.log('  end-window op-trace:');
 console.log('    ' + T.join('\n    '));
-assert.deepStrictEqual(T, expected, 'fold must read stats + every sN/pSN old-C source, then write exactly once');
-assert.strictEqual(T.lastIndexOf('setObject:climbProjStats'), T.length - 1, 'the sole write must come after all reads');
+assert.deepStrictEqual(T, expected, 'fold must read stats + every sN/pSN old-C source, then write the canonical container, then clean');
+assert(T.indexOf('setObject:climbProjStats') < T.indexOf('getObject:climbRoutes'), 'cleanup must run strictly AFTER the canonical write');
 assert.deepStrictEqual(p.evals.calls.slice(evalFrom).map(function (c) { return c.extension; }),
   ['18', '17', '19', '15', '25', '11'], 'end window: names -> ext17 (g0-4) -> ext19 (g5-9) -> ext15 merge -> recap -> single ext11 write');
 assert.strictEqual(extCalls(p, 16), 0, 'string-system converter must not run on a numeric store');
@@ -139,7 +143,7 @@ assert.strictEqual(extCalls(p, 12), 1, 'the read-only slot seed must not re-pars
 console.log('  PASS  fold reads all old-C sources before the single setObject');
 
 var C = p.storage.peek('climbProjStats');
-assert.deepStrictEqual(writes(p).map(function (c) { return c.key; }), ['climbProjStats']);
+assert.deepStrictEqual(writes(p).map(function (c) { return c.key; }), ['climbProjStats', 'stats']);
 assert.strictEqual(C.v, 3); assert.strictEqual(C.g, 6); assert.strictEqual(C.u, 1);
 assert.deepStrictEqual(C.s0, [77, 0, 0, 0, 0, -1]);           // rou-fallback shard
 assert.deepStrictEqual(C.s2, [5, 2, 40, 2, 12, 5]);
@@ -159,11 +163,13 @@ var expectedC = oracleEndWrite(lsOracle, [1, 2, 3, 0, 0, 0, 15], st.projGradeIdx
 assert.strictEqual(JSON.stringify(C), JSON.stringify(expectedC),
   'END-FOLD container is not byte-identical to old-ext17-closure -> old-ext11 composition');
 
-// Legacy roots stay byte-untouched compatibility data.
-['stats', 'watchSetup', 's2', 's6', 's9', 'pS2', 'pS6', 'pS9'].forEach(function (k) {
+// 3.02: the successful fold empties the non-empty 2.82 roots; numeric-era sN/pSN shards stay
+// byte-inert (out of cleanup scope). watchSetup was already {} in this fixture (probe, no write).
+assert.deepStrictEqual(p.storage.peek('stats'), {}, 'stats not emptied by the fold cleanup');
+['watchSetup', 's2', 's6', 's9', 'pS2', 'pS6', 'pS9'].forEach(function (k) {
   assert.deepStrictEqual(p.storage.peek(k), legacyImage[k], 'legacy root ' + k + ' was rewritten');
 });
-console.log('  PASS  container == old-closure composition byte-identically; legacy roots untouched');
+console.log('  PASS  container == old-closure composition byte-identically; stats cleaned, shards inert');
 
 // Post-fold: canonical sessions never reload the converters, END stays one canonical write.
 var second = p.createApp(); second.load(); second.warm(10);
@@ -205,7 +211,7 @@ var rImage = platform.snapshot(rp.storage.store);
 var ra = rp.createApp(); ra.load();
 assert.strictEqual(ra.state().migPend, 1);
 ra.end(); // no routes, no edits -- an empty legacy session still folds
-assert.deepStrictEqual(writes(rp).map(function (c) { return c.key; }), ['climbProjStats']);
+assert.deepStrictEqual(writes(rp).map(function (c) { return c.key; }), ['climbProjStats', 'stats']);
 var R = rp.storage.peek('climbProjStats');
 assert.deepStrictEqual(R.s0, [12, 8, 67, 3, 22, 9], 'pure adoption must preserve legacy sessions (no sessions++)');
 assert.deepStrictEqual(slot(R.p0), [5, 2, 80, 4]);
@@ -231,7 +237,7 @@ function fullNativeSeed() {
 var full = platform.createPlatform({ policy: 'reject-key', seed: fullNativeSeed() });
 var fImage = platform.snapshot(full.storage.store);
 var fullApp = full.createApp(); fullApp.load(); fullApp.end();
-assert.strictEqual(writes(full).length, 1);
+assert.strictEqual(writes(full).length, 2);  // canonical container + the stats cleanup shrink (3.02)
 var F = full.storage.peek('climbProjStats');
 for (var system = 0; system < 10; system++) { assert(Array.isArray(F['s' + system])); assert(F['p' + system][20]); }
 assert.strictEqual(F.s7[3], 9, 'pure adoption of the worst store must not sessions++');
@@ -316,7 +322,10 @@ console.log('  PASS  exhausted seed: END still folds under the legacy system (C.
 
 // Global: across every scenario, the only key ever written is the canonical container.
 [p, rp, full, crash, swp, exh].forEach(function (pl) {
-  writes(pl).forEach(function (c) { assert.strictEqual(c.key, 'climbProjStats', 'legacy shard write detected: ' + c.key); });
+  writes(pl).forEach(function (c) {
+    assert(['climbProjStats', 'climbRoutes', 'watchSetup', 'stats'].indexOf(c.key) >= 0,
+      'legacy shard write detected: ' + c.key);  // cleanup shrinks are authorized (3.02); sN/pSN shards never
+  });
 });
 
 console.log('\nALL PASS');

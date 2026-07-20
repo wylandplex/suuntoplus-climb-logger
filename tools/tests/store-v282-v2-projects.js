@@ -39,6 +39,20 @@ function clone(v) { return JSON.parse(JSON.stringify(v)); }
 function seed() { return { stats: clone(liveStats), watchSetup: clone(liveSetup), climbProjStats: clone(liveProjects), climbRoutes: clone(liveRoutes) }; }
 function writes(p) { return p.storage.calls.filter(function (c) { return c.op === 'setObject'; }); }
 function landed(p) { return writes(p).filter(function (c) { return c.outcome === 'written'; }); }
+// 3.02: a SUCCESSFUL fold appends the fold-gated legacy cleanup as its last action — a shrink
+// write per EXISTING non-empty 2.82 root (biggest first), strictly after the canonical write.
+function foldWrites(store) {
+  var w = ['climbProjStats'];
+  ['climbRoutes', 'watchSetup', 'stats'].forEach(function (k) {
+    var v = store[k]; if (v && Object.keys(v).length) w.push(k);
+  });
+  return w;
+}
+function legacyCleaned(p) {
+  assert.deepStrictEqual(p.storage.peek('stats'), {}, 'stats not emptied by the fold cleanup');
+  assert.deepStrictEqual(p.storage.peek('watchSetup'), {}, 'watchSetup not emptied by the fold cleanup');
+  assert.deepStrictEqual(p.storage.peek('climbRoutes'), [], 'climbRoutes not emptied by the fold cleanup');
+}
 function extCalls(p, n) { return p.evals.calls.filter(function (c) { return c.extension === String(n); }).length; }
 function slot(P, i) { return [P[i], P[i + 5], P[i + 10], P[i + 15]]; }
 function legacyUntouched(p, s) {
@@ -115,7 +129,7 @@ assert.deepStrictEqual(slot(first.state().projSlot, 0), [2, 2, 2, 4], 'seeded sl
 var preFold = clone(p.storage.store);
 first.end();
 var C = p.storage.peek('climbProjStats');
-assert.deepStrictEqual(writes(p).map(function (c) { return c.key; }), ['climbProjStats'], 'the fold is not exactly one canonical write');
+assert.deepStrictEqual(writes(p).map(function (c) { return c.key; }), foldWrites(seed()), 'fold END writes drifted (canonical first, then cleanup shrinks)');
 assert.strictEqual(writes(p)[0].outcome, 'written');
 assert.strictEqual(first.state().migPend, 0, 'a committed fold must disarm migPend');
 assert.strictEqual(extCalls(p, 18), 1, 'grade table is not loaded exactly once');
@@ -136,7 +150,7 @@ assert.strictEqual(C.p0[20], '3c+ 2/0|3c+ 0/0|9b 1/1|-|-');
 assert.strictEqual(C.p4[20], 'V3 2/2|-|-|-|-');
 assert.deepStrictEqual(Object.keys(C), CANONICAL_KEYS, 'container key order is not byte-order-stable');
 assert.strictEqual(JSON.stringify(C), JSON.stringify(oracle(preFold, null)), 'pure adoption is not byte-identical to the converter image alone');
-legacyUntouched(p, seed());
+legacyCleaned(p);
 assert.strictEqual(first.state().gradeSystem, 4);
 assert.deepStrictEqual(first.state().projGradeIdx, [4, -1, -1, -1, -1], 'adopted active-system slots were not merged into the working arrays');
 var folded = JSON.stringify(p.storage.store).length;
@@ -151,7 +165,7 @@ assert.strictEqual(extCalls(p, 16), calls16, 'canonical restart reloaded migrati
 second.pickGradeSystem(0);
 assert.deepStrictEqual(second.state().projGradeIdx, [5, 5, 38, -1, -1]);
 assert.deepStrictEqual(slot(second.state().projSlot, 2), [1, 1, 3, 38]);
-assert.deepStrictEqual(writes(p).map(function (c) { return c.key; }), ['climbProjStats'], 'mid-session system switch must not write');
+assert.deepStrictEqual(writes(p).map(function (c) { return c.key; }), foldWrites(seed()), 'mid-session system switch must not write');
 console.log('  PASS  restart and inactive-system switch use only the canonical container');
 
 // Lifetime-only session deltas on the fold session: the seeded drain lands on READY on its own
@@ -169,13 +183,13 @@ dApp.climb({ seconds: 60, height: 10, send: true });
 assert.strictEqual(writes(dp).length, 0, 'climbing on the fold session must not write');
 dApp.end();
 var D = dp.storage.peek('climbProjStats');
-assert.deepStrictEqual(writes(dp).map(function (c) { return c.key; }), ['climbProjStats'], 'delta fold is not exactly one write');
+assert.deepStrictEqual(writes(dp).map(function (c) { return c.key; }), foldWrites(seed()), 'delta fold write-list drifted');
 // deltas: 1 route, 1 send at currentGrade DEFAULT_IDX[4]=4, 10m height -> T=[1,1,4,0,0,0,10]
 assert.strictEqual(JSON.stringify(D), JSON.stringify(oracle(dPre, [1, 1, 4, 0, 0, 0, 10], 4)), 'delta fold is not byte-identical to the OLD ext16 -> OLD ext11 composition');
 assert.deepStrictEqual(D.s4, [8, 6, 75, 4, 10, 4], 'session deltas (incl. exactly one sessions++) were not folded into s4');
 assert.deepStrictEqual(slot(D.p0, 0), [2, 0, 0, 5], 'inactive system was disturbed by the delta fold');
 assert.strictEqual(dApp.state().migPend, 0);
-legacyUntouched(dp, seed());
+legacyCleaned(dp);
 console.log('  PASS  session deltas fold into the adopted image in the same single write');
 
 // A failed sole write leaves the legacy source byte-untouched. The next END retries losslessly.
@@ -191,7 +205,7 @@ legacyUntouched(fp, seed());
 fp.storage.clearFailures();
 var retry = enableLegacy(fp);
 retry.end();
-assert.strictEqual(landed(fp).length, 1, 'retry END must land exactly one write');
+assert.strictEqual(landed(fp).length, foldWrites(seed()).length, 'retry END must land the canonical write + cleanup shrinks');
 assert.strictEqual(JSON.stringify(fp.storage.peek('climbProjStats')), JSON.stringify(oracle(seed(), null)), 'retried fold does not rebuild the identical image');
 console.log('  PASS  the sole write is an atomic crash boundary and the next END retries losslessly');
 
@@ -207,7 +221,7 @@ legacyUntouched(ep, seed());
 ep.evals.clearFailures();
 var healed = enableLegacy(ep);
 healed.end();
-assert.strictEqual(landed(ep).length, 1);
+assert.strictEqual(landed(ep).length, foldWrites(seed()).length);
 assert.strictEqual(ep.storage.peek('climbProjStats').v, 3);
 console.log('  PASS  code-load failure cannot touch the legacy source and heals on the next END');
 
@@ -219,7 +233,7 @@ var historyStart = JSON.stringify(hp.storage.store).length;
 var hPre = clone(hp.storage.store);
 history.end();
 var H = hp.storage.peek('climbProjStats');
-assert.deepStrictEqual(writes(hp).map(function (c) { return c.key; }), ['climbProjStats'], 'full-history fold is not exactly one write');
+assert.deepStrictEqual(writes(hp).map(function (c) { return c.key; }), foldWrites(fixture), 'full-history fold write-list drifted');
 assert.strictEqual(JSON.stringify(H), JSON.stringify(oracle(hPre, null)), 'full-history adoption is not byte-identical to the converter image');
 assert(historyStart > 2200, 'full-history fixture no longer models a worst-case store: ' + historyStart);
 assert.strictEqual(H.g, 5);
@@ -246,7 +260,7 @@ var pPre = clone(pp.storage.store);
 partialApp.end();
 assert.deepStrictEqual(pp.storage.peek('climbProjStats').p0.slice(0, 20), french.slice(0, 20), 'durable partial vector was not adopted');
 assert.strictEqual(pp.storage.peek('climbProjStats').p0[20].indexOf('3a 77/0'), 0, 'partial Companion row was not rebuilt');
-assert.deepStrictEqual(writes(pp).map(function (c) { return c.key; }), ['climbProjStats']);
+assert.deepStrictEqual(writes(pp).map(function (c) { return c.key; }), foldWrites(partial));
 assert.strictEqual(JSON.stringify(pp.storage.peek('climbProjStats')), JSON.stringify(oracle(pPre, null)), 'partial adoption diverges from the converter image');
 console.log('  PASS  former partial migrations collapse into the same single END checkpoint');
 

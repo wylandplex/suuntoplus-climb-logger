@@ -54,6 +54,11 @@ function StrictLocalStorage(options) {
   }
   this.allowlist = new Set(Object.keys(this.defaults));
   this.store = applySeed(this.defaults, options.seed);
+  // Keys present in the store FILE are servable regardless of the current data.json schema —
+  // field-proven 20.07: the FW is permissive for existing keys (2.82 wrote watchSetup/climbRoutes
+  // fully undeclared; the 3.x fold reads them; the ext11 legacy cleanup empties them). The policy
+  // keeps rejecting app-INVENTED keys, which is the F1 bloat class it exists to catch.
+  Object.keys(this.store).forEach(this.allowlist.add.bind(this.allowlist));
   this.calls = [];
   this.counts = {};
   this.failures = [];
@@ -108,6 +113,13 @@ StrictLocalStorage.prototype._begin = function (op, key, value) {
     var rule = this.failures[i];
     if (rule.remaining !== 0 && matchesRule(rule, call)) {
       if (rule.remaining !== Infinity) rule.remaining--;
+      if (rule.mode === 'drop') {
+        // SILENT drop — the on-watch failure class hypothesized from the 20.07 field store
+        // (writes vanish without an exception; the app cannot detect it in-session). The op
+        // reports success to the caller but never touches the store.
+        call.outcome = 'injected-drop';
+        return { call: call, rejected: true };
+      }
       call.outcome = 'injected-throw';
       throw new Error(rule.message || ('injected ' + op + ' failure for ' + key));
     }

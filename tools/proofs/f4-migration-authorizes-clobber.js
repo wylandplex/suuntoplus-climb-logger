@@ -34,6 +34,8 @@ var src16old = oldSrc('ext16.js'), src17old = oldSrc('ext17.js'), src11old = old
 var src16new = newSrc('ext16.js'), src18new = newSrc('ext18.js');
 
 // --- legacy fixtures ----------------------------------------------------------------------
+// 3.02: a successful fold appends authorized cleanup shrinks AFTER the canonical write.
+function cleanupOnly(w) { return w.slice(1).every(function (c) { return ['climbRoutes', 'watchSetup', 'stats'].indexOf(c.key) >= 0 && c.outcome === 'written'; }); }
 function stringSeed() {
   return {
     stats: { system: 'French', showSetupOnStart: 1, mig: 2, totalRoutes: 100, totalSends: 60, sendPct: 60, sessions: 20, totalHeight: 1000, peakGrade: 18 },
@@ -88,7 +90,7 @@ function trace(p, sMark, eMark) {
     p.evals.clearFailures();
     var r = p.createApp(); r.load(); r.warm(5); r.end();
     var w = writes(p);
-    chk(w.length === 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written', 'a1-retry: exactly one canonical fold write');
+    chk(w.length >= 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written' && cleanupOnly(w), 'a1-retry: canonical fold write first, only authorized cleanup shrinks after');
     var C = p.storage.peek('climbProjStats');
     var stub = new Stub(JSON.parse(before));  // the untouched pre-run legacy bytes
     var Aconv = loadSat(src16new, stub)(loadSat(src18new, stub)(), stub.getObject('stats'));
@@ -129,8 +131,8 @@ function trace(p, sMark, eMark) {
   var sm = p.storage.calls.length, em = p.evals.calls.length;
   a.end();
   var w = writes(p, sm);
-  chk(w.length === 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written', 'b1: END must be exactly one canonical climbProjStats write');
-  chk(reads(p, sm, 'climbProjStats').length === 1, 'b1: only the converter may read climbProjStats at END — ext11 must consume A (C0) instead of re-reading');
+  chk(w.length >= 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written' && cleanupOnly(w), 'b1: canonical write first, only authorized cleanup shrinks after');
+  chk(reads(p, sm, 'climbProjStats').length === 2, 'b1: END climbProjStats reads = converter + the cleanup read-back guard (ext11 must consume A pre-write, never re-read for the merge)');
   var evs = p.evals.calls.slice(em).map(function (c) { return c.extension; });
   chk(J(evs) === J(['18', '16', '25', '11']), 'b1: END parse chain must be 18->16(incl. merge, audit U13)->25->11 with ext11 exactly once and LAST (got ' + evs.join(',') + ')');
   chk(a.state().migPend === 0 && a.state().migOK === 1 && !notSaved(a), 'b1: successful fold must clear migPend and save normally');
@@ -144,7 +146,7 @@ function trace(p, sMark, eMark) {
   chk(J(p.storage.peek('climbProjStats')) === J(stub.s.climbProjStats), 'b1: lifetime-only fold must be byte-identical to OLD ext16-migrate -> OLD ext11(deltas)');
   var s0 = p.storage.peek('climbProjStats').s0;
   chk(J(s0) === J([101, 61, 60, 21, 1001, 18]), 'b1: legacy 100/60 must fold to 101/61 (got ' + J(s0) + ')');
-  chk(J(p.storage.peek('stats')) === J(stringSeed().stats) && J(p.storage.peek('watchSetup')) === J(stringSeed().watchSetup), 'b1: legacy roots must not be rewritten by the fold');
+  chk(J(p.storage.peek('stats')) === J({}) && J(p.storage.peek('watchSetup')) === J({}), 'b1: successful fold must EMPTY the 2.82 roots (3.02 cleanup)');
   console.log('  b1 successful-fold END window:'); trace(p, sm, em);
 
   // b2: numeric v1/v2 legacy — ext17+ext19 composition, A rides through the same single call site
@@ -158,8 +160,8 @@ function trace(p, sMark, eMark) {
   var smn = pn.storage.calls.length, emn = pn.evals.calls.length;
   an.end();
   var wn = writes(pn, smn);
-  chk(wn.length === 1 && wn[0].key === 'climbProjStats', 'b2: numeric END must be exactly one canonical write');
-  chk(reads(pn, smn, 'climbProjStats').length === 2, 'b2: only ext17+ext19 may read climbProjStats at END (ext11 consumes A)');
+  chk(wn.length >= 1 && wn[0].key === 'climbProjStats' && cleanupOnly(wn), 'b2: numeric END canonical write first, only cleanup after');
+  chk(reads(pn, smn, 'climbProjStats').length === 3, 'b2: END climbProjStats reads = ext17 + ext19 + the cleanup read-back guard (ext11 consumes A)');
   var evn = pn.evals.calls.slice(emn).map(function (c) { return c.extension; });
   chk(J(evn) === J(['18', '17', '19', '15', '25', '11']), 'b2: numeric END parse chain must be 18->17->19->15(merge)->25->11 (got ' + evn.join(',') + ')');
   var stubN = new Stub(preN);
@@ -208,7 +210,7 @@ function trace(p, sMark, eMark) {
   var sm = p.storage.calls.length, em = p.evals.calls.length;
   a.end();             // routeless but dirty migPend session: T = zero-vector (sessions++), fold + overlay
   var w = writes(p, sm);
-  chk(w.length === 1 && w[0].key === 'climbProjStats', 'c: config-only fold must still be exactly one write');
+  chk(w.length >= 1 && w[0].key === 'climbProjStats' && cleanupOnly(w), 'c: config-only fold canonical write first, only cleanup after');
   var evs = p.evals.calls.slice(em).map(function (c) { return c.extension; });
   chk(J(evs) === J(['18', '16', '30', '25', '11']), 'c: config-only END chain must be 18->16(incl. merge)->30(name slice)->25->11 (got ' + evs.join(',') + ')');
 

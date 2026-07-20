@@ -121,7 +121,10 @@ assert.strictEqual(setKeys.every(function (k) { return k === 'climbProjStats'; }
   var a = [3, 4, 20, 0, 0, 0, 15];
   save2(a, pgi, P, 2, g, 0, C0);
   var calls = ls2.calls.map(function (x) { return x.slice(0, 2); });
-  assert.deepStrictEqual(calls, [['set', 'climbProjStats']], 'C0 supplied: must skip the read op');
+  // C0 contract = skip the CONTAINER read. The 3.02 fold-gated cleanup tail then probes the three
+  // 2.82 roots (absent in this mock -> reads only, no shrink writes, nothing materialized).
+  assert.deepStrictEqual(calls, [['set', 'climbProjStats'], ['get', 'climbProjStats'], ['get', 'climbRoutes'], ['get', 'watchSetup'], ['get', 'stats']], 'C0 supplied: must skip the container read PRE-write; the post-write read-back guard + probes are the cleanup tail');
+  assert.deepStrictEqual(Object.keys(ls2.store), ['climbProjStats'], 'C0 cleanup probes must not materialize absent legacy roots');
   assert.strictEqual(ls2.store.climbProjStats['s' + g][3], sessionsBefore + 1, 'C0 path: sessions++ must still happen with a!=null');
   console.log('C0 supplied: read op skipped, write still lands -- PASS');
 })();
