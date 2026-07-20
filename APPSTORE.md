@@ -6,48 +6,59 @@ Log climbing sessions on the watch: per-route send/fail, projects across 10 grad
 
 ## Updating from 2.82
 
-Your history migrates automatically on the first finished session — nothing to export or re-enter. If a save fails, the old store is left untouched and retried next time.
+Your history migrates automatically the first time you finish a session — nothing to export or re-enter. If that save ever fails, the old store is left untouched and the migration is retried on your next finished session.
 
-Two buttons moved: **hold UP** now opens the route editor (was the mode switch), and **Free/Project mode is MID long-press**.
+One honest caveat: 2.82 often failed to save its own stats (see Fixes below), so there may be less history to carry over than you remember — your grade system and configured projects come across; totals and counters that 2.82 never actually wrote can't be recovered and start counting reliably from now on.
+
+Two buttons moved: **hold UP** now opens the route editor (it used to switch Free/Project mode), and the **Free/Project switch is now a MID long-press**.
 
 ## What changed since 2.82
 
 **Interface**
 - Redesigned to match Suunto's native screen style; the separate CLIMB and BREAK screens are now one.
 - Header turns green on a send, orange on a fail.
-- HR-zone ring with a live needle on the READY, ACTIVE and SETUP screens.
-- BREAK now shows the finished route's height plus its average and max HR.
+- BREAK now also shows max HR, not just the average.
 
 **Controls**
 - Edit any route in the session — grade, SEND/FAIL/DELETE, or move it to another project slot — not just the last one.
 - SETUP only asks for the grade system; the forced 5-project wizard is gone. Projects are set up on demand.
-- MID long-press in BREAK saves the last free-mode route as a project.
 - The watch lap button now starts a climb, logs a send, or jumps to the next climb.
 - Free-mode flick jumps ±3 grades.
-- Long-pressing a button no longer bounces you out of the app mid-session.
 
-**Fixes** — the main reason for this release:
-- Re-grading a project no longer wipes its sends and best time.
-- Switching grade systems no longer overwrites the other system's stats.
-- All 10 grade systems save now — before, only the first one did.
-- A failed save can no longer roll your lifetime totals backwards.
-- Much steadier next to other SuuntoPlus apps — the mid-session freezes and reboots are gone.
+**New**
+- HR-zone ring with a live needle on the READY, ACTIVE and SETUP screens.
+- Live route height (+Nm) shown during both climb and break.
+- MID long-press in BREAK saves the last free-mode route as a new project.
+- Two new grade systems — Hangboard and Scrambling — for 10 in total (up from 8), each keeping its five project slots.
+- Each grade system now keeps its own separate lifetime stats.
+- The companion dashboard now breaks stats down per grade system.
+- Richer post-activity graphs — height, climb/rest timeline and grade over time, instead of a single route count.
+
+**Fixes**
+- Lifetime totals and project try/send counters now actually save. 2.82 silently lost most of these writes — totals rarely moved and project counters often stayed at 0/0 no matter how much you climbed. Everything is now committed in a single save at session end.
+- Long-pressing a button no longer bounces you out of the app mid-session.
+- Steadier next to other SuuntoPlus apps — leaner memory use and a redesign to survive being toggled on and off mid-workout — though long-session and heavy multi-app freezes aren't fully eliminated yet.
 
 **Removed**
-- BREAK's running tally and quick-fix button — correct results in the route editor instead.
-- The 1-/3-minute peak-HR windows; live HR and per-route average/max stay.
-- Lifetime grade records that never actually recorded — only peak grade was real, so the rest were cut.
-- The route-limit popup — after 35 routes without a pause, START simply stops responding.
+- The running route/send tally on the rest screen — the counts still live in the companion stats, just not on-watch.
 
 Once you pause, routes from before the pause fold into the summary and can no longer be edited.
 
 ## Controls
 
 ```
-  SETUP ──confirm──► READY ──START──► CLIMB ──FAIL / SEND──► BREAK
- (first run)         ▲   │           (locked)                  │
-                     │   └──────────────── NEXT ───────────────┘
-  EDIT / PROJ-SETUP ◄── ↑ hold ── READY
+  SETUP
+   │  hold ↓ = confirm
+   ▼
+  READY ──hold ↑──► EDIT / PROJ-SETUP
+   │                (hold ↑ = back)
+   │  hold ↓ = START
+   ▼
+  CLIMB
+   │  FAIL (↑) / SEND (↓)
+   ▼
+  BREAK
+   │  hold ↓ = NEXT  →  back to READY
 ```
 
 Tap ↑/↓, hold ↑/↓/MID; touch mirrors the buttons.
