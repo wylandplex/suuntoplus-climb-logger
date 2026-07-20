@@ -461,6 +461,20 @@ chk(pe.io[IDX.packedGL] >= 1e6, 'F8: project route EDIT did not reuse the chevro
 chk(pe.io[IDX.packedAct] === -(6 + 4003 * 3), 'F8: project route EDIT did not publish SEND + 4T/3S (' + pe.io[IDX.packedAct] + ')');
 pe.ev(4);                                           // SEND -> FAIL, project sends decrements 3 -> 2
 chk(pe.io[IDX.packedAct] === -(6 + 4002 * 3 + 1), 'F8: project route FAIL did not republish 4T/2S (' + pe.io[IDX.packedAct] + ')');
+// F8b (USER-FOUND on-watch 17.07): a slot REASSIGN (eid1/2 -> ext21 ops 3/4) must republish the
+// capsule LIVE with the destination slot's counters — the row must never keep the old slot's T/S.
+var pa0 = pe.io[IDX.packedAct];
+pe.clear(); pe.ev(1);                               // reassign to the neighbouring configured slot
+chk(pe.io[IDX.packedAct] !== SENT && pe.io[IDX.packedAct] <= -6, 'F8b: reassign did not republish a project capsule (' + pe.io[IDX.packedAct] + ')');
+chk(pe.io[IDX.packedAct] !== pa0, 'F8b: the capsule kept the OLD slot counters after the reassign');
+// Destination-value oracle (workflow review): the two relative checks above pass even if ext21's
+// credit transfer is gutted (source slot0 is untouched, so the round-trip trivially restores pa0),
+// so pin the ABSOLUTE capsule while parked at the destination. The reassigned route is a FAIL
+// (attempt-only move) landing on a fresh neighbour slot -> 1T/0S FAIL = -(6 + 1000*3 + 1). A gutted
+// transfer leaves the destination at its own untouched 0T/0S (-7) and fails HERE.
+chk(pe.io[IDX.packedAct] === -(6 + 1000 * 3 + 1), 'F8b: reassign did not publish the DESTINATION slot 1T/0S FAIL (' + pe.io[IDX.packedAct] + ')');
+pe.clear(); pe.ev(2);                               // reassign back
+chk(pe.io[IDX.packedAct] === pa0, 'F8b: the round-trip did not restore the original capsule (' + pe.io[IDX.packedAct] + ' vs ' + pa0 + ')');
 // permanently cold: overlays are unreachable, but the app never TRAPS the user in one
 var w = makeInstance(RETURN);
 w.faults.ext['22'] = 999;

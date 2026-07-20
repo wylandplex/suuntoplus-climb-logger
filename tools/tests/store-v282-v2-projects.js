@@ -122,7 +122,7 @@ assert.strictEqual(extCalls(p, 18), 1, 'grade table is not loaded exactly once')
 assert.strictEqual(extCalls(p, 16), 1, 'live converter is not loaded exactly once');
 assert.strictEqual(extCalls(p, 17), 0, 'numeric converter must not run on a string-system store');
 assert.strictEqual(extCalls(p, 19), 0, 'numeric part-2 converter must not run on a string-system store');
-assert.strictEqual(extCalls(p, 15), 1, 'the working-array merge satellite must parse exactly once at the fold END (ext15 = the merge since the 17.07 diet; the retired multi-write migrator of the same number is gone)');
+assert.strictEqual(extCalls(p, 15), 0, 'the string-schema fold must NOT parse ext15 — the merge rides inside ext16 since audit U13 (ext15 stays the numeric-path merge)');
 assert.strictEqual(extCalls(p, 12), 1, 'the read-only slot seed must parse exactly once (staged tick) and never at the END');
 assert.strictEqual(extCalls(p, 11), 1, 'the single setObject must go through one ext11 call');
 assert.strictEqual(C.v, 3);

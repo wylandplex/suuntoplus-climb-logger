@@ -19,9 +19,9 @@
     <!-- Same firmware-resident, vertically mirrored header tooth as ACTIVE. Authored first so every
          state label, value and action marker paints above it. -->
     <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
-      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#343740" />
+      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
     </div>
-    <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#262a35" />
+    <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#3c4049" />
 
     <!-- vState tracker (applyVis pattern, renders nothing): gates evL(6)'s lap() to READY ONLY (#172) —
          in the EDIT overlay (5) the bottom zone/down-long navigates routes, in PROJ-SETUP (6) it advances
@@ -50,14 +50,14 @@
     <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
     <!-- packedGL's high million selects the EDIT value: 1..5 renders Pn (grade) with live chevrons;
          6 is the empty-editor lock and hides them. The low remainder stays the grade payload. -->
-    <div id="gu" class="f-ico p-hc" style="top:calc(33% - 18.5px - 1.5px);">&#xF266;</div>
+    <div id="gu" class="f-ico p-hc" style="top:calc(33% - 20px);">&#xF266;</div>
 
     <div class="sp-t-l p-hc p-tc" style="top:calc(46.5% - 50%e - 3px);width:100%">
       <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => gV(x)" default="--" />
     </div>
 
     <div onTap="ev(2)" style="top:54%;left:0;width:70%;height:17%;position:absolute;"></div>
-    <div id="gd" class="f-ico p-hc" style="top:calc(62.5% - 18.5px - 1.5px);">&#xF267;</div>
+    <div id="gd" class="f-ico p-hc" style="top:calc(62.5% - 20px);">&#xF267;</div>
 
     <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
          EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
@@ -88,14 +88,18 @@
     <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <!-- READY and PROJ-SETUP keep the standalone T/S row. Project-route EDIT renders one compact
-         result line below, e.g. FAIL (1T 0S), so action and association stats cannot straddle rows. -->
-    <div class="p-hc sp-vertical-center sp-b-s" style="top:calc(73% - 20.5px);">
-      <eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" />
+    <!-- ONE shared 73%-row directly ABOVE the bottom tooth for BOTH packedAct renderings: the
+         READY/PROJ-SETUP T/S line (pS, x>=0) and the EDIT result line (pA, x<=-2) are mutually
+         exclusive by value, so the two spans never show together — the proven edr+pA pair shape.
+         U16 (setText-merge into one eval) REVERTED: an eval-context setText needs a compiled text
+         node; the return-rendered eval is the only on-watch-proven mechanism for these rows. -->
+    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" /></span>
+      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" /></span>
     </div>
+
     <div class="p-hc sp-vertical-center" style="top:calc(79% - 20.5px);">
       <span id="edr" class="sp-b-s"></span>
-      <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" /></span>
     </div>
 
     <div id="rm" class="sp-b-s p-hc" style="top:calc(90% - 50%e - 6px)">ROUTE MODE</div>

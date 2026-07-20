@@ -11,7 +11,8 @@ var routeNumber = 1;
 //   A = grade*1e6 + send*1e5 + cm*1e4 + height(0..9999)   B = dur(0..86399)*1000 + hrAvgHz(0..~4, fractional kept)
 var routesA = [], routesB = [];
 // Space-capsule project state: routes are packed, project slot stats are one flat 20-number vector.
-var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, Math.max(0, Math.round(h))); };
+var cl0 = function(v) { return Math.max(0, Math.round(v)) || 0; };  // shared non-negative rounder (6 sites — audit U3); ||0 hardens NaN input (Codex: a NaN Asc sample passes the !==undefined guard — pre-diet only the ext10 echo path caught it)
+var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, cl0(h)); };
 var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
 var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
 var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
@@ -19,6 +20,7 @@ var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), rCm(i), routesA[i]
 // rDur/wSend/wCm deleted (Stufe 2): their callers moved into ext21/ext10, which mutate
 // routesA/routesB by-ref (P4) with the same digit arithmetic inline.
 var lastResult = 0;
+var EDR = "#edr";  // overlay label target (5 setText sites — audit U9; the minifier does not dedupe string literals)
 
 var rSec = 0;
 var hrSum = 0;
@@ -100,37 +102,25 @@ function getUserInterface() {
 // Shared wrap-around grade step (dedup: evReady dy, evBreak dy, evEdit flick — all fluid, all resident).
 var stepG = function(v, dy) { var L = GRADE_LENS[gradeSystem]; return ((v + dy) % L + L) % L; };
 
-// fillSlots (hybrid): slots come straight from the stats object — the projAll
-// 50-value all-systems cache is GONE (~0.5KB RAM + the 10x5 drain loop saved). Accepted
-// degradation: an in-session system round-trip (A->B->A) re-reads A's PERSISTED slots, so
-// unsaved in-session slot edits of a departed system are no longer visible until end-write
-// (end-write only ever covered the ACTIVE system — unchanged).
-var fillSlots = function(C, sys) {
-  var Z = C["p" + sys], i, p;
-  for (i = 0; i < 5; i++) { p = Z && Z[i + 15]; projGradeIdx[i] = p >= -1 && p < GRADE_LENS[sys] ? p | 0 : -1; }
-  for (i = 0; i < 21; i++) projSlot[i] = Z && Z[i] !== undefined ? Z[i] : i < 15 ? 0 : i < 20 ? -1 : "";
-};
-
-
 // INLINE DRAIN (#177/#169 follow-up): one canonical getObject — NO evalFile, so no ~2KB
 // contiguous parse block at enable. A pre-v3 store only closes the input gate; ext16 (live 2.82)
 // or ext17(+ext19) (numeric v1/v2) builds the complete v3 image in RAM inside the FIRST end-write
 // and commits it with exactly one setObject through ext11 (END-FOLD; no migration phase exists).
+// Slot fill (the old fillSlots) is fused in as the shared tail (audit C4: single-caller, -1 module
+// unit — count is the toggle currency): a legacy C carries no p<g> key -> pure defaults, sanitized
+// identically. Accepted hybrid degradation unchanged: an in-session system round-trip (A->B->A)
+// re-reads A's PERSISTED slots.
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
-  var L = localStorage, C = L.getObject("climbProjStats") || {};
-  if (C.v !== 3) {  // LEGACY (END-FOLD): no migration phase — the session runs fresh and fully live; the first end-write folds. System + slots seed at the ext12 staged tick (resident diet 17.07: the string->system map lives in ext12 now, so gradeSystem is default until that tick — 1-2 s, SETUP only).
-    fillSlots(C, gradeSystem);  // pre-v3 store carries no p<g> key -> pure defaults, sanitized the same way
-    currentGrade = DEFAULT_IDX[gradeSystem];
-    migPend = 1; slotTouched = 0; pendF12 = 0; stOk = 1;
-    pendSlots = 2; seedStay = 1;  // stage the READ-ONLY legacy slot seed on the proven ext13 tick; seedStay keeps the first launch in SETUP (the stager's goState(0) is only right for the in-session system switch)
-    return;
-  }
-  if (!sysDirty) gradeSystem = C.g >= 0 && C.g <= 9 ? C.g | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
-  fillSlots(C, gradeSystem);
+  var L = localStorage, C = L.getObject("climbProjStats") || {}, lg = C.v !== 3, Z, i, p;
+  if (!lg && !sysDirty) gradeSystem = C.g >= 0 && C.g <= 9 ? C.g | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
+  Z = C["p" + gradeSystem];
+  for (i = 0; i < 5; i++) { p = Z && Z[i + 15]; projGradeIdx[i] = p >= -1 && p < GRADE_LENS[gradeSystem] ? p | 0 : -1; }
+  for (i = 0; i < 21; i++) projSlot[i] = Z && Z[i] !== undefined ? Z[i] : i < 15 ? 0 : i < 20 ? -1 : "";
   currentGrade = DEFAULT_IDX[gradeSystem];
+  if (lg) { migPend = 1; slotTouched = 0; pendSlots = 2; seedStay = 1; }  // LEGACY (END-FOLD): arm the fold+seed AFTER the fallible slot copy (restore master's order — Codex review). A throw in the copy above thus leaves staging UNARMED, so onLoad enters the capped degrade-fast path (pendF12 backoff -> stOk=0) instead of ALSO firing up to 3 ext12 seed parses on a dead heap. Session runs fresh, the first end-write folds; system + slots seed at the ext12 staged tick (gradeSystem default until then, 1-2 s, SETUP only); seedStay keeps the first launch in SETUP
   pendF12 = 0; stOk = 1;
-  if (autoSkip && C["s" + gradeSystem][3] > 0 && C.u === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
+  if (!lg && autoSkip && C["s" + gradeSystem][3] > 0 && C.u === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
 };
 
 // Project-slot cycle (climbMode 1..5): step by ±1, clamp-wrapping over the 5 slots,
@@ -186,16 +176,6 @@ var cycleSlot = function(dy) {
 var S = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, projGradeIdx, projSlot, DEFAULT_IDX];
 var pv = [1];
 var fP = null, pendV = 1, pvT = 0;
-var FBW = function(o) {
-  o.vState = state;
-  var g, m;
-  if (state === 4) { g = gradeSystem * 100 + DEFAULT_IDX[gradeSystem]; m = gradeSystem; }
-  else if (climbMode > 0) { g = gradeSystem * 100 + (projGradeIdx[climbMode - 1] >= 0 ? projGradeIdx[climbMode - 1] : 50); m = -climbMode; }
-  else { g = gradeSystem * 100 + currentGrade; m = state === 2 ? routeNumber - 1 : routeNumber; }
-  o.packedGL = g * 952 + (lastGradeIdx >= 0 ? gradeSystem * 100 + lastGradeIdx + 1 : 0);
-  o.modeSub = m;
-  o.routeHeight = state === 1 ? Math.max(0, Math.round(curAsc - startAsc)) : state === 2 ? lastHeight : sessionH;
-};
 var pub = function(o) {
   if (fP) {
     S[0] = state; S[1] = editIdx; S[2] = editDelMark; S[3] = gradeSystem; S[4] = lastGradeIdx;
@@ -214,8 +194,17 @@ var pub = function(o) {
   // So a lost publisher FOLDS the overlay back to READY. Both overlays live ON the ready template,
   // so this is a pure state change: no unload, no mount, zero allocation. Entry is refused the same
   // way (evReady eid5) — together: state 5/6 => fP !== null, which is exactly the domain FBW covers.
-  if (state > 4) { state = 0; setText("#edr", ""); }
-  FBW(o);
+  if (state > 4) { state = 0; setText(EDR, ""); }
+  // FBW fused in (audit C4: single-caller, -1 module unit): the cold-window crown fallback —
+  // vState/packedGL/modeSub/routeHeight as LITERAL output writes (deploy-build law).
+  o.vState = state;
+  var g, m;
+  if (state === 4) { g = gradeSystem * 100 + DEFAULT_IDX[gradeSystem]; m = gradeSystem; }
+  else if (climbMode > 0) { g = gradeSystem * 100 + (projGradeIdx[climbMode - 1] >= 0 ? projGradeIdx[climbMode - 1] : 50); m = -climbMode; }
+  else { g = gradeSystem * 100 + currentGrade; m = state === 2 ? routeNumber - 1 : routeNumber; }
+  o.packedGL = g * 952 + (lastGradeIdx >= 0 ? gradeSystem * 100 + lastGradeIdx + 1 : 0);
+  o.modeSub = m;
+  o.routeHeight = state === 1 ? cl0(curAsc - startAsc) : state === 2 ? lastHeight : sessionH;
 };
 
 var goState = function(s, output) {
@@ -236,7 +225,7 @@ var goState = function(s, output) {
 var finishRoute = function(send, output) {
   extLapPending = 0;  // an explicit finish (app FAIL/SEND, or the evaluate-drain itself) consumes any armed external-lap deferral so the route commits exactly once with the right result
   lastResult = send; lastGradeIdx = currentGrade; lastClimbMode = climbMode;  // snapshot the slot NOW: cycleSlot in the BREAK commit window changes climbMode for the next climb and must not re-attribute this route
-  lastHeight = Math.max(0, Math.round(curAsc - startAsc));
+  lastHeight = cl0(curAsc - startAsc);
   frDirty = 1; frSend = send;
   routeNumber++;
   goState(2, output);
@@ -275,7 +264,7 @@ var evEdit = function(output, eid) {
       editIdx = (editIdx - 1 + routesA.length) % routesA.length;
       pub(output);
     } else {
-      setText("#edr", "");
+      setText(EDR, "");
       goState(0, output);
     }
     return;
@@ -314,18 +303,15 @@ var commitDirty = function() {
       exFail = 0;  // success re-arms the per-route budget: 3 isolated recovered hiccups across a long session must not degrade every later route (a true storm never resets — after 3 straight fails no success ever runs)
       if (lastClimbMode > 0) psDirty = 1;  // ext10 mutated the slot's stats vector
       if (!f3 && rt < 3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) { rt++; } }  // shared per-enable cap; terminal degradation is a nameless summary row
-      var rec = r[2];  // [grade, send, cm, height, dur, hrAvg] transient from ext10 (f10) — packed here, not stored boxed
-      routesA.push(packA(rec[0], rec[1], rec[2], rec[3]));
-      routesB.push(Math.min(86399, Math.max(0, Math.round(rec[4]))) * 1000 + (rec[5] > 0 ? rec[5] : 0));  // packB inlined (S3)
-    } else {
-      // DEGRADED inline commit (S2, exFail cap): heap too fragmented for the ext10 parse — the route
-      // still lands in the session arrays/summary/best-send tally. The WHOLE slot subsystem is skipped
-      // consistently: no projSlot update, psDirty stays unset, AND cm packs as 0 (free-mode tag) —
-      // a cm>0 tag without the matching attempt/send increments would let a later ext21 op mutate
-      // phantom slot stats and re-arm psDirty for the end-write.
-      routesA.push(packA(lastGradeIdx, frSend, 0, lastHeight));
-      routesB.push(Math.min(86399, Math.max(0, Math.round(lastDuration))) * 1000 + (lastHrAvg > 0 ? lastHrAvg : 0));  // packB inlined (S3)
     }
+    // ONE shared pack from main's own locals (audit C2: ext10's old [b,0,rec] return was a pure echo
+    // of these by-value inputs — two transient arrays per committed route for nothing; ext10 returns
+    // a scalar now). DEGRADED (r=0, S2 exFail cap): the route still lands, but the WHOLE slot
+    // subsystem is skipped consistently — no projSlot update, psDirty unset, cm packs 0 (free-mode
+    // tag): a cm>0 tag without matching attempt/send increments would let a later ext21 op mutate
+    // phantom slot stats and re-arm psDirty for the end-write.
+    routesA.push(packA(lastGradeIdx, frSend, r ? lastClimbMode : 0, lastHeight));
+    routesB.push(Math.min(86399, cl0(lastDuration)) * 1000 + (lastHrAvg > 0 ? lastHrAvg : 0));  // packB inlined (S3)
     sessionH += lastHeight || 0;
     hrSum = hrCnt = rSec = 0;
   }
@@ -362,7 +348,7 @@ var evReady = function(output, eid, dy) {
     if (climbMode > 0) {                                          // proj-setup overlay (old binding)
       pStep = 0;
       goState(6, output);  // same template — no swap; DOM alive, indicators render immediately
-      if (state === 6) setText("#edr", "SLOT " + (pStep + 1) + "/5");  // the mount publish can lose the publisher and fold us straight back to READY (pub) — don't label an overlay that isn't there
+      if (state === 6) setText(EDR, "SLOT " + (pStep + 1) + "/5");  // the mount publish can lose the publisher and fold us straight back to READY (pub) — don't label an overlay that isn't there
     } else {                                                      // free mode: EDIT overlay (old binding,
       if (!routesA.length || rt >= 3) return;  // folded routes are immutable; a terminally cold editor is refused
       editDelMark = 0; editIdx = routesA.length > 0 ? routesA.length - 1 : 0;  // incl. empty editor)
@@ -445,12 +431,12 @@ var evProjSetup = function(output, eid, dy) {
     slotsDirty = 1; slotTouched |= 1 << pStep;  // END-FOLD: user-edited slots beat adopted legacy slots (incl. deliberate OFF)
     pub(output);  // state-6 arm republishes the slot grade (zero-alloc, C3-safe)
   } else if (eid === 5) {
-    setText("#edr", "");
+    setText(EDR, "");
     goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
   } else if (eid === 6) {
     pStep = (pStep + 1) % 5;
     pub(output);
-    setText("#edr", "SLOT " + (pStep + 1) + "/5");
+    setText(EDR, "SLOT " + (pStep + 1) + "/5");
   }
 };
 
@@ -473,7 +459,9 @@ function onLoad(_input, output) {
 // U3 tick (S3 dispatcher split): the full evaluate body as ONE module fn — the lifecycle
 // dispatcher keeps only the isPaused thin-arm and hands over primitives (h, asc). `output` rides
 // as a bare positional arg down the whole chain (deploy-build output tracking, proven multi-hop).
-var tick = function(output, h, asc) {
+function evaluate(input, output) {
+  if (isPaused) return;
+  var h = input.H, asc = input.Asc;  // tick fused in (audit C4: single-caller, -1 module unit)
   if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap path; every pre-v3 schema enters the isolated migration launch
   else if (pendSlots > 1) { try { if (migPend) gradeSystem = loadExt(12)(projGradeIdx, projSlot, sysDirty ? gradeSystem : -1); else loadExt(13)(projGradeIdx, projSlot, gradeSystem); currentGrade = DEFAULT_IDX[gradeSystem]; pendSlots = 1; } catch (e) { if (++slTries >= 3) { if (!migPend) climbMode = stOk = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } } }  // migPend: seed failure degrades to fresh defaults WITHOUT killing stOk (the END fold must still run)
   else if (pendSlots) { pendSlots = 0; if (seedStay) seedStay = 0; else goState(0, output); }  // one complete evaluate boundary separates storage parsing from the READY mount; the first-launch seed stays in SETUP
@@ -500,11 +488,6 @@ var tick = function(output, h, asc) {
   commitDirty();
   pub(output);
   dwell = 0;
-};
-
-function evaluate(input, output) {
-  if (isPaused) return;
-  tick(output, input.H, input.Asc);
 }
 
 // End-window helpers live at top level so their bytecode stays out of the lifecycle dispatcher.
@@ -527,29 +510,29 @@ var sumUp = function(nm, m) {
   if (m === 2) {  // S2 read-only end: NOT-SAVED banner + the tally from the resident acc — deliberately NO ext25 parse on a heap that just refused 3 LS reads
     try {
       var ns = [{ id: 'ns', name: 'NOT SAVED', format: 'Count_Fourdigits', value: 0 }];
-      if (acc && acc[1]) ns.push({ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] });
+      if (acc && acc[1]) ns.push(lifeK(4));  // shared sr-row builder (audit C1: 4 identical literals routed through the already-resident lifeK — zero new closures)
       lastSummaryCache = ns; sumStale = 0;  // the banner is FINAL — nothing may rebuild over it (and nothing may parse for it)
     } catch (e) {}
     return;
   }
   if ((!sumStale || !acc || !acc[1]) && !(m && slotsDirty && !projSlot[20])) return;
-  if (rt >= 3) { if (m) try { lastSummaryCache = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }]; } catch (e) {} return; }
+  if (rt >= 3) { if (m) try { lastSummaryCache = [lifeK(4)]; } catch (e) {} return; }
   try {
     var fb = [];
     loadExt(25)(fb, acc, nm, projSlot, projGradeIdx, f3);
     if (acc && acc[1]) { lastSummaryCache = fb.slice(0, 4); sumStale = 0; }
   } catch (e) {
     rt++;
-    if (m) try { lastSummaryCache = [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc[0], postfix: '/ ' + acc[1] }]; } catch (e2) {}
+    if (m) try { lastSummaryCache = [lifeK(4)]; } catch (e2) {}
   }
 };
 var foldRoutes = function() {
   if (!acc) acc = [0, 0, 0, 0, 0, 0, -1, 0];
   var nR = routesA.length, i;
   for (i = 0; i < nR; i++) {
-    var a = routesA[i], b = routesB[i], h = a % 1e4, dd = Math.floor(b / 1000), rr = b % 1000;
+    var b = routesB[i], h = routesA[i] % 1e4, dd = Math.floor(b / 1000), rr = b % 1000;
     acc[1]++;
-    if (Math.floor(a / 1e5) % 10) { acc[0]++; var e = gradeSystem * 100 + Math.floor(a / 1e6); if (e > acc[6]) { acc[6] = e; acc[7] = 1; } else if (e === acc[6]) acc[7]++; }
+    if (rSend(i)) { acc[0]++; var e = gradeSystem * 100 + rGrade(i); if (e > acc[6]) { acc[6] = e; acc[7] = 1; } else if (e === acc[6]) acc[7]++; }  // accessors re-derive the exact digit formulas (audit U6); routesA empties only AFTER the loop
     if (h > 0) acc[2] += h;
     if (dd > 0) acc[3] += dd;
     if (rr > 0) { acc[4] += rr; acc[5]++; }
@@ -565,57 +548,12 @@ var foldRoutes = function() {
 // then ONE flat sub-envelope parse (ext11, 1049B) does the RMW directly — sequential,
 // never nested, every LS access a REWRITE of a drain-seeded key. Stats are in LS the moment the
 // activity saves, so the companion sync right after a session is current.
-var finishSession = function() {
-  fP = null; pendV = 0;  // S5: free the publisher FIRST (more headroom for the end-window parses below) and kill the stager — nothing publishes past this point, and an in-exercise DISABLE lands here too (the 1024 corpse must not carry ext22 or a pending parse)
-  if (pendF12 && dfTries < 3) { dfTries++; try { drainF12(0); } catch (e) {} }  // an undrained store gets one last read attempt; still-undrained stays read-only (stOk 0)
-  if (state === 1) {  // endRoute inlined (S3 single-site merge): close the running climb into the pending-commit slot
-    lastGradeIdx = currentGrade; lastClimbMode = climbMode;
-    lastHeight = Math.max(0, Math.round(curAsc - startAsc));
-    frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
-    routeNumber++;
-  }
-  if (frDirty && exFail < 2) exFail = 2;  // S2: the end window gets NO further ticks to re-drive the bounded retry, and the pause already nulled f10 (cold parse guaranteed) — pre-seed the budget so a single throw falls THROUGH to the degraded inline commit instead of returning with the route still armed (silent loss)
-  migOK = migPend;  // END-FOLD transaction flag (migPend is strictly 0/1): a commit/fold throw may never leak partial deltas into the v3 stamp
-  try { commitDirty(); } catch (e) { migOK = 0; }
-  try { foldRoutes(); } catch (e) { migOK = 0; }  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
-  var e0 = (!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty;  // "empty session" — shared by the skip below and the T=null pure-adoption arm at the ext11 call
-  if (!migPend && e0) return;  // nothing logged/changed -> skip the save burst — EXCEPT migPend: even an empty session 1 must fold (pure adoption, T=null below)
-  if (stOk !== 1) {  // S2 READ-ONLY session: bootstrap/migration never established a trustworthy snapshot
-    // grow-rewrite a store we never read (clobber + landmine class). Skip the save entirely —
-    // psDirty/slotsDirty/sysDirty never reach ext11 — and say so on the summary instead of losing data silently.
-    sumUp(0, 2);  // NOT-SAVED banner + sr tally (mode 2, alloc-guarded inside) — keeps finishSession lean (top-3!)
-    return;
-  }
-  try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) { migOK = 0; }  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW — the fold never runs under the big template
-  var A = 0, sv, k, sS;
-  if (migPend && migOK) {
-    try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
-      sv = localStorage.getObject("stats") || {};
-      k = loadExt(18)();  // grade names for adopted Companion rows
-      sS = typeof sv.system === "string";
-      A = loadExt(sS ? 16 : 17)(k, sv);
-      if (!sS) A = loadExt(19)(A, k, sv);  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
-      k = sv = 0;
-      if ((pendSlots > 1 || slTries > 2) && !sysDirty) gradeSystem = A.g;  // the staged seed never ran (instant END) or exhausted its retries: adopt the container's own system — the drain no longer derives it (resident diet 17.07; Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
-      loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // merge adopted active-system slots into the WORKING arrays (by-ref satellite, resident diet 17.07) so recap + Companion row build over the merged vector; slotTouched slots (incl. deliberate OFF) win
-    } catch (e) { A = 0; migOK = 0; }
-  }
-  if (migPend && !migOK) { sumUp(0, 2); return; }  // NOT SAVED; legacy byte-untouched; auto-retry next END. Plain ext11 can never run while migPend — the single call site below always receives A here.
-  var nm = "";
-  try { if (sumStale && acc && acc[1] && acc[6] >= 0 && f3) nm = f3(acc[6] % 100); } catch (e) {}  // name read while the slice is warm (caches null NEXT), ALLOC-GUARDED: the slice call string-concats — a corpse-heap throw here must cost only the name row, never the ext11 save below (S4-review C1: unguarded, it aborted the whole end hook)
-  f10 = null; fE = null;  // release the larger cached parses; keep the tiny grade-name slice through ext25 so it can publish readable Companion project grades
-  if (slotsDirty && !projSlot[20] && !f3 && rt < 3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) { rt++; } }  // config-only END still derives its Companion row before ext11 persists C.p<g>
-  sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
-  f3 = null;  // release the name slice before the ext11 RMW
-  try {
-    loadExt(11)(migPend && e0 ? null : [acc ? acc[0] : 0, acc ? acc[1] : 0, acc && acc[6] >= 0 ? acc[6] % 100 : -1, 0, 0, 0, acc ? acc[2] : 0], projGradeIdx, projSlot, climbMode, gradeSystem, psDirty | slotsDirty << 1, A);  // totals + exactly derivable session peak; T=null ONLY for a pure-adoption END (no sessions++), A = fold container or 0
-    migPend = 0;  // fold committed — a reused module instance must not re-fold next session
-  } catch (e) { sumUp(0, 2); }
-};
 
 
-// U4 evK (S3 dispatcher split): the full onEvent body as ONE module fn (guards, dy, state mux).
-var evK = function(output, eventId) {
+// The full onEvent body (guards, dy, state mux) — evK fused back in (audit C4: single-caller,
+// -1 module unit; the built dispatcher stays far under the 1874 B cliff, measured per build).
+function onEvent(_input, output, eventId) {
+  if (isPaused) return;
   // Fallback guard: pendF12 only when the onLoad drain threw (corpse heap, #169); pendSlots for
   // the 1-tick window after a system switch (stale slots must not drive startClimb/packedAct);
   // pendE for the 1-tick M9 satellite warm-up (gate-until-done — the user license that replaces
@@ -635,11 +573,6 @@ var evK = function(output, eventId) {
   else if (state === 5) evEdit(output, eventId);
   else if (state === 4) evSetup(output, eventId, dy);
   else if (state === 6) evProjSetup(output, eventId, dy);
-};
-
-function onEvent(_input, output, eventId) {
-  if (isPaused) return;
-  evK(output, eventId);
 }
 
 // U2 lifeK (S3 dispatcher split): pause/continue/end/summary bodies behind ONE module fn.
@@ -661,11 +594,60 @@ var lifeK = function(op, o) {
     isPaused = 0;
     if (currentTemplate === "saving") { goState(state, o); dwell = 0; }  // S5: publish AT the continue mount (o now rides through the trampoline). The freshly mounted template must not read the pre-pause output store — which after the overlay fold above would still say vState=5. FBW covers it cold; goState set pv[0], so the first warm tick full-republishes
   } else if (op === 2) {
-    finishSession();
-  } else {
-    // Recap is served from RAM. No localStorage and no evalFile in the summary path.
+    // finishSession fused in (audit C4: single-caller, -1 module unit) — the PROVEN save
+    // choreography block above line-for-line.
+    fP = null; pendV = 0;  // S5: free the publisher FIRST (more headroom for the end-window parses below) and kill the stager — nothing publishes past this point, and an in-exercise DISABLE lands here too (the 1024 corpse must not carry ext22 or a pending parse)
+    if (pendF12 && dfTries < 3) { dfTries++; try { drainF12(0); } catch (e) {} }  // an undrained store gets one last read attempt; still-undrained stays read-only (stOk 0)
+    if (state === 1) {  // endRoute inlined (S3 single-site merge): close the running climb into the pending-commit slot
+      lastGradeIdx = currentGrade; lastClimbMode = climbMode;
+      lastHeight = cl0(curAsc - startAsc);
+      frDirty = 1; frSend = extLapPending ? 1 : 0; extLapPending = 0;
+      routeNumber++;
+    }
+    if (frDirty && exFail < 2) exFail = 2;  // S2: the end window gets NO further ticks to re-drive the bounded retry, and the pause already nulled f10 (cold parse guaranteed) — pre-seed the budget so a single throw falls THROUGH to the degraded inline commit instead of returning with the route still armed (silent loss)
+    migOK = migPend;  // END-FOLD transaction flag (migPend is strictly 0/1): a commit/fold throw may never leak partial deltas into the v3 stamp
+    try { commitDirty(); } catch (e) { migOK = 0; }
+    try { foldRoutes(); } catch (e) { migOK = 0; }  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
+    f10 = null; fE = null;  // audit C11: neither cache is needed past commit/fold — release BEFORE the saving swap and the end-window parses (every END path, incl. the early returns; f3 stays warm for the recap rows)
+    var e0 = (!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty;  // "empty session" — shared by the skip below and the T=null pure-adoption arm at the ext11 call
+    if (!migPend && e0) return;  // nothing logged/changed -> skip the save burst — EXCEPT migPend: even an empty session 1 must fold (pure adoption, T=null below)
+    if (stOk !== 1) {  // S2 READ-ONLY session: bootstrap/migration never established a trustworthy snapshot
+      // grow-rewrite a store we never read (clobber + landmine class). Skip the save entirely —
+      // psDirty/slotsDirty/sysDirty never reach ext11 — and say so on the summary instead of losing data silently.
+      sumUp(0, 2);  // NOT-SAVED banner + sr tally (mode 2, alloc-guarded inside) — keeps finishSession lean (top-3!)
+      return;
+    }
+    try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) { migOK = 0; }  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW — the fold never runs under the big template
+    var A = 0, sv, k, sS, u;
+    if (migPend && migOK) {
+      try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
+        sv = localStorage.getObject("stats") || {};
+        k = loadExt(18)();  // grade names for adopted Companion rows
+        sS = typeof sv.system === "string";
+        u = (pendSlots > 1 || slTries > 2) && !sysDirty;  // adopt the container's own system: the staged seed never ran (instant END) or exhausted its retries (Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
+        if (sS) A = loadExt(16)(k, sv, u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain
+        else { A = loadExt(17)(k, sv); A = loadExt(19)(A, k, sv); }  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
+        k = sv = 0;
+        if (u) gradeSystem = A.g;
+        if (!sS) loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // numeric path keeps the standalone merge satellite; slotTouched slots (incl. deliberate OFF) win — recap + Companion row build over the merged vector
+      } catch (e) { A = 0; migOK = 0; }
+    }
+    if (migPend && !migOK) { sumUp(0, 2); return; }  // NOT SAVED; legacy byte-untouched; auto-retry next END. Plain ext11 can never run while migPend — the single call site below always receives A here.
+    var nm = "";
+    try { if (sumStale && acc && acc[1] && acc[6] >= 0 && f3) nm = f3(acc[6] % 100); } catch (e) {}  // name read while the slice is warm (caches null NEXT), ALLOC-GUARDED: the slice call string-concats — a corpse-heap throw here must cost only the name row, never the ext11 save below (S4-review C1: unguarded, it aborted the whole end hook)
+    if (slotsDirty && !projSlot[20] && !f3 && rt < 3) { try { f3 = loadExt(30 + gradeSystem); } catch (e) { rt++; } }  // config-only END still derives its Companion row before ext11 persists C.p<g>
+    sumUp(nm, 1);  // S4 end recap: only if a fold happened since the last build; fail-soft to the sr tally
+    f3 = null;  // release the name slice before the ext11 RMW
+    try {
+      loadExt(11)(migPend && e0 ? null : acc || [0, 0, 0, 0, 0, 0, -1], projGradeIdx, projSlot, climbMode, gradeSystem, psDirty | slotsDirty << 1, A);  // audit C5: pass the resident acc itself (ext11 reads sends/routes/height/peakEnc at 0/1/2/6 and does the %100 itself); the literal covers the dirty-only END with acc null. T=null ONLY for a pure-adoption END (no sessions++), A = fold container or 0
+      migPend = 0;  // fold committed — a reused module instance must not re-fold next session
+    } catch (e) { sumUp(0, 2); }
+  } else if (op === 3) {
+    // Recap is served from RAM. No localStorage and no evalFile in the summary path. The fallback
+    // stays the hard 0-literal, NOT lifeK(4): with a null cache but a live acc (failed pause recap,
+    // mid-session summary probe) the acc-based row would change observable behavior (dispatch-equiv FLT L).
     return lastSummaryCache || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
-  }
+  } else return { id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc ? acc[0] : 0, postfix: '/ ' + (acc ? acc[1] : 0) };  // op 4: THE sr row (audit C1, 3 sumUp sites)
 };
 
 function onExercisePause(_input, _output) { lifeK(0); }

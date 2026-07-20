@@ -18,7 +18,7 @@
 
     <!-- Shared shaped header backing. Keep it first so setup controls always paint above it. -->
     <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
-      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#343740" />
+      <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
     </div>
     <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
       <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
@@ -29,10 +29,9 @@
     <!-- SETUP as its own template (split out of manage.html): mounting SETUP no longer builds the
          hidden PROJ-SETUP section too — ~half the old manage mount. Single-state: no vState/applyVis. -->
 
-    <div id="sc4" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
-
+    <!-- Audit U4: the dead #sc4 full-screen wrapper is gone — children sit in the identical root frame. -->
       <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
-      <div class="f-ico p-hc" style="top:calc(38% - 18.5px - 1.5px);">&#xF266;</div>
+      <div class="f-ico p-hc" style="top:calc(38% - 20px);">&#xF266;</div>
 
       <div class="sp-t-l p-hc p-tc" style="top:calc(50% - 50%e);width:100%">
         <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => (setText('#sg',GS[x]||'--'),sN(x))" default="?" />
@@ -46,13 +45,11 @@
       <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
       <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    </div>
-
-
     <!-- Session duration and clock share the shaped header, matching READY/ACTIVE. -->
 
     <import src="#zone-g" />
-    <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN"><eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" /></div>
+    <!-- Audit U5: bare side-effect eval, no 0x0 holder box — the bare pattern is on-watch proven (ready.html) -->
+    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
 
     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
     <:if test="{{ HAS_ON_EVENT }}">

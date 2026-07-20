@@ -86,7 +86,7 @@ const localStorage = {
   setObject: (k, v) => { store[k] = JSON.parse(JSON.stringify(v)); },
 };
 const ext11 = new Function('localStorage', 'return (' + ext11Source + ')')(localStorage);
-ext11([1, 1, 3, 0, 0, 0, 7], grades, projects, 1, 0, 1);
+ext11([1, 1, 7, 0, 0, 0, 3], grades, projects, 1, 0, 1);  // acc contract (audit C5): height at [2], raw peakEnc (g*100+idx; g=0 here) at [6]
 assert.strictEqual(store.climbProjStats.p0[20], '6b 2/1|-|5a 0/0|8b 12/3|-');
 assert.deepStrictEqual(store.climbProjStats.s0, [1, 1, 100, 1, 7, 3]);
 
