@@ -78,6 +78,7 @@ var DEFAULT_IDX = [18, 6, 5, 5, 4, 12, 3, 5, 0, 0];
 var gradeSystem = 0;
 var loadExt = function(n) { return evalFile('{file_path}/ext' + n + '.js'); };
 var f10;  // cache ONLY ext10 (called per ROUTE — per-route re-parse was heap-fragmenting, the T7 reason).
+var f12;  // migration slot-seed cache, SETUP-dwell only (20.07 field crash: a confirm-switch during migPend re-PARSED ext12 in the same breath as the READY mount — evalFile arena + mount payload on one exec:ui window -> relMemCb -> co-app evict -> FW assert. Parse once at the staged initial seed, reuse on every switch-confirm, released at goState BEFORE the mount).
 // f3 = the current grade-system's NAME SLICE (ext30+gradeSystem, 26-105B). gradeName (533B) left main.js
 // in Stufe 2's follow-up: its sole caller is buildSummary, which runs at pause-fold + END. Parsing at the
 // END would grow the crash-sensitive window (M6, 08b) — so the slice is lazy-parsed at the FIRST route
@@ -212,8 +213,9 @@ var goState = function(s, output) {
   var t = s === 0 || s === 5 || s === 6 ? "ready" : s < 3 ? "active" : s === 4 ? "setup" : "saving";  // slim rebuild: limit stays cut; EDIT (5) and PROJ-SETUP (6) are OVERLAYS on the ready template — entering/leaving them swaps nothing (projsetup.html deleted)
   var tChanged = (currentTemplate !== t);
   currentTemplate = t;
+  fE = null;  // C10: any state change releases the cached satellite (overlay exit, BREAK exit, mounts) — zero-alloc assignment; released BEFORE unload so the ref is gone even if the template refresh begins synchronously inside unload (Codex 3.1-review hardening)
+  if (s !== 4) f12 = null;  // migration seed cache dies at every LEAVING mount, but survives the pause-continue SETUP remount (goState(4) from lifeK op1) — workflow-review blocker: dropping it there forced a fresh ext12 parse abutting the next READY mount, the exact 20.07 field-crash adjacency. f12 is only ever non-null during the migPend SETUP dwell, so s===4 is precisely the remount-of-the-same-dwell carve-out
   if (tChanged) unload('_cm');
-  fE = null;  // C10: any state change releases the cached satellite (overlay exit, BREAK exit, mounts) — zero-alloc assignment, mount-safe
   // NO cache-freeing at ready mounts: falsified on-watch 2x (17.07) — Duktape's GC reclaims too
   // late for the mount transient, freed refs only buy parse churn (T7 class). Eviction is decided
   // by RESIDENT main.js size (<500 B swing deterministic/never), not by references dropped here.
@@ -444,7 +446,7 @@ function onLoad(_input, output) {
   migPend = migOK = slotTouched = seedStay = 0; // END-FOLD state is re-derived per enable (same module instance may be reused across sessions)
   finalized = 0;  // new session → re-arm onExerciseEnd
   lastSummaryCache = null; acc = null; f3 = null; sumStale = 0; rt = 0;  // reset the session summary + the pause-fold aggregate + bounded transient-parse budget
-  pv = [1]; fP = null; pendV = 1; pvT = 0;  // fresh publish cache + force flag; stage the ext22 parse for the calm post-enable tick (fresh retry budget)
+  pv = [1]; fP = null; f12 = null; pendV = 1; pvT = 0;  // fresh publish cache + force flag; stage the ext22 parse for the calm post-enable tick (fresh retry budget); f12 dropped for module-reuse hygiene
   state = 4; currentTemplate = "setup";
   // HYBRID drain at onLoad: unlike the falsified eaae480 experiment this is NOT an evalFile parse
   // (no ~2KB contiguous block) — plain getObject reads in small allocations. Bootstrap completes
@@ -463,7 +465,7 @@ function evaluate(input, output) {
   if (isPaused) return;
   var h = input.H, asc = input.Asc;  // tick fused in (audit C4: single-caller, -1 module unit)
   if (pendF12) { if (pendF12 > 1) pendF12--; else if (dfTries < 3) { dfTries++; try { drainF12(1); } catch (e) { pendF12 = 4; } } else { pendF12 = 0; stOk = 0; } }  // capped bootstrap path; every pre-v3 schema enters the isolated migration launch
-  else if (pendSlots > 1) { try { if (migPend) gradeSystem = loadExt(12)(projGradeIdx, projSlot, sysDirty ? gradeSystem : -1); else loadExt(13)(projGradeIdx, projSlot, gradeSystem); currentGrade = DEFAULT_IDX[gradeSystem]; pendSlots = 1; } catch (e) { if (++slTries >= 3) { if (!migPend) climbMode = stOk = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } } }  // migPend: seed failure degrades to fresh defaults WITHOUT killing stOk (the END fold must still run)
+  else if (pendSlots > 1) { try { if (migPend) gradeSystem = (f12 || (f12 = loadExt(12)))(projGradeIdx, projSlot, sysDirty ? gradeSystem : -1); else loadExt(13)(projGradeIdx, projSlot, gradeSystem); currentGrade = DEFAULT_IDX[gradeSystem]; pendSlots = 1; } catch (e) { if (++slTries >= 3) { if (!migPend) climbMode = stOk = 0; projGradeIdx[0] = projGradeIdx[1] = projGradeIdx[2] = projGradeIdx[3] = projGradeIdx[4] = -1; pendSlots = 1; } } }  // migPend: seed failure degrades to fresh defaults WITHOUT killing stOk (the END fold must still run)
   else if (pendSlots) { pendSlots = 0; if (seedStay) seedStay = 0; else goState(0, output); }  // one complete evaluate boundary separates storage parsing from the READY mount; the first-launch seed stays in SETUP
   else if (pendE) {
     try { fE = fE || loadExt(21); pendE = 0; } catch (e) { if (++rt >= 3) pendE = 0; }
@@ -581,8 +583,8 @@ var lifeK = function(op, o) {
   if (op === 0) {
     isPaused = 1;
     if (state > 4) state = 0;  // S5 (review C1): the pause drops fP, so the overlay must go with it — otherwise the post-continue window (mount, then up to 3 ticks until the stager re-parses) would route presses into evEdit/evProjSetup with a cold, WRONG display behind them. Same invariant as the pub() fold: state 5/6 => fP !== null
+    f10 = null; fE = null; fP = null;   // free the cached ext parses BEFORE the unload swap (refs gone even if the refresh begins inside unload — Codex 3.1-review hardening); re-parse on next use after a continue; the publisher re-stages via pendV below. f12 deliberately SURVIVES the pause (workflow-review blocker): it is only ever non-null during the migPend SETUP dwell, and dropping it here forced the post-continue switch-confirm to re-parse ext12 one tick before the READY mount — the 20.07 crash adjacency. ~1-2KB held across a pause whose swap just freed the ~13KB template
     if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); }  // deLoad inlined (S3): tear down the heavy template (frees ~13KB DOM/G-table) WITHOUT touching state — currentTemplate is decoupled (getUserInterface serves it), so the swap is safe and reversible on continue
-    f10 = null; fE = null; fP = null;   // free the cached ext parses (re-parse on next use after a continue; the publisher re-stages via pendV below)
     if (!frDirty) { try { foldRoutes(); } catch (e) {} }  // FOLD + FREE the route arrays NOW (user's pause-unload idea) so the end-save parse lands on a heap the GC has had seconds to compact. Skip if a route is mid-commit (frDirty) — it folds at END. NO LS write here (that froze the watch — mid-session flash no-go); acc + summary are RAM only.
     if (!finalized) {  // post-end pauses must never rebuild the recap OR re-stage the publisher: the mode-2 NOT-SAVED banner is final, and no parse belongs on a possibly-hostile post-end heap (S4-review C5)
       pendV = 1; pvT = 0;  // S5: re-arm the PUB stager — ticks are paused, so the parse lands on the first post-continue tick (fresh budget per cycle, mirrors the slTries pattern)
@@ -608,7 +610,7 @@ var lifeK = function(op, o) {
     migOK = migPend;  // END-FOLD transaction flag (migPend is strictly 0/1): a commit/fold throw may never leak partial deltas into the v3 stamp
     try { commitDirty(); } catch (e) { migOK = 0; }
     try { foldRoutes(); } catch (e) { migOK = 0; }  // fold any not-yet-folded routes (the whole session if no pause preceded, or just the post-continue ones) + free the arrays + build the RAM summary
-    f10 = null; fE = null;  // audit C11: neither cache is needed past commit/fold — release BEFORE the saving swap and the end-window parses (every END path, incl. the early returns; f3 stays warm for the recap rows)
+    f10 = null; fE = null; f12 = null;  // audit C11: no cache is needed past commit/fold — release BEFORE the saving swap and the end-window parses (every END path, incl. the early returns; f3 stays warm for the recap rows)
     var e0 = (!acc || acc[1] === 0) && !psDirty && !slotsDirty && !sysDirty;  // "empty session" — shared by the skip below and the T=null pure-adoption arm at the ext11 call
     if (!migPend && e0) return;  // nothing logged/changed -> skip the save burst — EXCEPT migPend: even an empty session 1 must fold (pure adoption, T=null below)
     if (stOk !== 1) {  // S2 READ-ONLY session: bootstrap/migration never established a trustworthy snapshot
@@ -623,7 +625,7 @@ var lifeK = function(op, o) {
       try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
         sv = localStorage.getObject("stats") || {};
         k = loadExt(18)();  // grade names for adopted Companion rows
-        sS = typeof sv.system === "string";
+        sS = typeof sv.system !== "number";  // 2.82 = string OR ABSENT stats root (20.07 field incident: real 2.82 stores can lack "stats" entirely — only END-saves wrote it — and === "string" misrouted them into ext17 = empty-v3 stamp, projects orphaned). Only a NUMERIC stats.system means the numeric v1/v2 schema (incl. the fresh seed's system:0); ext16 self-derives the system from watchSetup.sys when stats is empty.
         u = (pendSlots > 1 || slTries > 2) && !sysDirty;  // adopt the container's own system: the staged seed never ran (instant END) or exhausted its retries (Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
         if (sS) A = loadExt(16)(k, sv, u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain
         else { A = loadExt(17)(k, sv); A = loadExt(19)(A, k, sv); }  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
