@@ -113,12 +113,12 @@ var stepG = function(v, dy) { var L = GRADE_LENS[gradeSystem]; return ((v + dy) 
 var skipP = 0;  // returning-user SETUP->READY auto-skip, armed by the drain, fired on the next tick, cancelled by any button press
 var drainF12 = function(autoSkip) {
   var L = localStorage, C = L.getObject("climbProjStats") || {}, lg = C.v !== 3, Z, i, p;
-  if (lg) { migPend = 1; slotTouched = 0; pendSlots = 2; seedStay = 1; }  // LEGACY (END-FOLD): the session runs fresh and fully live; the first end-write folds. System + slots seed at the ext12 staged tick (the string->system map lives in ext12 — gradeSystem is default until that tick, 1-2 s, SETUP only); seedStay keeps the first launch in SETUP
-  else if (!sysDirty) gradeSystem = C.g >= 0 && C.g <= 9 ? C.g | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
+  if (!lg && !sysDirty) gradeSystem = C.g >= 0 && C.g <= 9 ? C.g | 0 : 0;  // never clobber an in-session system choice (end-belt drain after a late bootstrap)
   Z = C["p" + gradeSystem];
   for (i = 0; i < 5; i++) { p = Z && Z[i + 15]; projGradeIdx[i] = p >= -1 && p < GRADE_LENS[gradeSystem] ? p | 0 : -1; }
   for (i = 0; i < 21; i++) projSlot[i] = Z && Z[i] !== undefined ? Z[i] : i < 15 ? 0 : i < 20 ? -1 : "";
   currentGrade = DEFAULT_IDX[gradeSystem];
+  if (lg) { migPend = 1; slotTouched = 0; pendSlots = 2; seedStay = 1; }  // LEGACY (END-FOLD): arm the fold+seed AFTER the fallible slot copy (restore master's order — Codex review). A throw in the copy above thus leaves staging UNARMED, so onLoad enters the capped degrade-fast path (pendF12 backoff -> stOk=0) instead of ALSO firing up to 3 ext12 seed parses on a dead heap. Session runs fresh, the first end-write folds; system + slots seed at the ext12 staged tick (gradeSystem default until then, 1-2 s, SETUP only); seedStay keeps the first launch in SETUP
   pendF12 = 0; stOk = 1;
   if (!lg && autoSkip && C["s" + gradeSystem][3] > 0 && C.u === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
 };
