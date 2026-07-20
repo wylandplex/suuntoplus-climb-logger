@@ -70,7 +70,7 @@ Tap ↑/↓, hold ↑/↓/MID; touch mirrors the buttons.
 - **EDIT** — tap: grade / move slot · MID hold: SEND→FAIL→DEL · ↓ hold: previous route · ↑ hold: exit
 - **PROJ-SETUP** — tap: slot grade / OFF · ↓ hold: next slot · ↑ hold: exit
 
-MID tap = Suunto's screen scroll.
+Flick ↑/↓ = ±3 grades (free mode) · MID tap = Suunto's screen scroll.
 
 ## Feedback
 
