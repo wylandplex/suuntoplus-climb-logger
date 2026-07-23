@@ -224,7 +224,7 @@ excluded at the manifest `displays` level — they hit memory limits.
 
 ## License
 
-MIT — see [LICENSE](LICENSE) if present. Contributions welcome via pull request or issue.
+MIT — see [LICENSE](LICENSE). Contributions welcome via pull request or issue.
 
 ## Credits
 
