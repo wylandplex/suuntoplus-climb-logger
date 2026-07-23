@@ -163,7 +163,8 @@ finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
 
 - **`master`** — mirrors the shipped store state (currently **v3.02**); receives hotfixes only.
 - **`dev`** — the **v3.1 feature line** (nightly). All feature work lands here; published as
-  GitHub *pre-releases* (`v3.1-dev.N`) until 3.1 ships, at which point `dev` merges to `master`.
+  GitHub *pre-releases* (`v3.1.0-dev.N` — strict semver tags, so GitHub's release list sorts
+  correctly) until 3.1 ships, at which point `dev` merges to `master`.
 
 ### Build & deploy
 ```bash
