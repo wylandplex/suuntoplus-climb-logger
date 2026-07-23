@@ -220,7 +220,9 @@ Canvas objects need explicit redraw: `control('#id','REFRESH')`, and ZoneSense r
 `main.js` has 28 bytes free, so **do not publish new outputs to drive UI.** Instead: a zero-dimension
 hidden div holding `<eval>` bindings whose `script` formatter runs a **side effect** and returns `''`.
 
-Already in `active.html`:
+Example of the pattern (historical: the shipped needle binding has since moved to the continuous
+`/Activity/Zones/HeartRate/Position` × 2π rotation — see `active.html` — not this discrete
+`CurrentZone` 5-step form; the hidden-eval side-effect mechanism itself is unchanged):
 
 ```html
 <div style="position:absolute;top:0;left:0;width:0;height:0;visibility:HIDDEN">
@@ -276,6 +278,10 @@ ground truth.
 ---
 
 ## 6. State as of this handover
+
+> **Historical snapshot (2026-07-14)** — superseded by the shipped v3.0/3.01/3.02 line
+> (resident ≈6.9 KB after the #197 diet, END-FOLD migration, continuous needle). Current
+> state lives in README/CHANGELOG; sections 1–5 above remain the platform laws.
 
 `master` @ `1ea8db5`, flashed. `manifest.version` = **2.0**.
 

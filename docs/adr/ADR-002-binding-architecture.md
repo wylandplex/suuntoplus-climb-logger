@@ -7,7 +7,7 @@
 
 ## Context
 
-After today's test session (2026-05-18), three issues were identified (see `docs/freeze-analysis-2026-05-18.md`):
+After today's test session (2026-05-18), three issues were identified (see `docs/archive/freeze-analysis-2026-05-18.md`):
 
 1. **Multi-App Freeze** — activating other Suunto-Plus apps (Movement, Vector classic) while Climb-Logger is running causes `ERR WBMAIN: Too many sim. path-param calls` and UI freeze. Watch restart required.
 2. **"No Summary" Session** — long sessions with fast-clicks produce empty/minimal summaries.
@@ -117,7 +117,7 @@ Four watch tests must run with current v3.0 build:
   - `feedback_subscribe_in_onactivate.md` — onLoad subscribe leaks
   - `project_v3_status.md` — v3 architecture history
   - `reference_watch_limits.md` — hardware constraints
-- **Analysis source:** `docs/freeze-analysis-2026-05-18.md` (today's session forensic)
+- **Analysis source:** `docs/archive/freeze-analysis-2026-05-18.md` (today's session forensic)
 - **Plan file:** *(internes Planungsdokument — Implementations-Roadmap)*
 
 ## Reviewers
