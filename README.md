@@ -165,6 +165,9 @@ finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
 - **`dev`** — the **v3.1 feature line** (nightly). All feature work lands here; published as
   GitHub *pre-releases* (`v3.1.0-dev.N` — strict semver tags, so GitHub's release list sorts
   correctly) until 3.1 ships, at which point `dev` merges to `master`.
+- **Version mapping** — the Suunto manifest requires the store's short decimal format and never
+  changes for git's sake: manifest `"3.02"` ↔ tag `v3.0.2`, manifest `"3.1"` ↔ tag `v3.1.0`.
+  Git tags are GitHub-only labels; the watch, store, and build never see them.
 
 ### Build & deploy
 ```bash
