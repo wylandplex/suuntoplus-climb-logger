@@ -1,9 +1,9 @@
 {
  "name": "Climb Log",
  "description": "Track your progress on rock & ice.",
- "version": "3.02",
+ "version": "3.03",
  "author": "skyfi",
- "modificationTime": 1784559767,
+ "modificationTime": 1784902421,
  "type": "feature",
  "usage": "workout",
  "in": [
@@ -58,16 +58,36 @@
  ],
  "template": [
   {
-   "name": "ready.html"
+   "name": "ready.html",
+   "displays": [
+    "n",
+    "o",
+    "q"
+   ]
   },
   {
-   "name": "active.html"
+   "name": "active.html",
+   "displays": [
+    "n",
+    "o",
+    "q"
+   ]
   },
   {
-   "name": "setup.html"
+   "name": "setup.html",
+   "displays": [
+    "n",
+    "o",
+    "q"
+   ]
   },
   {
-   "name": "saving.html"
+   "name": "saving.html",
+   "displays": [
+    "n",
+    "o",
+    "q"
+   ]
   }
  ],
  "variables": [

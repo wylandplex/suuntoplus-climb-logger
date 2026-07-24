@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.03 — 2026-07-24
+
+- **UI1-watch exclusion restored.** The v2.82 compat hotfix (`displays: ["n", "o", "q"]` on every
+  template, 2026-04-16) was silently eroded during the v3.0 template rebuilds and fully lost on
+  2026-07-02 — v3.0/3.01/3.02 shipped installable on UI1 watches (Suunto 3/5/5 Peak/9/9 Baro/9 Peak)
+  with untested s/m/l builds. The tag is back on all four templates: UI1 builds carry no templates
+  again, n/o/q (9 Peak Pro, Vertical, and the 466px family) are unchanged. Manifest-only; no code.
+
 ## v3.02 — 2026-07-20
 
 - **Legacy store cleanup after migration.** Once the migration fold has verifiably landed
