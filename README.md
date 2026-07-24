@@ -1,6 +1,6 @@
-# Climb Log v3.02
+# Climb Log v3.03
 
-[![Latest](https://img.shields.io/badge/release-v3.02-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
+[![Latest](https://img.shields.io/badge/release-v3.03-blue)](https://github.com/wylandplex/suuntoplus-climb-logger)
 
 A SuuntoPlus app for logging climbing sessions on Suunto watches. Tracks routes across 10 grade systems, 5 project slots per system (50 total), heart rate, height gain, and multi-year grade progression.
 
@@ -161,7 +161,7 @@ finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
 
 ### Branch model (since 2026-07-20)
 
-- **`master`** — mirrors the shipped store state (currently **v3.02**); receives hotfixes only.
+- **`master`** — mirrors the shipped store state (currently **v3.03**); receives hotfixes only.
 - **`dev`** — the **v3.1 feature line** (nightly). All feature work lands here; published as
   GitHub *pre-releases* (`v3.1.0-dev.N` — strict semver tags, so GitHub's release list sorts
   correctly) until 3.1 ships, at which point `dev` merges to `master`.
@@ -191,7 +191,7 @@ and don't count against the startup budget — but `main.js` bytecode is RESIDEN
 ~133 KB three-app JS heap, and that residency is what decides whether the pool sits at a
 99 % warn baseline (proven 2026-07-03: 8.2 KB resident = warns/evicts/end-stalls; ≤7.1 KB = clean).
 
-Current footprint (q-display minifier, v3.02):
+Current footprint (q-display minifier, v3.03):
 - `main.js` minified/resident: 6 944 B
 - `ext22.js` (generated publish satellite, parsed once per enable): 1 455 B (cap 1 600 B)
 - runtime route satellite: `ext10` (route commit plus warm save-as-project operation)
