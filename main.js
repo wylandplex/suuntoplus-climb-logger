@@ -448,6 +448,31 @@ function onLoad(_input, output) {
   lastSummaryCache = null; acc = null; f3 = null; sumStale = 0; rt = 0;  // reset the session summary + the pause-fold aggregate + bounded transient-parse budget
   pv = [1]; fP = null; f12 = null; pendV = 1; pvT = 0;  // fresh publish cache + force flag; stage the ext22 parse for the calm post-enable tick (fresh retry budget); f12 dropped for module-reuse hygiene
   state = 4; currentTemplate = "setup";
+  // FULL SESSION RESET (field defect 2026-07-26, FW 2.56.18): the firmware instantiates the module
+  // ONCE and re-Enables it per session — the syslog shows 1x "Load script" against 6x "Enable" and
+  // ZERO "Disable" for zzclimen. onLoad therefore inherits the previous session's state, and the
+  // partial reset above (END-FOLD + publish vars only) let the rest through. isPaused is the lethal
+  // one: it is set by onExercisePause and cleared ONLY by onExerciseContinue, so every normal
+  // pause->stop end armed it for the NEXT session, where evaluate/onEvent/onLap all return at their
+  // first line — SETUP mounts and the app is deaf (17 min in the log), until an accidental
+  // pause+continue revives it publishing the OLD routeNumber ("6 routes" in a fresh session).
+  // INVARIANT: after onLoad a reused module must equal a fresh one — tools/tests/session-reuse-reset.js
+  // compares every module variable, so a new session var without a reset fails there, not in the field.
+  // MUST stay ahead of drainF12: it owns skipP/pendSlots/gradeSystem, and a stale sysDirty would
+  // otherwise suppress the store's system restore.
+  isPaused = frDirty = frSend = extLapPending = rSec = hrSum = hrCnt = sessionH = lastResult =
+    lastDuration = lastHrAvg = lastHeight = curAsc = startAsc = climbMode = lastClimbMode =
+    editIdx = editDelMark = pStep = dwell = sysChg = pendSlots = pendE = skipP = slTries =
+    exFail = psDirty = slotsDirty = sysDirty = gradeSystem = 0;
+  routeNumber = 1; lastGradeIdx = -1; routesA = []; routesB = []; fE = f10 = null;
+  // Storage-backed state needs its OWN defaults, because the drain that normally overwrites it
+  // may never complete: getObject can throw its full capped budget on a hostile heap (the
+  // documented "defaults + open guards" degradation, dfTries/stOk). Without this, a read-only
+  // degraded session would silently run on the PREVIOUS session's system, grade and project slots.
+  // projGradeIdx/projSlot are mutated ELEMENT-WISE, never reassigned: the S publish bag holds them
+  // by reference and that identity is frozen ABI with ext22.
+  currentGrade = DEFAULT_IDX[0];
+  for (var i = 0; i < 21; i++) { if (i < 5) projGradeIdx[i] = -1; projSlot[i] = i < 15 ? 0 : i < 20 ? -1 : ""; }
   // HYBRID drain at onLoad: unlike the falsified eaae480 experiment this is NOT an evalFile parse
   // (no ~2KB contiguous block) — plain getObject reads in small allocations. Bootstrap completes
   // inside the enable for an ordinary store. Legacy migration and any thrown read are retried on

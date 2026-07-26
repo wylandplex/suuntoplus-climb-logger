@@ -1,5 +1,33 @@
 # Changelog
 
+## v3.04 — 2026-07-26
+
+Field hotfix for a defect that made every session *after* the first one dead on arrival.
+
+- **`onLoad` is a full session reset again.** On FW 2.56.18 the firmware instantiates the app's JS
+  module **once** and only re-`Enable`s it for each following session — the syslog of 2026-07-26
+  shows `Zapp zzclimen:Load script` 1×, `Enable` 6×, `Disable` 0×, while every other app on the same
+  watch is 1:1. `onLoad` therefore ran against the *previous* session's module state, and it only
+  reset a subset of it (END-FOLD flags, publish cache, state/template, recap).
+  The fatal survivor was `isPaused`: set by `onExercisePause`, cleared **only** by
+  `onExerciseContinue`. Every normal session ends pause → stop, so it stayed armed into the next
+  session, where `evaluate`, `onEvent` and `onLap` all return on their first line. The app mounted
+  the SETUP screen and then did nothing at all — no publish, no auto-skip to READY, no input; one
+  logged session sat that way for 17 minutes. Nothing froze: the watch stayed fully responsive and
+  the log carries no JSalloc, no RelMem and no assert. The same log holds the proof by accident —
+  a session that was revived mid-flight by a stray pause+**continue**, which is the one code path
+  that clears the flag, and which then published the *previous* session's `routeNumber`.
+  `onLoad` now resets all of it, ahead of the drain (which owns `skipP`/`pendSlots`/`gradeSystem`,
+  and would have had its system restore suppressed by a stale `sysDirty`). Storage-backed state
+  gets its own defaults, because the drain that normally supplies them can throw its full capped
+  budget on a hostile heap — without that, a degraded read-only session ran on the previous
+  session's system, grade and project slots. `projGradeIdx`/`projSlot` are reset element-wise:
+  the `S` publish bag holds them by reference and that identity is frozen ABI with `ext22`.
+  Resident cost +161 B (6 944 → 7 105 B, budget 7 200). No store format change; no data migration.
+  Guarded by `tools/tests/session-reuse-reset.js`, which enumerates every module variable from the
+  vm context global and asserts that a reused module after `onLoad` is indistinguishable from a
+  fresh one — so a session variable added later cannot leak by being forgotten in a hand-kept list.
+
 ## v3.03 — 2026-07-24
 
 - **UI1-watch exclusion restored.** The v2.82 compat hotfix (`displays: ["n", "o", "q"]` on every
