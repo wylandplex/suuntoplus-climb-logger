@@ -372,3 +372,53 @@ exercise (SuuntoPlus menu toggle). The app is fully interactive in that window: 
 project slots and whole logged routes are created there. Consequence: `onLoad` is the one and only
 home of the session reset, and no other hook may reset session data. `tools/logscan.js` measures all
 of this from an imported log.
+
+## 8. Crown watches need no branch at all (2026-07-27 — toolchain source + build probe)
+
+**Correction to §1: `q` is not only the Vertical 2.** The build tool's device table, verbatim:
+`{"id":"q","size":466,"display":"Large UI2","watches":"Suunto Race / Race S / Race 2 / Ocean / Ocean
+Lite / Vertical 2"}`. **There is no Race 2 template** — a crown watch receives the byte-identical
+package already proven on the Vertical 2. The crown is a per-device *runtime* property, never a
+template variant.
+
+**The button schema is device-independent.** `pushButton name` has exactly five legal values (`up`,
+`next`, `down`, `upleft`, `downleft`). Suunto's own `suuntoplus-tools/html/ui2/c-helper-lowp.html`
+branches on `{DEVICE_HAS_CROWN}` and declares **the same three buttons in both arms**; the only delta
+is `queueButton('main', N)` in the non-crown arm, a watch-face concern (pass the press through to the
+view underneath) that does not apply to a sports app. The crown introduces no new event names.
+
+**The control model, read off Suunto's own hint overlay** (`html/ui2/templ/c-hints.html`). Of its 14
+hint types exactly four branch on `{DEVICE_HAS_CROWN}` — `hintUp`, `hintDown`, `hintIncrement`,
+`hintDecrement` — all swapping to `hint-crown-up.png` / `hint-crown-down.png`, drawn 22 px (half
+normal) at `top:43%` / `top:57%` on the right edge: one physical location, rotate up / rotate down.
+Everything press-related — `hintSelect`, `hintSelectPic`, **`hintBtnLpMiddle`**, `hintForward`,
+`hintBtnTop`, `hintBtnBottom` — does **not** branch, and no `hint-crown-press` asset exists anywhere in
+the SDK. So: **rotation = `up`/`down`, crown press = the ordinary `next` middle button, long press
+included.** Suunto would need a crown-specific select affordance if the crown were not pressable; there
+is none. (`hint-crown-*` ship only in `image/q/`; `hint-crown-bg.png` is firmware-provided, not in the
+SDK. In `cwf-cc.html` the three button backings at 22 % / 50 % / 62 % collapse to a single crown
+backing at 36.3 %.)
+
+**`{DEVICE_HAS_CROWN}` is NOT resolved at build time — measured, not assumed.** Inject a two-arm `:if`
+into any template, build, and unzip the `.fea`: **both** arms are in the compiled `.xml` and the token
+survives verbatim as `<test>{DEVICE_HAS_CROWN}</test>`. It is a **runtime** token, despite the
+`{UPPER_SNAKE}` spelling — the exact trap §2 documents for `APP_IS_DISPLAY_LARGE`, which cost this app
+4.5 KB. **Law: never branch on it in the always-mounted UI tree; you pay resident bytes for both arms
+and gain nothing.** Reproduce:
+
+```bash
+git archive HEAD | tar -x -C /tmp/probe            # then inject a 2-arm :if into any template
+node "$TOOLS_BIN" --appID climbl01 --input /tmp/probe --output /tmp/out
+mkdir /tmp/fea && cd /tmp/fea && unzip -q /tmp/out/climbl01-q.fea && grep -o DEVICE_HAS_CROWN *.xml
+```
+
+**Consequence: this app is already crown-native, with zero device code.** Every grade and grade-system
+path is driven by `up`/`down` short clicks — `ev(1)`/`ev(2)` → `dy = ±1` (`main.js`) → `evSetup` (grade
+*system*), `evReady`/`evBreak` (`stepG` on the current grade), `evProjSetup` (project slot grade),
+`evEdit` (route grade in the EDIT overlay). Crown rotation emits exactly those events, so all five work
+on a Race 2 unchanged. `crownEnabled` is a `<uiView>` attribute that only *disables* the crown (Suunto
+sets it `false` on low-power watch faces) — our templates never set it, which is correct.
+
+**What still needs hardware** (issue #205): whether rotation emits one `onClick` per detent and at what
+rate under a fast spin, and whether `onLongPressFull=";"` suppresses the native long-press on a crown
+press identically to a plain button.
