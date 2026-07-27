@@ -599,11 +599,7 @@ function onEvent(_input, output, eventId) {
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
-  var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
-  if (state === 0 || state === 1 || state === 2) {
-    if (eventId === 7) dy = 3;
-    else if (eventId === 8) dy = -3;
-  } else if (eventId === 7 || eventId === 8) return;
+  var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;  // flick feature removed (3.03): eids 7/8 no longer exist — no bindings emit them
   if (state === 0) evReady(output, eventId, dy);
   else if (state === 1) { if (eventId === 5 || eventId === 6) finishRoute(eventId === 6 ? 1 : 0, output); }
   else if (state === 2) evBreak(output, eventId, dy);
