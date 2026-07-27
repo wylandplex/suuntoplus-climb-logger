@@ -1,6 +1,4 @@
-<uiView onFlickUp="ev(7)"
-        onFlickDown="ev(8)"
-        onLoad="
+<uiView onLoad="
           var lock=0,vs=0,M=Math.floor;
           function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
           function mS(x){setText('#rm',x>99?'ROUTE EDIT':x<-99?'PROJECT EDIT':x<0?'PROJECT MODE':'ROUTE MODE');x%=100;return x>0?'#'+x:'P'+(-x)}

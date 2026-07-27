@@ -344,7 +344,7 @@ var SCENARIOS = [
     ['ui'], ['load'], T(2),
     ['ev', 1], ['ev', 1], ['ev', 2],          // system cycling in SETUP (dy)
     ['ev', 6], T(2),                          // confirm -> READY (+ pendSlots tick)
-    ['ev', 1], ['ev', 7], ['ev', 2],          // free-mode grade steps incl. ±3
+    ['ev', 1], ['ev', 2],                     // free-mode grade steps (flick eids removed 3.03)
     ['ev', 6], T(3),                          // START -> CLIMB
     ['ev', 6], T(2),                          // SEND -> BREAK -> commit tick
     ['ev', 1], ['ev', 2],                     // BREAK grade corrections
@@ -412,17 +412,14 @@ var SCENARIOS = [
   )],
   ['EXT overlay edges: system 9 (L=1), empty editor, eid7/8 in 4/5/6, OFF-sentinel slot, no-slot toggle', FRESH, seq(
     ['ui'], ['load'], ['sum'], T(1),
-    ['ev', 7], ['ev', 8],                     // eid7/8 in SETUP (state 4) -> must return
     ['ev', 2], T(1),                          // dy -1 -> system 9 (GRADE_LENS 1, sentinel 950 band)
     ['ev', 6], T(2),                          // confirm -> READY + pendSlots drain (all p9_* undefined)
-    ['ev', 1], ['ev', 7], ['ev', 2],          // stepG with L=1 (always 0) incl. +-3 flick
+    ['ev', 1], ['ev', 2],                     // stepG with L=1 (always 0)
     ['ev', 5], T(2),                          // EDIT overlay EMPTY (routesA.length 0) + pendE parse tick
-    ['ev', 7], ['ev', 8],                     // eid7/8 in EDIT (state 5) -> must return
     ['ev', 1], ['ev', 2], ['ev', 4],          // empty-editor no-ops
     ['ev', 6], T(1),                          // empty-editor exit via eid6
     ['ev', 4], T(1),                          // toggleMode inline with ZERO configured slots -> climbMode stays 1
     ['ev', 5], T(1),                          // proj-setup overlay: slot 1 unconfigured -> slotG OFF sentinel (950)
-    ['ev', 7], ['ev', 8],                     // eid7/8 in PROJ-SETUP (state 6) -> must return
     ['ev', 6],                                // pStep -> slot 2 (also OFF)
     ['ev', 1], T(1),                          // dy on OFF slot: -1 -> 0 (configured), slotsDirty
     ['ev', 5], T(1),                          // exit overlay
@@ -520,7 +517,6 @@ var SCENARIOS = [
     ['ev', 6], T(1),                    // confirm default system -> READY
     ['ev', 5],                          // EDIT with 0 routes (pendE=1)
     T(1),
-    ['ev', 7], ['ev', 8],               // state 5: early return
     ['ev', 1], ['ev', 2], ['ev', 4],    // empty-editor swallow
     ['ev', 6],                          // len 0 -> exit
     T(1),
@@ -532,19 +528,17 @@ var SCENARIOS = [
   )],
   ['FLT G BREAK save-as-project + proj-setup walk', RETURN, seq(
     ['ui'], ['load'], T(2),
-    ['ev', 7], ['ev', 8],               // READY free ±3
-    ['ev', 6], T(2), ['ev', 7], ['ev', 8], ['ev', 6], T(1),  // CLIMB swallow, SEND, commit
-    ['ev', 7], ['ev', 8],               // BREAK free ±3 (wGrade on committed route + recalcBse)
+    ['ev', 6], T(2), ['ev', 6], T(1),   // CLIMB, SEND, commit
     ['fault', '14', 1],
     ['ev', 4],                          // saveAsProject inline throws -> no-op
     ['fault', '14', 0],
     ['ev', 4],                          // succeeds -> project mode, READY
     T(1),
-    ['ev', 5], ['ev', 7], ['ev', 8],    // proj-setup overlay, eid7/8 swallowed
+    ['ev', 5],                          // proj-setup overlay
     ['ev', 1], ['ev', 6], ['ev', 5],    // slot step, next slot, exit
     T(1),
     ['ev', 6], T(2), ['ev', 6], T(1),   // slot climb + SEND
-    ['ev', 1], ['ev', 7],               // BREAK project: cycle +1, ±3 refused
+    ['ev', 1],                          // BREAK project: cycle +1
     ['ev', 6], T(1),
     ['end'], ['sum']
   )],
@@ -611,7 +605,7 @@ var SCENARIOS = [
     ['ui'], ['load'],
     ['ev', 1], ['ev', 2],               // SETUP dy while stone-cold (cancels skipP; FBW crown vs oracle targeted writes)
     ['ev', 6],                          // confirm -> READY mount, still cold (no sysChg: plain confirm)
-    ['ev', 1], ['ev', 7],               // READY grade flicks while cold — fluidity through the cold window
+    ['ev', 1], ['ev', 2], ['ev', 1],    // READY grade presses while cold — fluidity through the cold window
     T(2),                               // stager tick -> warm + full republish
     ['ev', 6], T(2), ['ev', 6], T(2),   // route 1 warm
     ['end'], ['sum']
@@ -619,7 +613,7 @@ var SCENARIOS = [
   ['S5 FLT M permanent ext22 parse fail: whole session on the FBW crown (states 0/1/2/4 only)', RETURN, seq(
     ['fault', '22', 999],
     ['ui'], ['load'], T(2),             // stager throws (capped) -> permanent cold
-    ['ev', 1], ['ev', 7], ['ev', 2],    // READY free-mode flicks stay fluid
+    ['ev', 1], ['ev', 2], ['ev', 1],    // READY free-mode presses stay fluid
     ['ev', 4], T(1),                    // project toggle (slot 1) — FBW proj-branch crown
     ['ev', 1], ['ev', 2],               // cycleSlot ±1 cold
     ['ev', 4],                          // back to free mode

@@ -30,7 +30,7 @@ entering or leaving them swaps nothing:
 ### Per-screen button matrix
 
 Physical buttons: `mid-short` is OS-reserved. Events — up-short/down-short = grade nudges,
-up-long/down-long/mid-long = actions, flick-up/down = quick (×3) grade step.
+up-long/down-long/mid-long = actions.
 
 | Screen    | Up short            | Down short          | Mid long             | Up long                     | Down long            |
 |-----------|---------------------|---------------------|----------------------|-----------------------------|----------------------|
@@ -52,8 +52,6 @@ until a new editable tail route exists.
 - `mid-short` is OS-reserved (scrolls Suunto's native activity screens).
 - `down-long` commits / advances forward.
 - Touch tap-zones mirror the long-press action on their respective button pills.
-- Flicks fire the short-press grade step ×3; in project mode (READY/BREAK) flicks are a no-op
-  (project cycling is single-step only).
 - At 35 **live** routes (`ROUTE_LIMIT`), START is silently refused (the dedicated LIMIT screen was
   cut in the resident diet). The cap gates the un-folded tail only: **pausing the workout folds the
   tail** into the RAM aggregate and frees all 35 slots — pause once and keep climbing.
