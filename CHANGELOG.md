@@ -1,13 +1,75 @@
 # Changelog
 
+## v3.05 — 2026-07-27
+
+**No user-visible behaviour changes.** A follow-through on the v3.04 field defect: one belt, one
+syslog beacon, three gates and the tooling to read the answer out of a watch log. Cost: **+55 B** of
+`main.js` (7105 → 7160 of 7200) and **zero** new module units.
+
+- **`onExerciseStart` is implemented** — a documented per-exercise hook this app never had. Its whole
+  body is `isPaused = 0`: a **second, independent clearing partner** for the one variable that killed
+  3.03. Until v3.04 `isPaused` was set by `onExercisePause` and cleared *only* by
+  `onExerciseContinue`, and 26.07 proved that a lifecycle partner firing is not guaranteed. No
+  reachable state has an exercise *starting* while the app should stay paused, so the assignment is
+  unconditionally correct and touches nothing else.
+  It is **deliberately not a session reset**: the app is interactive for up to 215 s between Enable
+  and exercise start (median 4 s, max 215 s measured), and SETUP switches, project slots and whole
+  logged routes live in that window. The reset keeps exactly one home — `onLoad`.
+- **An enable witness in the syslog.** `onLoad` now emits `CLo<state><isPaused><routeNumber>` as its
+  **first** statement, so it reports the state the module *inherited* rather than the state it just
+  wrote: `CLo401` = fresh module, `CLo416` = the 26.07 poison verbatim. Until now no syslog line
+  named a JS callback at all — "Enable ⇒ `onLoad`" had to be inferred from side-effect timing, and
+  the missing-`Disable` anomaly is still confounded four ways at n=1 (FW 2.56.18 / store-id
+  `zzclimen` / slot `i:0` / primary app). Three of those four can only be separated by a beacon in
+  the **store** build, which is why it ships here.
+  The call is wrapped in `try/catch`, and that guard is load-bearing rather than decorative: the
+  native is unproven in `main.js` scope on this firmware, and an escaping throw from `onLoad` would
+  skip the reset *and* the drain bootstrap on **every** Enable — strictly worse than the defect being
+  fixed. **Expiry:** delete it (one line) once `tools/logscan.js` reports a `CLo` after every
+  `Load script` and never one inside a live exercise bracket, over ≥10 sessions on FW ≥ 2.56.
+- **`tools/byte-budget.js` gains two gates, both zero-byte:**
+  - **Hook bitmask.** The built blob's first line (`// 30599`) is the sum of the `EventType` ids of
+    every hook the minifier found, and it only ever credits a `FunctionDeclaration`. Demoting
+    `function onExerciseEnd(…)` to `var onExerciseEnd = function (…)` drops 1024 from the mask and the
+    firmware stops delivering the **only writer of `climbProjStats`** — while the build still prints
+    `Build successful` and the whole test suite still prints `ALL PASS`. Mutation-verified; this gate
+    is the only thing that catches it.
+  - **Largest built function span**, not only the span matching the dispatcher probe. The #169
+    compile-arena failure is about one function being too tall and does not care which one; the old
+    check was blind to any refactor that moved the tall pole elsewhere.
+- **`tools/logscan.js`** (new) turns an imported watch syslog into a lifecycle verdict: per-app
+  `Load`/`Enable`/`Disable` counts and imbalance, every Enable with no `Load script` above it (module
+  reuse), the Enable→start gap distribution, Enables that never reached an exercise, memory-pressure
+  co-occurrence, and the beacons — flagging a `CLo` inside a live exercise bracket (a bare
+  mid-exercise Enable) and any `CLs1` (a second exercise on one Enable) that a dev build emits.
+  Every figure in the v3.04 entry below was an unreproducible manual grep until now;
+  `tools/tests/logscan-oracle.js` pins the decoder against the archive.
+- **The 2026-07-26 defect log is archived** at
+  `docs/watch-logs/2026-07-26_fw2.56.18_zzclimen-missing-disable.log`. Every claim in the v3.04 entry
+  rested on a file that existed only in a scratchpad.
+- **Doc corrections.** `DEVELOPMENT_GUIDE.md` said `onLoad` is "called once when exercise starts" —
+  wrong, and the root of this whole class of defect. `docs/UI_PLATFORM_KNOWLEDGE.md` gains §7
+  recording that event hooks cost **zero module units** (the minifier folds them all into one
+  dispatcher), that the blob header is the hook bitmask, that `systemEvent` is a legal
+  `nativeFunction` in `main.js`, and that `onActivityChange` is **not** a multisport hook but an
+  HTML→`main.js` channel.
+
 ## v3.04 — 2026-07-26
 
 Field hotfix for a defect that made every session *after* the first one dead on arrival.
 
-- **`onLoad` is a full session reset again.** On FW 2.56.18 the firmware instantiates the app's JS
-  module **once** and only re-`Enable`s it for each following session — the syslog of 2026-07-26
-  shows `Zapp zzclimen:Load script` 1×, `Enable` 6×, `Disable` 0×, while every other app on the same
-  watch is 1:1. `onLoad` therefore ran against the *previous* session's module state, and it only
+- **`onLoad` is a full session reset again.** On FW 2.56.18 our app's module was **not torn down**
+  between sessions: the syslog of 2026-07-26 shows `Zapp zzclimen:Load script` 1×, `Enable` 6×,
+  **`Disable` 0×**, while every co-app on the same watch is 1:1:1 (`zzmoveen` 6/6/6, `zwc05901`
+  7/7/7). The discard sweep fired at all five stops and skipped us because we were never in the
+  Disabled state. This is a **missing-`Disable` anomaly, not a firmware design change**: across the
+  53 archived logs on FW 2.53.42 the normal boundary is `Disable → JS will discard → Exercise
+  stopped … Load script → Enable → Exercise started`, and there is **no** file in which
+  `Enable > Load` (asserted mechanically by `tools/tests/logscan-oracle.js`). A fresh module per
+  session is the platform default; `onLoad` must nevertheless be a full reset, because the anomaly's
+  cause is unknown — four perfectly confounded candidates at n=1: FW 2.56.18 / store-id `zzclimen` /
+  slot index `i:0` / being the sport mode's primary app.
+  `onLoad` therefore ran against the *previous* session's module state, and it only
   reset a subset of it (END-FOLD flags, publish cache, state/template, recap).
   The fatal survivor was `isPaused`: set by `onExercisePause`, cleared **only** by
   `onExerciseContinue`. Every normal session ends pause → stop, so it stayed armed into the next

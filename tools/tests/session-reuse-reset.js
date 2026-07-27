@@ -73,7 +73,7 @@ function ser(v, d) {
 }
 
 function makeApp() {
-  var state = { store: { 'o:climbProjStats': fixture() }, failReads: false, extFail: {}, writes: [] };
+  var state = { store: { 'o:climbProjStats': fixture() }, failReads: false, extFail: {}, writes: [], sys: [] };
   var sandbox = {
     localStorage: {
       getItem: function (k) { return state.store[k] === undefined ? null : state.store[k]; },
@@ -93,13 +93,19 @@ function makeApp() {
       return extStub(n, state);
     },
     setText: function () {}, setStyle: function () {}, unload: function () {}, navigate: function () {},
+    systemEvent: function (m) { state.sys.push(m); },  // 3.1 beacons: CAPTURED, not swallowed — a no-op
+    // stub would ship the instrumentation untested. main.js guards every call in try/catch, so the other
+    // 26 sandboxes in tools/ need no edit at all (verified: full suite green, unmodified). Only THIS
+    // harness asserts the emitted strings, so only THIS sandbox defines the native. It is a NATIVE, not
+    // module state, so `injected` excludes it from the fresh==reused enumeration automatically.
     Math: Math, String: String, Object: Object, JSON: JSON
   };
   var injected = Object.keys(sandbox);
   vm.createContext(sandbox);
   var src = fs.readFileSync(MAIN, 'utf8');
   src += '\n;this.__api={onLoad:onLoad,evaluate:evaluate,onEvent:onEvent,onLap:onLap,' +
-    'onExercisePause:onExercisePause,onExerciseContinue:onExerciseContinue,onExerciseEnd:onExerciseEnd,' +
+    'onExerciseStart:onExerciseStart,onExercisePause:onExercisePause,' +
+    'onExerciseContinue:onExerciseContinue,onExerciseEnd:onExerciseEnd,' +
     'getUserInterface:getUserInterface,' +
     'getState:function(){return state},getRouteCount:function(){return routesA.length}};';
   vm.runInContext(src, sandbox, { filename: 'main.js' });
@@ -108,6 +114,11 @@ function makeApp() {
   var SCRATCH = ['S', 'eBag'];  // marshalling buffers: pub() rewrites S[0..14] and callE rewrites
   // eBag[0..5] immediately before passing them to ext22/ext21, so they are never read before being
   // rewritten. Verified by inspection: neither name appears outside its writer and that one call.
+  // 3.1 adds NO entry here. The enable-counter design (a var deliberately surviving onLoad, so its leak
+  // IS the reuse signal) was rejected precisely because it would have punched the first hole in this
+  // invariant — and the same information is recovered for free by correlating the CLo beacon against the
+  // firmware's own "Load script" line (tools/logscan.js). Anything appearing in this list in future is
+  // a bug, not an entry.
   var names = Object.keys(sandbox).filter(function (k) {
     return injected.indexOf(k) < 0 && k !== '__api' && SCRATCH.indexOf(k) < 0;
   }).sort();
@@ -120,6 +131,7 @@ function makeApp() {
   api.failReads = function (v) { state.failReads = v; };
   api.failExt = function (n, times) { state.extFail[n] = times; };
   api.writes = function () { return state.writes.length; };
+  api.sys = function () { return state.sys; };
   // Codex review finding 2: the snapshot alone cannot see a REASSIGNMENT of projGradeIdx/projSlot.
   // Rewriting the reset as `projSlot = [...]` would produce identical fresh/reused snapshots while
   // S[16] still pointed at the ORPHANED array — ext22 would then publish stale project data
@@ -344,6 +356,45 @@ api2.onExerciseContinue({}, {});
 tick(api2);
 api2.onLap({}, {}); api2.onEvent({}, {}, 6);
 check('continue restores input', api2.getState() === 1, 'state=' + api2.getState());
+
+// ---------------------------------------------------------------------------------------
+// [7] THE BELT: onExerciseStart is a SECOND, independent clearing partner for isPaused.
+//     lifeK(1) (onExerciseContinue) is the only other one, and 26.07 proved a lifecycle
+//     partner is not guaranteed to fire.
+// ---------------------------------------------------------------------------------------
+console.log('\n[7] onExerciseStart clears isPaused (independent of onExerciseContinue)');
+var bs = makeApp(); bs.onLoad({}, {});
+bs.onExercisePause({}, {});
+check('pause arms the lethal flag (sanity)', bs.snap().isPaused === 'number:1', bs.snap().isPaused);
+bs.onExerciseStart({}, {});
+check('onExerciseStart clears isPaused', bs.snap().isPaused === 'number:0', bs.snap().isPaused);
+check('onLoad emits the pre-reset enable witness', bs.sys()[0] === 'CLo401', bs.sys()[0]);
+// The 3.0.x line ships ONE beacon. A CLs probe here is a 3.1-branch feature (see the comment on
+// onExerciseStart in main.js); asserting its ABSENCE keeps the two lines from silently converging.
+check('onExerciseStart emits no beacon on the 3.0.x line', bs.sys().length === 1, bs.sys().join(','));
+
+// ---------------------------------------------------------------------------------------
+// [8] NON-DESTRUCTION. The app is interactive for up to 215 s between Enable and
+//     Exercise-started: SETUP switches, project slots and whole logged routes live in that
+//     window. onExerciseStart must mutate NOTHING but isPaused. This is the guard against a
+//     future "tier reset" being added here.
+// ---------------------------------------------------------------------------------------
+console.log('\n[8] pre-start work survives onExerciseStart (215 s window is user-owned)');
+var pw = makeApp(); pw.onLoad({}, {});
+pw.onEvent({}, {}, 1); pw.onEvent({}, {}, 1); pw.onEvent({}, {}, 6);   // SETUP: switch grade system
+tick(pw); tick(pw); tick(pw);
+pw.onEvent({}, {}, 4); pw.onEvent({}, {}, 5); tick(pw);                // PROJ-SETUP
+pw.onEvent({}, {}, 1); pw.onEvent({}, {}, 6); pw.onEvent({}, {}, 1); pw.onEvent({}, {}, 5); tick(pw);
+pw.onLap({}, {}); pw.onEvent({}, {}, 6); tick(pw, 150);                // and a whole route, pre-start
+pw.onLap({}, {}); pw.onEvent({}, {}, 6); tick(pw, 150);
+var preS = pw.snap();
+pw.onExerciseStart({}, {});
+var postS = pw.snap();
+var moved = Object.keys(preS).filter(function (k) { return preS[k] !== postS[k]; });
+check('onExerciseStart mutates NOTHING (isPaused was already 0)', moved.length === 0,
+  'moved: ' + moved.map(function (k) { return k + ' ' + preS[k] + ' -> ' + postS[k]; }).join(', '));
+check('pre-start route still logged', pw.getRouteCount() > 0, 'routes=' + pw.getRouteCount());
+check('S-bag ABI intact after onExerciseStart', pw.abiIntact());
 
 console.log('\n' + (failures.length ? 'FAILURES: ' + failures.length : 'ALL PASS'));
 process.exit(failures.length ? 1 : 0);

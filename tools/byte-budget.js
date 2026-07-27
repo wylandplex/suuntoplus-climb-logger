@@ -25,17 +25,35 @@ try {
     if (s > 1600) bad(f + ' is ' + s + ' B > 1600 B parse band');
   });
   // largest function span that IS the lifecycle dispatcher (mux on event codes)
-  var b = fs.readFileSync(path.join(X, 'main.js'), 'utf8'), disp = 0;
+  var b = fs.readFileSync(path.join(X, 'main.js'), 'utf8'), disp = 0, pole = 0;
+  // HOOK BITMASK GATE (3.1). minifier.js emits the blob as `"// " + v + "\n" + code`, where v is the sum
+  // of the EventType ids of every hook it found — and it only ever matches a FunctionDeclaration.
+  // Demoting `function onExerciseEnd(...)` to `var onExerciseEnd = function (...)` therefore drops 1024
+  // from the mask, the firmware stops delivering the ONLY writer of climbProjStats, and the build still
+  // prints `Build successful` with the whole test suite green. Mutation-verified.
+  //   evaluate 1 | onLoad 2 | onLap 4 | onExerciseStart 128 | onExercisePause 256 |
+  //   onExerciseContinue 512 | onExerciseEnd 1024 | getUserInterface 4096 |
+  //   getSummaryOutputs 8192 | onEvent 16384
+  var HOOKS = 1 + 2 + 4 + 128 + 256 + 512 + 1024 + 4096 + 8192 + 16384;  // = 30599 (3.1)
+  var hm = /^\/\/ (\d+)/.exec(b);
+  console.log('hook bitmask: ' + (hm && hm[1]) + '  (expect ' + HOOKS + ')');
+  if (!hm || +hm[1] !== HOOKS) bad('hook bitmask ' + (hm && hm[1]) + ' != ' + HOOKS +
+    ' — a lifecycle hook was added, removed, or demoted to a var (the firmware stops delivering it)');
   var re = /function\s*\([^)]*\)\s*\{/g, m;
   while ((m = re.exec(b))) {
     var i = re.lastIndex, d = 1;
     while (d && i < b.length) { var c = b[i]; if (c === '{') d++; else if (c === '}') d--; i++; }
     var span = b.slice(m.index, i);
+    if (span.length > pole) pole = span.length;   // #169 is a compile-arena failure for ONE function — it
+                                                  // does not care WHICH. The 4096=== probe below only finds
+                                                  // the dispatcher; a refactor that moves the reset chain
+                                                  // into lifeK moves the tall pole where this gate is blind.
     if (/4096===|===4096/.test(span.slice(0, 120)) && span.length > disp) disp = span.length;
   }
-  console.log('dispatcher: ' + disp + ' B  (cliff 1874)');
+  console.log('dispatcher: ' + disp + ' B   largest span: ' + pole + ' B  (cliff 1874)');
   if (!disp) bad('could not locate the lifecycle dispatcher in the built blob');
   if (disp > 1874) bad('dispatcher ' + disp + ' B exceeds the 1874 B cliff');
+  if (pole > 1874) bad('largest built function span ' + pole + ' B exceeds the 1874 B compile cliff');
   var manB = fs.statSync(path.join(X, 'manifest.jsn')).size;
   console.log('manifest.jsn (q): ' + manB + ' B');
   if (fails) { console.error(fails + ' budget violation(s)'); process.exit(1); }
