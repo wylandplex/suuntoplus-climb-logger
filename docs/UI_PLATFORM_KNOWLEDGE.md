@@ -289,21 +289,24 @@ not rest+climb mixed. Do not change that gating.
 I designed this screen for three rounds without once looking at it, and got "the shape" wrong three times.
 Two photos from the owner answered it in ten seconds.
 
-**Render the real templates at every display size** (`../climb-logger-screenshot/`):
+**Render the real templates at every display size.** The renderer is app-agnostic and lives in
+`zappctl` (`zappctl/docs/RENDERING.md`); this app supplies its sample values through
+`render-samples.json` in the repo root, so a render shows a realistic screen rather than zeroes:
 
 ```bash
-cd ~/Documents/suuntoapps/climb-logger-screenshot
-node render-template.mjs                                   # active+ready+setup, n + o + q
-node render-template.mjs --displays n,q --templates ready
-node render-template.mjs --project /tmp/before --out /tmp/shots-before   # A/B a change
+cd ~/Documents/suuntoapps/zappctl
+node render-template.mjs --project ../climb-logger                      # every template, n + o + q
+node render-template.mjs --project ../climb-logger --displays n,q --templates ready
+node render-template.mjs --project /tmp/before --out /tmp/shots-before  # A/B a change
+node compare-sheet.mjs /tmp/shots-before /tmp/shots-after /tmp/cmp.png
 ```
 
 This pushes the template through the toolchain's **own** `processTemplate()` — the function
 `build-app.js` calls — then styles the result with the SDK's real `<display>.css` and real fonts at the
 real face size. So the geometry on screen is the compiler's output, not an imitation of it. Rendering
 `n` beside `q` is what made the 18 offsets above visible; a single size cannot show that class of bug,
-and the older `render-screenshot.mjs` cannot either because it draws a hand-rebuilt copy of
-`active.html` pinned to 466 px.
+and `../climb-logger-screenshot/render-screenshot.mjs` cannot either — it draws a hand-rebuilt copy of
+`active.html` pinned to 466 px and does not track this file. That one is for store images only.
 
 Three traps it already encodes, each of which cost a debugging round:
 
