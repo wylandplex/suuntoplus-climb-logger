@@ -443,6 +443,16 @@ var evProjSetup = function(output, eid, dy) {
 };
 
 function onLoad(_input, output) {
+  // 3.1 ENABLE WITNESS. No syslog line ever names a JS callback — the whole 2026-07-26 diagnosis had to
+  // INFER "Enable => onLoad" from side-effect timing. systemEvent() writes into the watch's own event log
+  // (allowlisted nativeFunction), so ONE line makes this app self-describing. Read BEFORE the reset below,
+  // i.e. the INHERITED state is the evidence:  CLo401 = fresh module (a Load script preceded it),
+  // CLo416 = the 26.07 poison verbatim (state 4 / isPaused 1 / routeNumber 6) => reuse, caught by the reset.
+  // The try/catch is LOAD-BEARING, not decoration: systemEvent in main.js scope on this firmware is a
+  // HYPOTHESIS, and an unguarded throw here would abort the reset chain AND the drainF12 bootstrap below —
+  // on every single Enable, i.e. strictly worse than the defect being fixed.
+  // EXPIRY: delete once tools/logscan.js has answered open questions 1-3 over >=10 sessions (see CHANGELOG).
+  try { systemEvent("CLo" + state + isPaused + routeNumber); } catch (e) {}
   migPend = migOK = slotTouched = seedStay = 0; // END-FOLD state is re-derived per enable (same module instance may be reused across sessions)
   finalized = 0;  // new session → re-arm onExerciseEnd
   lastSummaryCache = null; acc = null; f3 = null; sumStale = 0; rt = 0;  // reset the session summary + the pause-fold aggregate + bounded transient-parse budget
@@ -589,11 +599,7 @@ function onEvent(_input, output, eventId) {
   skipP = 0;  // any press cancels the pending auto-skip — the user is using the SETUP screen
   if (frDirty && (eventId === 4 || eventId === 6)) return;
   if (dwell && eventId === 6 && state === 1) return;
-  var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;
-  if (state === 0 || state === 1 || state === 2) {
-    if (eventId === 7) dy = 3;
-    else if (eventId === 8) dy = -3;
-  } else if (eventId === 7 || eventId === 8) return;
+  var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;  // flick feature removed (3.03): eids 7/8 no longer exist — no bindings emit them
   if (state === 0) evReady(output, eventId, dy);
   else if (state === 1) { if (eventId === 5 || eventId === 6) finishRoute(eventId === 6 ? 1 : 0, output); }
   else if (state === 2) evBreak(output, eventId, dy);
@@ -677,6 +683,23 @@ var lifeK = function(op, o) {
   } else return { id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc ? acc[0] : 0, postfix: '/ ' + (acc ? acc[1] : 0) };  // op 4: THE sr row (audit C1, 3 sumUp sites)
 };
 
+// 3.1 SECOND CLEARING PARTNER for the lethal flag. isPaused is set by lifeK(0) and cleared ONLY by
+// lifeK(1) — a partner whose firing is exactly what the 26.07 field defect proved is not guaranteed.
+// The reference documents onExerciseStart as "a good place to initialize variables" and Suunto's own
+// example clears a module-level isPaused here; this app never implemented the hook. No reachable state
+// has an exercise STARTING while the app should stay paused, so the assignment is unconditionally
+// correct and has ZERO data-loss surface: it touches nothing else.
+// DELIBERATELY NOT a session reset. The app is interactive for up to 215 s between Enable and
+// Exercise-started (measured: median 4 s, max 215 s) — SETUP switches, project slots, even a whole
+// logged route live in that window, and resetting here would silently eat them. The reset has ONE
+// home: onLoad. tools/tests/session-reuse-reset.js [8] asserts this hook mutates nothing but isPaused.
+// NO BEACON HERE ON THE 3.0.x LINE. The 3.1 branch also emits `systemEvent("CLs" + finalized)` from
+// this hook — CLs0 = ordinary start, CLs1 = a SECOND exercise on ONE Enable (whose stats are at risk
+// today), no CLs at all = the hook does not fire on this firmware. That probe is worth 37 B on a dev
+// build we deploy by cable and read back the same day; it is not worth spending the store line's
+// last bytes on, because every question it answers is answerable from a dev session. tools/logscan.js
+// decodes CLs regardless, so a dev log and a store log go through the same reader.
+function onExerciseStart(_input, _output) { isPaused = 0; }
 function onExercisePause(_input, _output) { lifeK(0); }
 function onExerciseContinue(_input, output) { lifeK(1, output); }
 function onExerciseEnd(_input, _output) {
