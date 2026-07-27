@@ -1,5 +1,38 @@
 # Changelog
 
+## v3.06 — 2026-07-27
+
+**Layout fix for the smaller UI2 watches.** Reported from a 9 Peak Pro: arrows, grade and
+grade-system vertically misaligned, the top button glyph too high and too far right, and the route
+number overlapping the HR zone band. One root cause behind all of it — and it was a documentation
+error as much as a code one. No behaviour change, no new resident bytes.
+
+- **18 vertical offsets across `active.html`, `ready.html` and `setup.html` now centre with `%e`
+  instead of a pixel constant.** The toolchain rescales everything it owns — the font class
+  (`sp-d-l` compiles to `f-d-l` on `n` but `f-d-xl` on `q`), the text padding it injects (14 px vs
+  29 px), and `%e` — but emits hard-coded `px` **byte-identically into every display package**.
+  Every constant here was half a `q` line-height: `18.5` is half of `f-ico`'s 37 px on `q`, where the
+  same class is **20 px on `n`** and **22 px on `o`**. So each such element sat **8.5 px too high on a
+  240 px face** — 3.5 % of the screen — and `ready.html`'s route number landed **0.6 px from the
+  bezel**, inside the zone band. On `o` it was 3.8 px.
+  `top:calc(N% - 50%e)` states the same intent (*centre on line N %*) and is recomputed per display;
+  in the compiled XML it becomes `<proportionOfElement>0.50</proportionOfElement>`, which the
+  **firmware** resolves against the element's real height. Two residual nudges (`- 3px`, `- 6px`) were
+  folded into their percentages for the same reason.
+- **A no-op on the Vertical 2, by construction:** `50%e` *is* 18.5 px for `f-ico` on `q`. Verified by
+  rendering the real templates through the toolchain's own `processTemplate()` at all three UI2
+  sizes — `active.xml` on `q` renders pixel-identically, while the spread of every affected element
+  across `n`/`o`/`q` collapses from **3.85 percentage points to 0.01**.
+- **`docs/UI_PLATFORM_KNOWLEDGE.md` §2 caused this and is corrected in place.** It used to end
+  *"Vertical `px` that centres a glyph against its own line-height … is an established, safe
+  pattern."* That sentence is now marked *Corrected 2026-07-27* and carries the measured
+  compiler-output comparison plus the `f-*` line-height table per display. §5 points at the renderer.
+- **`render-samples.json`** (new) supplies this app's `out[]` values to the template renderer, which
+  now lives in `zappctl` and is app-agnostic (`zappctl/docs/RENDERING.md`). Rendering `n` beside `q`
+  is what made the defect visible; a single size cannot show this class of bug.
+- **The store description now ends with the readable version** (`… v3.0.6`), because
+  `manifest.version` is capped at 4 characters by the schema and cannot hold `3.0.6`.
+
 ## v3.05 — 2026-07-27
 
 **No user-visible behaviour changes.** A follow-through on the v3.04 field defect: one belt, one
