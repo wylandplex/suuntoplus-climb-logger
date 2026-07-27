@@ -64,14 +64,45 @@ Use `visibility:HIDDEN` + zero dimensions.
 nothing at all. Anything that must change colour at runtime has to be **pre-built and toggled by
 visibility**. That is why the green `#hg` / orange `#ho` result bands exist as two stacked divs.
 
-### No hard-coded horizontal `px`
+### No hard-coded `px` — vertical as well as horizontal
 
 The toolchain emits `px` **byte-identically into every display variant** — it does not scale them. A
 canvas once shipped a fixed `452px` and drifted on the smaller UI2 watches; the heart icon repeated the
 mistake with `calc(50% - 105px)`. Use `%`, or `%e` (percent of the element's own size).
 
-Vertical `px` that centres a glyph against its own line-height (`top:calc(50% - 18.5px)`) is an
-established, safe pattern.
+> **Corrected 2026-07-27.** This section used to end: *"Vertical `px` that centres a glyph against its
+> own line-height (`top:calc(50% - 18.5px)`) is an established, safe pattern."* **That sentence was
+> wrong and it shipped 18 misplaced offsets across the three templates.** `18.5px` is half of `f-ico`'s
+> line-height **on `q` only** (37 px). The same class is 20 px on `n` and 22 px on `o`, so every element
+> positioned that way sat 8.5 px too high on the 9 Peak Pro and 7.5 px too high on the Vertical 1 — on a
+> 240 px face that is 3.5 % of the screen. `ready.html`'s route number landed **0.6 px from the bezel**,
+> inside the zone band. Reported from the watch, then reproduced in the renderer (§5).
+
+**The compiler rescales everything it owns, and nothing you hard-code.** Measured by diffing
+`processTemplate()`'s own output for the same source line:
+
+| source | emitted for `n` | emitted for `q` |
+|---|---|---|
+| `class="sp-d-l"` | `f-d-l` (50 px) | `f-d-xl` (103 px) — a whole step up |
+| injected text padding | `padding-top:14px` | `padding-top:29px` |
+| `top:calc(59% - 50%e)` | recomputed from the real box | recomputed from the real box |
+| `top:calc(24% - 18.5px)` | **`24% - 18.5px`** — unchanged | `24% - 18.5px` |
+
+**Law: to centre an element on line N %, write `top:calc(N% - 50%e)`.** That is the same value the
+constant was standing in for — on `q`, `50%e` *is* 18.5 px for `f-ico` — so the conversion is a no-op on
+the Vertical 2 and a correction everywhere else. Verified: after converting all 18, `active.xml` on `q`
+renders pixel-identically, while `n` and `o` move into the same proportions.
+
+`f-*` line-heights, i.e. the numbers those magic constants were really derived from:
+
+| class | `n` | `o` | `q` | `50%e` on `q` |
+|---|---|---|---|---|
+| `f-ico` | 20 | 22 | 37 | **18.5** |
+| `f-t-s` | 16 | 18 | 30 | 15 |
+| `f-b-s` | 17 | 19 | 32 | 16 |
+
+A residual nudge (`- 3px`, `- 6px`) does not scale either. Fold it into the percentage instead:
+`calc(90% - 50%e - 6px)` on `q` is the same pixel as `calc(88.71% - 50%e)`, and the latter scales.
 
 ### `f-num` is a FONT FAMILY, not a glyph filter
 
@@ -258,19 +289,35 @@ not rest+climb mixed. Do not change that gating.
 I designed this screen for three rounds without once looking at it, and got "the shape" wrong three times.
 Two photos from the owner answered it in ten seconds.
 
-**Render the template with Suunto's real CSS:**
+**Render the real templates at every display size** (`../climb-logger-screenshot/`):
 
 ```bash
-# q.css + q-dark.css from the extension's webview-resources/css/ are the REAL styles.
-# Strip the <eval>s (use a regex that tolerates '>' inside attribute values:
-#   <eval\b(?:[^>"]|"[^"]*")*/>   — a naive [^>]* breaks on `x => x > 0`),
-# translate Suunto positioning to browser CSS:
-#   top:calc(N% - 50%e)  ->  top:N%; transform:translateY(-50%)
-#   p-hc                 ->  left:50% !important (Suunto's own rule uses var(--ew), which the browser lacks)
-# then:
-firefox --headless --profile /tmp/ffp --no-remote --window-size=1030,545 \
-        --screenshot /tmp/shot.png "file:///tmp/preview.html"
+cd ~/Documents/suuntoapps/climb-logger-screenshot
+node render-template.mjs                                   # active+ready+setup, n + o + q
+node render-template.mjs --displays n,q --templates ready
+node render-template.mjs --project /tmp/before --out /tmp/shots-before   # A/B a change
 ```
+
+This pushes the template through the toolchain's **own** `processTemplate()` — the function
+`build-app.js` calls — then styles the result with the SDK's real `<display>.css` and real fonts at the
+real face size. So the geometry on screen is the compiler's output, not an imitation of it. Rendering
+`n` beside `q` is what made the 18 offsets above visible; a single size cannot show that class of bug,
+and the older `render-screenshot.mjs` cannot either because it draws a hand-rebuilt copy of
+`active.html` pinned to 466 px.
+
+Three traps it already encodes, each of which cost a debugging round:
+
+- Strip `<uiView>`/`<eval>` with a quote-aware pattern — `<uiView\b(?:[^>"]|"[^"]*")*>`. A naive
+  `[^>]*` stops at the `>` inside `if(i>=50)` and the rest of `onLoad` leaks in as visible body text.
+- `top:calc(N% - 50%e)` is **invalid CSS to a browser** (valid to the firmware). Chrome drops the
+  declaration at parse time, and **any** write to `el.style` — including `setVis()` — re-serialises the
+  attribute and discards it permanently. Snapshot every `style` attribute *before* running the evals.
+- The template's root `<div class="cm-bg">` must be forced to fill the face, or `position:absolute`
+  makes it shrink-to-fit and every `%` underneath resolves against a collapsed box.
+
+What is real: the transform, the CSS, the fonts, the metrics, the `%e` resolution, and the zone-gauge
+needle (read from the SDK's per-display `html/<display>/zone-g.html`). What is approximated, because the
+firmware owns it and it ships in no SDK file: the zone band's colour ramp, and `tooth.png`.
 
 Better still: **ask for a photo of the watch.** It is faster than any amount of reasoning, and it is
 ground truth.

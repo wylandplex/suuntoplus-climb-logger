@@ -92,7 +92,7 @@
       </div>
 
       <!-- Tap zones and white action glyphs: FAIL top-right, SEND bottom-right. -->
-      <div class="f-ico" style="top:calc(24% - 18.5px);left:calc(85% - 50%e);">&#xF110;</div>
+      <div class="f-ico" style="top:calc(24% - 50%e);left:calc(85% - 50%e);">&#xF110;</div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
 
@@ -111,13 +111,13 @@
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
       </div>
 
-      <div id="ma" class="f-ico" style="top:calc(47% - 18.5px);left:calc(94% - 50%e - 3px)">&#xE338;</div>
+      <div id="ma" class="f-ico" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px)">&#xE338;</div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute"></div>
     </div>
 
     <!-- Same position and action in both states; only the glyph changes. Sharing these nodes keeps the
          full UI while avoiding a second always-mounted icon and hit target. -->
-    <div id="ba" class="f-ico" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xF200;</div>
+    <div id="ba" class="f-ico" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xF200;</div>
     <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
 
 

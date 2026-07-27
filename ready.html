@@ -35,10 +35,10 @@
 
     <!-- Transparent header content layer; the mirrored tooth backing is the first root child above. -->
     <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:24%">
-      <div class="sp-t-s p-hc" style="top:calc(34% - 19px);">
+      <div class="sp-t-s p-hc" style="top:calc(34% - 50%e);">
         <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => mS(x)" default="#1" />
       </div>
-      <div class="sp-vertical-center" style="left:calc(50% - 50%e);top:calc(76% - 20.5px)">
+      <div class="sp-vertical-center" style="left:calc(50% - 50%e);top:calc(76% - 50%e)">
         <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
         <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
         <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
@@ -48,20 +48,20 @@
     <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
     <!-- packedGL's high million selects the EDIT value: 1..5 renders Pn (grade) with live chevrons;
          6 is the empty-editor lock and hides them. The low remainder stays the grade payload. -->
-    <div id="gu" class="f-ico p-hc" style="top:calc(33% - 20px);">&#xF266;</div>
+    <div id="gu" class="f-ico p-hc" style="top:calc(33% - 50%e);">&#xF266;</div>
 
-    <div class="sp-t-l p-hc p-tc" style="top:calc(46.5% - 50%e - 3px);width:100%">
+    <div class="sp-t-l p-hc p-tc" style="top:calc(45.86% - 50%e);width:100%">
       <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => gV(x)" default="--" />
     </div>
 
     <div onTap="ev(2)" style="top:54%;left:0;width:70%;height:17%;position:absolute;"></div>
-    <div id="gd" class="f-ico p-hc" style="top:calc(62.5% - 20px);">&#xF267;</div>
+    <div id="gd" class="f-ico p-hc" style="top:calc(62.5% - 50%e);">&#xF267;</div>
 
     <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
          EDIT (5) / PROJ-SETUP (6) overlays. Glyphs are icon-FONT text chars, so an eval script can swap
          them; inside the script string ONLY \uXXXX escapes render (HTML entities break silently) — the
          entity form is legal only in the XML `default`. -->
-    <div id="pu" class="f-ico cm-bgc" style="top:calc(24% - 18.5px);left:calc(85% - 50%e);">&#xE338;</div>
+    <div id="pu" class="f-ico cm-bgc" style="top:calc(24% - 50%e);left:calc(85% - 50%e);">&#xE338;</div>
     <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
@@ -78,12 +78,12 @@
          x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
          setOutputs + tools/tests/output-pack-equiv.js. -->
     <div id="pm" style="position:absolute;top:0;left:0;width:100%;height:100%;">
-      <div id="pi" class="f-ico cm-bgc" style="top:calc(47% - 18.5px);left:calc(94% - 50%e - 3px);">&#xF111;</div>
-      <div id="pd" class="sp-b-s cm-bgc" style="position:absolute;top:calc(47% - 20.5px);left:calc(94% - 50%e - 3px);visibility:HIDDEN">DEL</div>
+      <div id="pi" class="f-ico cm-bgc" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px);">&#xF111;</div>
+      <div id="pd" class="sp-b-s cm-bgc" style="position:absolute;top:calc(47% - 50%e);left:calc(94% - 50%e - 3px);visibility:HIDDEN">DEL</div>
     </div>
     <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
-    <div class="f-ico cm-bgc" style="top:calc(76% - 18.5px);left:calc(85% - 50%e);">&#xE373;</div>
+    <div class="f-ico cm-bgc" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xE373;</div>
     <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
 
     <!-- ONE shared 73%-row directly ABOVE the bottom tooth for BOTH packedAct renderings: the
@@ -91,16 +91,16 @@
          exclusive by value, so the two spans never show together — the proven edr+pA pair shape.
          U16 (setText-merge into one eval) REVERTED: an eval-context setText needs a compiled text
          node; the return-rendered eval is the only on-watch-proven mechanism for these rows. -->
-    <div class="p-hc sp-vertical-center" style="top:calc(73% - 20.5px);">
+    <div class="p-hc sp-vertical-center" style="top:calc(73% - 50%e);">
       <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pS(x)" /></span>
       <span class="sp-b-s"><eval input="/Zapp/{zapp_index}/Output/packedAct" outputFormat="script x => pA(x)" /></span>
     </div>
 
-    <div class="p-hc sp-vertical-center" style="top:calc(79% - 20.5px);">
+    <div class="p-hc sp-vertical-center" style="top:calc(79% - 50%e);">
       <span id="edr" class="sp-b-s"></span>
     </div>
 
-    <div id="rm" class="sp-b-s p-hc" style="top:calc(90% - 50%e - 6px)">ROUTE MODE</div>
+    <div id="rm" class="sp-b-s p-hc" style="top:calc(88.71% - 50%e)">ROUTE MODE</div>
 
     <import src="#zone-g" />
     <eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" />
