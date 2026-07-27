@@ -53,7 +53,7 @@ assert(!manifest.variables.some(v => /(?:Sets|Laps)$/.test(v.shownName)));
 
 // END-FOLD: shipped data no longer seeds a v3 container -- a v3 store may only come from a
 // real fold (update-wipe detectability). The shipped fixtures stay legacy (v!==3, stats.cv=1).
-for (const file of ['data.json', 'data.default.json']) {
+for (const file of ['data.json']) {
   const data = JSON.parse(fs.readFileSync(path.join(ROOT, file), 'utf8'));
   assert.strictEqual(data.stats.projects, undefined);
   assert.strictEqual(data.climbProjStats, undefined);

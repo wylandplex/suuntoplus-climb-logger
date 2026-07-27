@@ -48,7 +48,7 @@ function makeLS(seed) {
   return ls;
 }
 
-// exts are evaluated INSIDE the vm context so ext11/ext13/ext14 see the shimmed localStorage.
+// exts are evaluated INSIDE the vm context so ext11/ext13 see the shimmed localStorage.
 function makeSandboxVmExts(ls) {
   var ev = { counts: {}, throwing: {}, callThrow: {} };  // throwing = parse-time fault; callThrow = CALL-time fault on the (possibly cached) fn — the warm-slice alloc-fail class parse faults can never reach
   var sandbox = {

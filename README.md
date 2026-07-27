@@ -72,7 +72,6 @@ until a new editable tail route exists.
 | `ext12.js`          | Legacy slot seed for a migration-pending session (staged tick; f12-cached for the SETUP dwell) | Legacy enable |
 | `ext13.js`          | Native destination-system project preload                  | System switch  |
 | `ext15.js`          | Numeric-path working-array merge (END-FOLD)                | First END after a numeric legacy install |
-| `ext14.js`          | Retired save-as-project satellite (kept as a source artifact; no runtime caller) | Never |
 | `ext16.js`          | Live-2.82 → canonical v3 converter (string OR absent stats root) | First END after a 2.82 install (END-FOLD) |
 | `ext17.js`+`ext19.js` | Numeric v1/v2 → canonical v3 converter pair              | First END after a numeric legacy install |
 | `ext18.js`          | All-system grade-name table for adopted Companion rows      | Fold END only |
@@ -176,7 +175,9 @@ finishes the route as SEND (deferred one tick so an app SEND/FAIL press wins).
 ```
 
 A build produces one `.fea` per supported display (`climbl01-{l,m,n,o,q,s}.fea`); the Vertical 2
-uses the **q** variant. The manifest `description` must stay ≤ 100 characters or the build fails.
+uses the **q** variant. The `.fea` files are build artifacts and not tracked (`.gitignore`d), but
+keep at least one on disk — `bledeploy.sh` derives the appID from the filename when `--appid` is
+omitted. The manifest `description` must stay ≤ 100 characters or the build fails.
 
 ### Parser budget
 
@@ -214,7 +215,7 @@ permission to persist, not a reservation.
 
 ### Backlog
 
-Open work and deferred ideas live in **GitHub Issues**, indexed in [docs/BACKLOG.md](docs/BACKLOG.md).
+Open work and deferred ideas live in **[GitHub Issues](https://github.com/wylandplex/suuntoplus-climb-logger/issues)**.
 
 ---
 

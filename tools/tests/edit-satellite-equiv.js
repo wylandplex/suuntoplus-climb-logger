@@ -1,7 +1,7 @@
 // edit-satellite-equiv.js — proves the Stufe-2 EDIT SATELLITE (ext21 via callE + the M9 pendE gate)
 // is state-equivalent to the master-resident toggleRes/edDel semantics it replaced.
 //
-// Candidate = the REAL main.js + REAL ext21.js/ext14.js/ext10.js served through evalFile in a vm
+// Candidate = the REAL main.js + REAL ext21.js/ext10.js served through evalFile in a vm
 // sandbox, driven through the actual lifecycle (onLoad/evaluate/onEvent) — so the eBag marshalling,
 // the fE cache/release lifecycle and the gate wiring are under test, not just the ext body.
 // Oracle = a frozen reimplementation of master's toggleRes/edDel/eid4-cycle rules (git master).
@@ -182,7 +182,7 @@ console.log('[edit-satellite-equiv] ext21/callE/M9-gate vs frozen master semanti
     app.boot();
     var n = 2 + Math.floor(rng() * 4);
     for (var i = 0; i < n; i++) { app.climb(rng() < 0.6 ? 1 : 0); if (i < n - 1) app.toReady(); }
-    if (rng() < 0.4) {                         // save-as-project (ext14 tags last route by-ref),
+    if (rng() < 0.4) {                         // save-as-project (warm ext10 op tags last route by-ref),
       app.ev(4); app.tick();                   // then toggleMode back to FREE so eid5 opens EDIT
       if (app.st().climbMode > 0) { app.ev(4); app.tick(); }  // and the c>0 mirror paths get cycled
     } else app.toReady();

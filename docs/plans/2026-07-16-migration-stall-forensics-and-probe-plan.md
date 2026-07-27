@@ -2,7 +2,7 @@
 
 **Stand:** 16. Juli 2026, abends — **v2 nach adversarialem Codex-Review** (14 Findings, 2 Blocker;
 alle tragenden Einwände am Roh-Log nachverifiziert und eingearbeitet)
-**Vorgänger:** [`MIGRATION_STATUS_2026-07-16.md`](../MIGRATION_STATUS_2026-07-16.md)
+**Vorgänger:** [`MIGRATION_STATUS_2026-07-16.md`](../archive/MIGRATION_STATUS_2026-07-16.md)
 **Quellen:** 12-Agenten-Forensik + Codex-Gegenreview über `log/vertical2.log` (Ring 12:27–14:23),
 Migrationscode, Archiv-Logs.
 

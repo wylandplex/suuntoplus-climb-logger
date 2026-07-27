@@ -526,7 +526,7 @@ var SCENARIOS = [
     ['ev', 5],                          // now exits
     T(1), ['end'], ['sum']
   )],
-  ['FLT G eid7/8 BREAK/SETUP + ext14 throw', RETURN, seq(
+  ['FLT G BREAK save-as-project + proj-setup walk', RETURN, seq(
     ['ui'], ['load'], T(2),
     ['ev', 6], T(2), ['ev', 6], T(1),   // CLIMB, SEND, commit
     ['fault', '14', 1],
