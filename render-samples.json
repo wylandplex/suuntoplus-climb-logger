@@ -1,0 +1,18 @@
+{
+  "_comment": "Sample values for tools/render (climb-logger-screenshot/render-template.mjs). Keys are manifest out[] names or full firmware resource paths. Fixed so renders are byte-repeatable: route #3, French Sport 6b+, +14 m, 158 bpm, 1'42 on the open lap, HR zone ~4. hdrGrade 21 decodes through the template's own dG() to '6b+'; packedGL 19992 is that same grade in ready.html's packed encoding (21 * 952).",
+  "common": {
+    "vState": 1,
+    "hdrRes": 0,
+    "modeSub": 3,
+    "hdrGrade": 21,
+    "routeHeight": 14,
+    "packedGL": 19992,
+    "packedAct": 3002
+  },
+  "states": {
+    "break": { "vState": 2 }
+  },
+  "templates": {
+    "setup": { "modeSub": 0 }
+  }
+}
