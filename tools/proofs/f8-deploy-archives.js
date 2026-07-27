@@ -12,7 +12,12 @@ var pythonPath = path.join(deployRoot, 'deploy.py');
 var shell = fs.readFileSync(shellPath, 'utf8');
 var python = fs.readFileSync(pythonPath, 'utf8');
 
-var buildsToTemp = /OUT="\$\(mktemp -d \/tmp\/bledeploy\./.test(shell) &&
+// The claim under test is "the build output goes to a THROWAWAY directory", not "the throwaway
+// directory is literally under /tmp". Pinning the literal path made this proof fail the day
+// bledeploy.sh was made portable ("${TMPDIR:-/tmp}/bledeploy.XXXXXX") even though the behaviour it
+// asserts never changed — a false alarm on a proof is worse than no proof, because it trains you to
+// ignore the suite. Match the mktemp-into-a-bledeploy-prefixed-dir shape and let the parent vary.
+var buildsToTemp = /OUT="\$\(mktemp -d [^"]*"?[^"]*bledeploy\./.test(shell) &&
   /--input "\$APPDIR" --output "\$OUT"/.test(shell);
 var payloadFromTemp = /FEA="\$OUT\/\$APPID-\$VARIANT\.fea"/.test(shell) &&
   /deploy\.py" "\$FEA"/.test(shell);
