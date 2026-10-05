@@ -1,5 +1,20 @@
 # Changelog
 
+## v3.08 — 2026-10-05
+
+**Clearer result buttons.** Asked for by a climber: FAIL and SEND should say what they do at a glance.
+
+- **FAIL is a red X, SEND a green summit flag** on the climbing screen (they were a white flame and a
+  white trophy). The watch's icon font has no check mark; the summit flag is the closest climbing
+  equivalent. Both glyphs come from the same font file as the old ones, so every display draws them.
+- **The route editor on READY uses the same two symbols** (white there).
+- The BREAK screen keeps its white NEXT symbol. Internally the bottom button's symbol is now two fixed
+  elements instead of one that was relabelled on every screen change — the firmware cannot recolour
+  an element at runtime.
+
+Cost: +220 B of compiled climbing-screen template (9594 → 9814 B on q); `main.js` unchanged at
+6648 B. Owner-confirmed on a Vertical 2.
+
 ## v3.07 — 2026-10-05
 
 **Less memory, and the button pills now sit on the buttons.** A RAM diet aimed at the 3-app

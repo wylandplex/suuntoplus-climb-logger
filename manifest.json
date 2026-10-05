@@ -1,9 +1,9 @@
 {
  "name": "Climb Log",
- "description": "Track your progress on rock & ice. v3.0.7",
- "version": "3.07",
+ "description": "Track your progress on rock & ice. v3.0.8",
+ "version": "3.08",
  "author": "skyfi",
- "modificationTime": 1791205035,
+ "modificationTime": 1791209558,
  "type": "feature",
  "usage": "workout",
  "in": [
