@@ -8,7 +8,7 @@
 'use strict';
 var fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
 var ROOT = path.join(__dirname, '..');
-var BUDGET = 6707, fea, budgetSet = false;  // R6 ratchet: the shipped resident size, not a safety line (evict is not monotonic in bytes). Raise only deliberately.
+var BUDGET = 6648, fea, budgetSet = false;  // R6 ratchet: the shipped resident size, not a safety line (evict is not monotonic in bytes). Raise only deliberately.
 for (var arg = 2; arg < process.argv.length; arg++) {
   if (process.argv[arg] === '--fea' && !fea && process.argv[arg + 1]) fea = path.resolve(process.argv[++arg]);
   else if (!budgetSet && /^\d+$/.test(process.argv[arg]) && +process.argv[arg] > 0) {

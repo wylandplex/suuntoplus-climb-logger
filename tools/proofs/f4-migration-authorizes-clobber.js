@@ -93,7 +93,9 @@ function trace(p, sMark, eMark) {
     chk(w.length >= 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written' && cleanupOnly(w), 'a1-retry: canonical fold write first, only authorized cleanup shrinks after');
     var C = p.storage.peek('climbProjStats');
     var stub = new Stub(JSON.parse(before));  // the untouched pre-run legacy bytes
-    var Aconv = loadSat(src16new, stub)(loadSat(src18new, stub)(), stub.getObject('stats'));
+    var K18 = loadSat(src18new, stub)();  // S3: ext18 = [names, stats, isLegacy] and reads stats itself
+    chk(K18[2] === true && J(K18[1]) === J(stub.getObject('stats')), 'a1-retry: ext18 must return the stats root and route 2.82 to ext16');
+    var Aconv = loadSat(src16new, stub)(K18[0], K18[1]);
     chk(J(C) === J(Aconv), 'a1-retry: pure adoption (T=null) must be byte-identical to converter output alone');
     chk(C.s0[3] === 20, 'a1-retry: pure adoption must NOT increment sessions (got ' + C.s0[3] + ')');
     chk(r.state().migPend === 0, 'a1-retry: successful fold must clear migPend');
@@ -218,8 +220,8 @@ function trace(p, sMark, eMark) {
   // The overlay baseline is the converter's own p0 (seed==fold guarantees the session edited
   // exactly these values) -- only the touched deltas are applied by hand.
   var stub = new Stub(pre);
-  var N = loadSat(src18new, stub)();
-  var E = loadSat(src16new, stub)(N, stub.getObject('stats'));
+  var K18 = loadSat(src18new, stub)(), N = K18[0];  // S3: ext18 = [names, stats, isLegacy]
+  var E = loadSat(src16new, stub)(N, K18[1]);
   E = platform.snapshot(E);
   E.s0 = [100, 60, 60, 21, 1000, 18];  // zero deltas, sessions++ (it WAS a session)
   var P = E.p0.slice(0, 21);                          // fold/seed baseline for the active system

@@ -1,5 +1,5 @@
 <uiView onLoad="
-          var M=Math.floor,SN='French Sport,UIAA Sport,YDS Sport,British Trad,V-Scale,Font Boulder,Ice (WI),Mixed (M),Hangboard,Scrambling'.split(',');
+          var SN='French Sport,UIAA Sport,YDS Sport,British Trad,V-Scale,Font Boulder,Ice (WI),Mixed (M),Hangboard,Scrambling'.split(',');
           // SETUP only ever previews the DEFAULT grade of the selected system (main.js state-4 sets
           // gradeV=encGrade(DEFAULT_IDX[gradeSystem])), so the 10 samples are precomputed here as a flat
           // table instead of shipping the full dG() grade algorithm — same strings, a fraction of the mount.
@@ -15,11 +15,11 @@
   <div>
 
     <!-- Shared shaped header backing. Keep it first so setup controls always paint above it. -->
-    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
+    <div id="ht" style="width:100%;height:24%">
       <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
     </div>
     <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
-      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
+      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="TimeOfDay_Fourdigits" default="--:--" /></span>
       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
       <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
@@ -28,7 +28,7 @@
          hidden PROJ-SETUP section too — ~half the old manage mount. Single-state: no vState/applyVis. -->
 
     <!-- Audit U4: the dead #sc4 full-screen wrapper is gone — children sit in the identical root frame. -->
-      <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
+      <div onTap="ev(1)" style="top:29%;width:70%;height:17%"></div>
       <div class="f-ico p-hc" style="top:calc(38% - 50%e);">&#xF266;</div>
 
       <div class="sp-t-l p-hc p-tc" style="top:calc(50% - 50%e);width:100%">
@@ -36,12 +36,12 @@
       </div>
       <div id="sg" class="sp-t-l p-hc p-tc" style="top:calc(63% - 50%e);width:100%">--</div>
 
-      <div onTap="ev(2)" style="top:68%;left:0;width:70%;height:19%;position:absolute;"></div>
+      <div onTap="ev(2)" style="top:68%;width:70%;height:19%"></div>
       <div class="f-ico p-hc" style="top:calc(76% - 50%e);">&#xF267;</div>
 
       <!-- Bottom pill (save) — DOWN-long = save&exit on setup -->
       <div class="f-ico cm-bgc" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xE373;</div>
-      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
+      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%"></div>
 
     <!-- Session duration and clock share the shaped header, matching READY/ACTIVE. -->
 

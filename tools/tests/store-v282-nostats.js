@@ -42,7 +42,7 @@ function mkP(opts) {
 function writes(p) { return p.storage.calls.filter(function (c) { return c.op === 'setObject'; }); }
 function extCalls(p, n) { return p.evals.calls.filter(function (c) { return c.extension === String(n); }).length; }
 
-var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)')();
+var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)', { localStorage: { getObject: function () {} } })()[0];  // S3: ext18 = [names, stats, isLegacy]
 var V = (gradeNames[4] || '').split(',');  // V-Scale names, new system 4
 
 // Independent byte oracle: the frozen pre-END-FOLD converter (it ALWAYS derived from

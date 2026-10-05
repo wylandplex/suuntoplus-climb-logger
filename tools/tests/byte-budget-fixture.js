@@ -33,7 +33,7 @@ function check(name, main, ext, args, expectedStatus, message) {
 
 try {
   check('healthy', base, null, [], 0, 'ALL WITHIN BUDGET');
-  check('resident limit', base + ' '.repeat(7201), null, [], 1, 'exceeds the 6707 B budget');
+  check('resident limit', base + ' '.repeat(7201), null, [], 1, 'exceeds the 6648 B budget');
   check('custom budget', base, null, ['10'], 1, 'exceeds the 10 B budget');
   check('missing hook', base.replace('30599', '29575'), null, [], 1, 'hook bitmask 29575 != 30599');
   check('large satellite', base, 'function(){' + ' '.repeat(1600) + '}', [], 1, '1600 B parse band');

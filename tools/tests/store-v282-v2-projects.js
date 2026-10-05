@@ -67,7 +67,7 @@ function legacyUntouched(p, s) {
 var OLD_DIR = path.join(__dirname, 'oracles', 'pre-endfold');
 var old16src = fs.readFileSync(path.join(OLD_DIR, 'ext16.js'), 'utf8');
 var old11src = fs.readFileSync(path.join(OLD_DIR, 'ext11.js'), 'utf8');
-var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)')();
+var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)', { localStorage: { getObject: function () {} } })()[0];  // S3: ext18 = [names, stats, isLegacy]
 
 function oracle(store, deltas, g) {
   var st = clone(store);

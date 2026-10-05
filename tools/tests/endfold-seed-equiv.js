@@ -18,16 +18,17 @@ function withLS(store, fn) {
   global.localStorage = mkLS(store);
   try { return fn.call(ext); } finally { delete global.localStorage; }
 }
-var NAMES = loadFn('ext18.js')();
+global.localStorage = mkLS({});
+var NAMES = loadFn('ext18.js')()[0];  // S3: ext18 = [names, stats, isLegacy]
+delete global.localStorage;
 
 function foldContainer(store) {
   global.localStorage = mkLS(store);
   try {
-    var sv = global.localStorage.getObject('stats') || {};
-    var A;
-    // mirror of main.js sS (20.07 hotfix): 2.82 = string OR ABSENT stats; only NUMERIC = v1/v2
-    if (typeof sv.system !== 'number') A = loadFn('ext16.js')(NAMES, sv);
-    else { A = loadFn('ext17.js')(NAMES, sv); A = loadFn('ext19.js')(A, NAMES, sv); }
+    // S3 mirror of main.js: ext18 reads stats and decides the schema (20.07 hotfix: 2.82 = string OR ABSENT stats; only NUMERIC = v1/v2)
+    var k = loadFn('ext18.js')(), sv = k[1], A;
+    A = loadFn(k[2] ? 'ext16.js' : 'ext17.js')(k[0], sv);
+    if (!k[2]) A = loadFn('ext19.js')(A, k[0], sv);
     return A;
   } finally { delete global.localStorage; }
 }

@@ -638,16 +638,15 @@ var lifeK = function(op, o) {
       return;
     }
     try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) { migOK = 0; }  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW — the fold never runs under the big template
-    var A = 0, sv, k, sS, u;
+    var A = 0, k, sS, u;
     if (migPend && migOK) {
       try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
-        sv = localStorage.getObject("stats") || {};
-        k = loadExt(18)();  // grade names for adopted Companion rows
-        sS = typeof sv.system !== "number";  // 2.82 = string OR ABSENT stats root (20.07 field incident: real 2.82 stores can lack "stats" entirely — only END-saves wrote it — and === "string" misrouted them into ext17 = empty-v3 stamp, projects orphaned). Only a NUMERIC stats.system means the numeric v1/v2 schema (incl. the fresh seed's system:0); ext16 self-derives the system from watchSetup.sys when stats is empty.
+        k = loadExt(18)();  // [grade names, stats root, 2.82 schema test] — the stats read rides in the once-per-install satellite (S3: -59 B resident)
+        sS = k[2];  // 2.82 = string OR ABSENT stats root (20.07 field incident: real 2.82 stores can lack "stats" entirely — only END-saves wrote it — and === "string" misrouted them into ext17 = empty-v3 stamp, projects orphaned). Only a NUMERIC stats.system means the numeric v1/v2 schema (incl. the fresh seed's system:0); ext16 self-derives the system from watchSetup.sys when stats is empty.
         u = (pendSlots > 1 || slTries > 2) && !sysDirty;  // adopt the container's own system: the staged seed never ran (instant END) or exhausted its retries (Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
-        if (sS) A = loadExt(16)(k, sv, u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain
-        else { A = loadExt(17)(k, sv); A = loadExt(19)(A, k, sv); }  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
-        k = sv = 0;
+        A = loadExt(sS ? 16 : 17)(k[0], k[1], u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain; ext17 reads only (N, sv) and ignores the rest
+        if (!sS) A = loadExt(19)(A, k[0], k[1]);  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
+        k = 0;
         if (u) gradeSystem = A.g;
         if (!sS) loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // numeric path keeps the standalone merge satellite; slotTouched slots (incl. deliberate OFF) win — recap + Companion row build over the merged vector
       } catch (e) { A = 0; migOK = 0; }
