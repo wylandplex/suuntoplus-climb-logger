@@ -4,7 +4,7 @@
           function mS(x){setText('#rm',x>99?'ROUTE EDIT':x<-99?'PROJECT EDIT':x<0?'PROJECT MODE':'ROUTE MODE');x%=100;return x>0?'#'+x:'P'+(-x)}
           function setVs(x){vs=x;setVis('#pi',x!==6);setText('#pu',x===5||x===6?'\uE365':'\uE338');return ''}
           function gV(x){var p=M(x/1e6),g=dG(M(x%1e6/952)),v=p<6;setVis('#gu',v);setVis('#gd',v);return p>0&amp;&amp;p<6?'P'+p+' ('+g+')':g}
-          function pA(x){var q=x<=-6?-x-6:-1,c=q>=0?q%3:x===-2?0:x===-3?1:x===-4?2:-1,w=c===0?'SEND':c===1?'FAIL':c===2?'DEL':'';setVis('#pd',c===1);setText('#pi',c===0?'\uF110':c===2?'\uF200':x<-1?'':'\uF111');if(q>=0){q=M(q/3);return w+' ('+M(q/1000)+'T '+q%1000+'S)'}return w}
+          function pA(x){var q=x<=-6?-x-6:-1,c=q>=0?q%3:x===-2?0:x===-3?1:x===-4?2:-1,w=c===0?'SEND':c===1?'FAIL':c===2?'DEL':'';setVis('#pd',c===1);setText('#pi',c===0?'\uE312':c===2?'\uE322':x<-1?'':'\uF111');if(q>=0){q=M(q/3);return w+' ('+M(q/1000)+'T '+q%1000+'S)'}return w}
           function pS(x){return x>=0?M(x/1000)+'T '+x%1000+'S':''}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
           function ulk(){lock=0}
