@@ -1,0 +1,926 @@
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/active.html /tmp/claude-1000/ramdiet/report-final/p2/active.html
+--- /tmp/claude-1000/ramdiet/report-final/base/active.html	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/active.html	2026-09-30 23:41:55.985928841 +0200
+@@ -1,7 +1,6 @@
+ <uiView onLoad="
+           var M=Math.floor,S=-1,lock=0;
+-          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):''+(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
+-          function tm(x){return M(x/60)+&quot;'&quot;+('0'+M(x%60)).slice(-2)}
++          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100,j=i-2,k=i-5;return i>=50?'OFF':s==0||s==5?3+s/5+M(i/6)+(s?'ABC':'abc').charAt(M(i/2)%3)+(i%2?'+':''):s==1?i<2?'4'+(i?'+':''):5+M(j/3)+(j%3==2?'+':j%3?'':'-'):s==2?'5.'+(i<5?i+5:10+M(k/4)+'abcd'.charAt(k%4)):s==3?4+M(i/3)+'abc'.charAt(i%3):s==4?i?'V'+(i-1):'VB':s==6?'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':''):s==7?'M'+(i+1):s==8?'Set':'Lap'}
+           function aV(x){if(x===S)return;S=x;setVis('#sc1',x===1);setVis('#sc2',x===2);setText('#ba',String.fromCharCode(x===1?0xF200:0xE373))}
+           function pV(x){setVis('#ma',x>=0);return x}
+           function hC(x){setVis('#hgb',x===1);setVis('#hob',x===2)}
+@@ -41,7 +40,7 @@
+ 
+     <!-- BACKING LAYER: the upper tooth stays neutral on every screen; static lower result variants
+          avoid unreliable runtime colour changes. -->
+-    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
++    <div id="ht" style="width:100%;height:24%">
+       <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
+     </div>
+     <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#3c4049" />
+@@ -53,7 +52,7 @@
+          evals, the 0-dim holder box is gone (bare pattern on-watch proven in ready.html). -->
+     <eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" />
+     <eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" />
+-    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
++    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => (x&gt;0&amp;&amp;x&lt;1?(setVis('#z-ind',1),gaugeControl('#z-ind',x*6.2832,'radian')):setVis('#z-ind',0),'')" default="" />
+ 
+     <!-- Compact title row — route number and grade. -->
+     <div class="sp-t-s p-hc" style="top:calc(8% - 50%e)">
+@@ -63,7 +62,7 @@
+ 
+     <!-- Compact secondary row — clock, the original F100 separator and session duration. -->
+     <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
+-      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
++      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="TimeOfDay_Fourdigits" default="--:--" /></span>
+       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
+       <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+     </div>
+@@ -81,23 +80,23 @@
+ 
+     <!-- CLIMB — the OPEN lap. ready.html fires lap() on START and evL() fires it only while S===1, so
+          Lap/-1 really brackets the climb attempt rather than mixing rest and climbing. -->
+-    <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
++    <div id="sc1" style="width:100%;height:100%;visibility:VISIBLE">
+       <!-- THE HERO (ZoneSense: p-tc p-hc + medium display face, full width, 76% to the rim).
+            f-num is a FONT FAMILY (SuuntoUINextDisplaySemibold), not a glyph filter: it carries no
+            letters — which is why labels need a text face — but it DOES carry the apostrophe, exactly as
+            Suunto's own big pace readouts (9'30) show. Formatted here rather than through a guessed
+            Suunto format name. Whole seconds: a tenths digit would flicker ten times a second all route. -->
+       <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
+-        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
++        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_Yielding" default="0'00" />
+       </div>
+ 
+       <!-- Tap zones and white action glyphs: FAIL top-right, SEND bottom-right. -->
+       <div class="f-ico" style="top:calc(24% - 50%e);left:calc(85% - 50%e);">&#xF110;</div>
+-      <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute"></div>
++      <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%"></div>
+     </div>
+ 
+     <!-- BREAK — the CLOSED lap (-2). AVG/MAX appear only once the attempt is complete. -->
+-    <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
++    <div id="sc2" style="width:100%;height:100%;visibility:HIDDEN">
+       <div class="sp-t-s cm-mid" style="top:calc(50% - 50%e);left:calc(23% - 50%e)">AVG</div>
+       <div class="sp-t-s cm-mid" style="top:calc(50% - 50%e);left:calc(77% - 50%e)">MAX</div>
+       <div class="sp-d-xs f-num" style="top:calc(59% - 50%e);left:calc(23% - 50%e)">
+@@ -108,17 +107,17 @@
+       </div>
+ 
+       <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
+-        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
++        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_Yielding" default="0'00" />
+       </div>
+ 
+       <div id="ma" class="f-ico" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px)">&#xE338;</div>
+-      <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute"></div>
++      <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%"></div>
+     </div>
+ 
+     <!-- Same position and action in both states; only the glyph changes. Sharing these nodes keeps the
+          full UI while avoiding a second always-mounted icon and hit target. -->
+     <div id="ba" class="f-ico" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xF200;</div>
+-    <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
++    <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%"></div>
+ 
+ 
+ 
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/ext18.js /tmp/claude-1000/ramdiet/report-final/p2/ext18.js
+--- /tmp/claude-1000/ramdiet/report-final/base/ext18.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/ext18.js	2026-09-30 23:42:02.507511679 +0200
+@@ -1 +1 @@
+-function(){return'3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|Set|Lap'.split('|')}
++function(){var v=localStorage.getObject("stats")||{};return['3a,3a+,3b,3b+,3c,3c+,4a,4a+,4b,4b+,4c,4c+,5a,5a+,5b,5b+,5c,5c+,6a,6a+,6b,6b+,6c,6c+,7a,7a+,7b,7b+,7c,7c+,8a,8a+,8b,8b+,8c,8c+,9a,9a+,9b,9b+,9c|4,4+,5-,5,5+,6-,6,6+,7-,7,7+,8-,8,8+,9-,9,9+,10-,10,10+,11-,11,11+,12-|5.5,5.6,5.7,5.8,5.9,5.10a,5.10b,5.10c,5.10d,5.11a,5.11b,5.11c,5.11d,5.12a,5.12b,5.12c,5.12d,5.13a,5.13b,5.13c,5.13d,5.14a,5.14b,5.14c,5.14d,5.15a,5.15b,5.15c,5.15d|4a,4b,4c,5a,5b,5c,6a,6b,6c,7a,7b|VB,V0,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12|4A,4A+,4B,4B+,4C,4C+,5A,5A+,5B,5B+,5C,5C+,6A,6A+,6B,6B+,6C,6C+,7A,7A+,7B,7B+,7C,7C+,8A,8A+,8B,8B+,8C,8C+|WI2,WI3,WI3+,WI4,WI4+,WI5,WI5+,WI6,WI6+,WI7,WI7+|M1,M2,M3,M4,M5,M6,M7,M8,M9,M10,M11,M12|Set|Lap'.split('|'),v,typeof v.system!=="number"]}
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/main.js /tmp/claude-1000/ramdiet/report-final/p2/main.js
+--- /tmp/claude-1000/ramdiet/report-final/base/main.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/main.js	2026-09-30 23:42:02.507511679 +0200
+@@ -1,4 +1,4 @@
+-var currentTemplate;  // resolved in getUserInterface() from watchSetup on first call (ordering-safe), then driven by goState cluster switches
++var currentTemplate = "setup";  // module init state === 4 -> setup; thereafter goState / onLoad / pause-end own it (never set falsy)
+ var state = 4;
+ 
+ var currentGrade = 18;
+@@ -12,11 +12,9 @@
+ var routesA = [], routesB = [];
+ // Space-capsule project state: routes are packed, project slot stats are one flat 20-number vector.
+ var cl0 = function(v) { return Math.max(0, Math.round(v)) || 0; };  // shared non-negative rounder (6 sites — audit U3); ||0 hardens NaN input (Codex: a NaN Asc sample passes the !==undefined guard — pre-diet only the ext10 echo path caught it)
+-var packA = function(g, s, c, h) { return g * 1e6 + s * 1e5 + c * 1e4 + Math.min(9999, cl0(h)); };
+-var rGrade = function(i) { return Math.floor(routesA[i] / 1e6); };
+-var rSend  = function(i) { return Math.floor(routesA[i] / 1e5) % 10; };
+-var rCm    = function(i) { return Math.floor(routesA[i] / 1e4) % 10; };
+-var wGrade = function(i, v) { routesA[i] = packA(v, rSend(i), rCm(i), routesA[i] % 1e4); };
++// packA/rGrade/rSend/rCm inlined at their call sites (R1: -4 closures). wGrade keeps the low six
++// digits (send*1e5 + cm*1e4 + height, height already clamped 0..9999 at push) and swaps only the grade.
++var wGrade = function(i, v) { routesA[i] = v * 1e6 + routesA[i] % 1e6; };
+ // rDur/wSend/wCm deleted (Stufe 2): their callers moved into ext21/ext10, which mutate
+ // routesA/routesB by-ref (P4) with the same digit arithmetic inline.
+ var lastResult = 0;
+@@ -93,10 +91,9 @@
+   // Three-cluster split: ready.html (READY + EDIT/project-slot overlays), active.html (CLIMB/BREAK),
+   // setup.html (grade-system setup), and saving.html (pause/end de-load).
+   // No localStorage read here: the log showed data.jsn reads during enable leaving <2KB headroom.
+-  // After first resolve, goState() owns currentTemplate.
++  // goState() / onLoad / pause-end own currentTemplate; it is initialised to "setup" (state 4).
+   // (The #177 churn-sensor machinery was removed with the hybrid inline drain. Legacy stores
+   // run session 1 fresh with full input — the first end-write folds them; END-FOLD spec.)
+-  if (!currentTemplate) currentTemplate = state === 4 ? "setup" : "ready";
+   return { template: currentTemplate };
+ }
+ 
+@@ -124,20 +121,6 @@
+   if (!lg && autoSkip && C["s" + gradeSystem][3] > 0 && C.u === 0) skipP = 1;  // ONLY when the companion setting is explicitly 0; default (1/undefined) = ask every start
+ };
+ 
+-// Project-slot cycle (climbMode 1..5): step by ±1, clamp-wrapping over the 5 slots,
+-// landing on the next configured slot. Shared by evReady + evBreak (±1 only — see evBreak guard).
+-var cycleSlot = function(dy) {
+-  var start = climbMode, next = climbMode, ddir = -dy;
+-  do {
+-    next += ddir;
+-    if (next > 5) next = 1;
+-    if (next < 1) next = 5;
+-    if (projGradeIdx[next - 1] >= 0) break;
+-  } while (next !== start);
+-  climbMode = next;
+-  if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
+-};
+-
+ // Output packing — shrink active.html's mount footprint (fewer distinct WB path subscriptions coexist
+ // during the inter-app swipe = template-swap peak that evicts the app; see crash-template-swap-eviction).
+ //   packedGL    = editTag*1e6 + grade*952 + (lastGrade+1) → 1 path (was 2); editTag 1..5
+@@ -259,32 +242,6 @@
+ // a DEL mark). Action bodies live in ext21 via callE; a throw = graceful no-op + press-again retry
+ // (C11), EXCEPT eid5 exit which must never trap the user: on throw the armed DEL is dropped and the
+ // exit proceeds (the route stays FAIL — recoverable in a later EDIT visit).
+-var evEdit = function(output, eid) {
+-  if (eid === 5 || eid === 6) {
+-    if (editDelMark) { try { callE(2, editIdx); } catch (e) { if (eid === 6) return; editDelMark = 0; } }
+-    if (eid === 6 && routesA.length > 0) {
+-      editIdx = (editIdx - 1 + routesA.length) % routesA.length;
+-      pub(output);
+-    } else {
+-      setText(EDR, "");
+-      goState(0, output);
+-    }
+-    return;
+-  }
+-  if (routesA.length === 0) return;  // empty editor: stay (old behavior); exit via eid 5/6
+-  if (eid === 4) {
+-    try { callE(1, editIdx); } catch (e) { return; }
+-    pub(output);
+-  } else if (eid === 1 || eid === 2) {
+-    if (!rCm(editIdx)) {
+-      wGrade(editIdx, stepG(rGrade(editIdx), eid === 1 ? 1 : -1));
+-    } else {
+-      try { callE(eid + 2, editIdx); } catch (e) { return; }
+-    }
+-    pub(output);
+-  }
+-};
+-
+ var commitDirty = function() {
+   // no params since the hrMax cut (#171 exts-1): input.M was only read for ext10's dead arg 5.
+   // (Historic minifier gotcha `input || {}` is moot without the param — see minifier-bare-input.)
+@@ -312,7 +269,7 @@
+     // subsystem is skipped consistently — no projSlot update, psDirty unset, cm packs 0 (free-mode
+     // tag): a cm>0 tag without matching attempt/send increments would let a later ext21 op mutate
+     // phantom slot stats and re-arm psDirty for the end-write.
+-    routesA.push(packA(lastGradeIdx, frSend, r ? lastClimbMode : 0, lastHeight));
++    routesA.push(lastGradeIdx * 1e6 + frSend * 1e5 + (r ? lastClimbMode : 0) * 1e4 + Math.min(9999, cl0(lastHeight)));  // packA inlined (R1)
+     routesB.push(Math.min(86399, cl0(lastDuration)) * 1000 + (lastHrAvg > 0 ? lastHrAvg : 0));  // packB inlined (S3)
+     sessionH += lastHeight || 0;
+     hrSum = hrCnt = rSec = 0;
+@@ -328,13 +285,110 @@
+   goState(1, output);
+ };
+ 
++// R2 (resident diet): ONE module closure for every non-ACTIVE press (READY 0, BREAK 2, SETUP 4,
++// EDIT 5, PROJ-SETUP 6) + the inlined slot cycle. Each removed closure is a module unit (the #169
++// toggle currency); the arms are the old evEdit/evProjSetup/evSetup/evBreak/evReady bodies verbatim.
++// Relies on dy in {-1,0,1} (onEvent; flicks gone since 3.03) — re-add the ±1 guard on the slot
++// cycle if a ±3 gesture ever returns. State 3 is never assigned, so no state is newly routed here.
+ var evReady = function(output, eid, dy) {
+-  if (dy) {
+-    if (climbMode === 0) {
+-      currentGrade = stepG(currentGrade, dy);  // modulo, not clamp — ±3 flicks wrap (matches evBreak)
+-    } else if (dy === 1 || dy === -1) {
+-      cycleSlot(dy);
++  if (state === 5) {  // EDIT overlay (was evEdit; see the comment block above commitDirty)
++    if (eid === 5 || eid === 6) {
++      if (editDelMark) { try { callE(2, editIdx); } catch (e) { if (eid === 6) return; editDelMark = 0; } }
++      if (eid === 6 && routesA.length > 0) {
++        editIdx = (editIdx - 1 + routesA.length) % routesA.length;
++        pub(output);
++      } else {
++        setText(EDR, "");
++        goState(0, output);
++      }
++      return;
++    }
++    if (routesA.length === 0) return;  // empty editor: stay (old behavior); exit via eid 5/6
++    if (eid === 4) {
++      try { callE(1, editIdx); } catch (e) { return; }
++      pub(output);
++    } else if (eid === 1 || eid === 2) {
++      if (!(Math.floor(routesA[editIdx] / 1e4) % 10)) {
++        wGrade(editIdx, stepG(Math.floor(routesA[editIdx] / 1e6), eid === 1 ? 1 : -1));
++      } else {
++        try { callE(eid + 2, editIdx); } catch (e) { return; }
++      }
++      pub(output);
++    }
++    return;
++  }
++  if (state === 6) {  // PROJ-SETUP overlay (was evProjSetup)
++    if (dy) {
++      projGradeIdx[pStep] += dy;
++      if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
++      else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
++      projSlot[20] = "";  // invalidate a pause-built Companion row; the next normal route/end rebuilds it with the new slot setup
++      slotsDirty = 1; slotTouched |= 1 << pStep;  // END-FOLD: user-edited slots beat adopted legacy slots (incl. deliberate OFF)
++      pub(output);  // state-6 arm republishes the slot grade (zero-alloc, C3-safe)
++    } else if (eid === 5) {
++      setText(EDR, "");
++      goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
++    } else if (eid === 6) {
++      pStep = (pStep + 1) % 5;
++      pub(output);
++      setText(EDR, "SLOT " + (pStep + 1) + "/5");
++    }
++    return;
++  }
++  if (state === 4) {  // SETUP (was evSetup; see the grade-system SWITCH comment below)
++    if (dy) {
++      gradeSystem = (gradeSystem + dy + 10) % 10;
++      currentGrade = DEFAULT_IDX[gradeSystem];
++      f3 = null;   // drop the stale-system name slice (reloads for the new system at the next commit); switch is pre-routes so no summary needs it in between
++      sysChg = 1;  // hybrid: slots load ONCE at the eid6 confirm (per-press LS reads would stall the fluid dy scroll; SETUP shows no slots)
++      for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;  // blank stats until the staged destination preload
++      sysDirty = 1;  // persist the system choice via eP even on a routeless session
++      pub(output);  // state-4 arm (warm or FBW) covers the old targeted gradeV/wGL/wMode writes exactly
++    } else if (eid === 6) {
++      if (sysChg) { sysChg = 0; pendSlots = 2; slTries = 0; }  // first translate/read under the smaller SETUP tree, then mount READY on a separate tick
++      else goState(0, output);  // unchanged system needs no storage work; mount directly
+     }
++    return;
++  }
++  if (dy && climbMode > 0) {
++    // Project-slot cycle (was cycleSlot, shared by READY + BREAK): step by dy, wrapping over the
++    // 5 slots, landing on the next configured slot. BREAK cycles regardless of frDirty (as before).
++    var start = climbMode, next = climbMode;
++    do {
++      next -= dy;
++      if (next > 5) next = 1;
++      if (next < 1) next = 5;
++      if (projGradeIdx[next - 1] >= 0) break;
++    } while (next !== start);
++    climbMode = next;
++    if (projGradeIdx[next - 1] >= 0) currentGrade = projGradeIdx[next - 1];
++    pub(output);
++    return;
++  }
++  if (state === 2) {  // BREAK (was evBreak)
++    if (dy) {
++      if (frDirty || routesA.length) {
++        lastGradeIdx = stepG(lastGradeIdx, dy);
++        currentGrade = lastGradeIdx;
++        // !frDirty: while the just-finished route is still pending (not yet pushed by commitDirty),
++        // routes[len-1] is the PREVIOUS route — editing it here corrupts it. The pending route picks
++        // up the corrected lastGradeIdx on push, so skip the array write until it's committed.
++        if (routesA.length > 0 && !frDirty) wGrade(routesA.length - 1, lastGradeIdx);
++        pub(output);  // full republish — ext22 recomputes packedGL (grade + lastGrade fields) from lastGradeIdx
++      }
++    // eid 5 (TOP-long) is FREE in BREAK (the old last-route quick-fix lives in the EDIT overlay).
++    } else if (eid === 4) {
++      if (!f10) return;  // folded/degraded routes are immutable; never parse a satellite from this press
++      try { var r14 = f10(-1, climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, 0, projSlot, routesA); } catch (e) { return; }
++      if (r14) { currentGrade = r14[0]; climbMode = r14[1]; projSlot[20] = ""; psDirty = slotsDirty = 1; goState(0, output); }
++    } else if (eid === 6 && !frDirty) {
++      goState(0, output);
++    }
++    return;
++  }
++  // READY (state 0)
++  if (dy) {
++    currentGrade = stepG(currentGrade, dy);  // free mode (climbMode 0): modulo, not clamp
+     pub(output);
+   } else if (eid === 5) {
+     // S5 cold-overlay refusal: both overlays (EDIT, PROJ-SETUP) render values only the ext22
+@@ -373,75 +427,12 @@
+   }
+ };
+ 
+-var evBreak = function(output, eid, dy) {
+-  if (dy) {
+-    // Project cycling is ±1 only (a ±3 step can orbit forever on sparse slots); free-mode grade
+-    // cycling handles ±3 via the modulo.
+-    if (climbMode > 0 && (dy === 1 || dy === -1)) {
+-      cycleSlot(dy);
+-      pub(output);
+-    } else if (climbMode === 0 && (frDirty || routesA.length)) {
+-      lastGradeIdx = stepG(lastGradeIdx, dy);
+-      currentGrade = lastGradeIdx;
+-      // !frDirty: while the just-finished route is still pending (not yet pushed by commitDirty),
+-      // routes[len-1] is the PREVIOUS route — editing it here corrupts it. The pending route picks
+-      // up the corrected lastGradeIdx on push, so skip the array write until it's committed.
+-      if (routesA.length > 0 && !frDirty) wGrade(routesA.length - 1, lastGradeIdx);
+-      pub(output);  // full republish — ext22 recomputes packedGL (grade + lastGrade fields) from lastGradeIdx
+-    }
+-  // eid 5 (TOP-long) is FREE in BREAK: the quick-fix (last route SEND<->FAIL) is gone — the EDIT
+-  // overlay (READY -> TOP-long) already does that for ANY route, so the shortcut was pure duplicate
+-  // resident code. TOP-long here becomes the STATS overlay entry (next commit); it is a no-op until
+-  // then. callE arm 3 + the pendE=2 gated variant died with it — pendE survives for the EDIT
+-  // pre-warm (eid 5 in evReady) and STAYS in the L1 guard chain.
+-  } else if (eid === 4) {
+-    if (!f10) return;  // folded/degraded routes are immutable; never parse a satellite from this press
+-    try { var r14 = f10(-1, climbMode, gradeSystem, lastGradeIdx, lastResult, lastDuration, projGradeIdx, 0, projSlot, routesA); } catch (e) { return; }
+-    if (r14) { currentGrade = r14[0]; climbMode = r14[1]; projSlot[20] = ""; psDirty = slotsDirty = 1; goState(0, output); }
+-  } else if (eid === 6 && !frDirty) {
+-    goState(0, output);
+-  }
+-};
+-
+ // A grade-system SWITCH persists NOTHING at the switch itself (the user's insight): gradeSystem lives
+ // in RAM, and the choice is written once at the END via sysDirty -> ext11 (v.system=g). No seedSys
+ // pre-grow: that ONE flash write at setup-leave stalled the setup->ready mount on a switch (the confirm
+ // must stay mount-only, exactly like the clean default-system confirm where s0 is pre-shipped). ext11
+ // rewrites C.s<g> to the compact six-value lifetime vector at that system's normal end.
+ 
+-var evSetup = function(output, eid, dy) {
+-  if (dy) {
+-    gradeSystem = (gradeSystem + dy + 10) % 10;
+-    currentGrade = DEFAULT_IDX[gradeSystem];
+-    f3 = null;   // drop the stale-system name slice (reloads for the new system at the next commit); switch is pre-routes so no summary needs it in between
+-    sysChg = 1;  // hybrid: slots load ONCE at the eid6 confirm (per-press LS reads would stall the fluid dy scroll; SETUP shows no slots)
+-    for (var i = 0; i < 20; i++) projSlot[i] = i < 15 ? 0 : -1;  // blank stats until the staged destination preload
+-    sysDirty = 1;  // persist the system choice via eP even on a routeless session
+-    pub(output);  // state-4 arm (warm or FBW) covers the old targeted gradeV/wGL/wMode writes exactly
+-  } else if (eid === 6) {
+-    if (sysChg) { sysChg = 0; pendSlots = 2; slTries = 0; }  // first translate/read under the smaller SETUP tree, then mount READY on a separate tick
+-    else goState(0, output);  // unchanged system needs no storage work; mount directly
+-  }
+-};
+-
+-var evProjSetup = function(output, eid, dy) {
+-  if (dy) {
+-    projGradeIdx[pStep] += dy;
+-    if (projGradeIdx[pStep] >= GRADE_LENS[gradeSystem]) projGradeIdx[pStep] = -1;
+-    else if (projGradeIdx[pStep] < -1) projGradeIdx[pStep] = GRADE_LENS[gradeSystem] - 1;
+-    projSlot[20] = "";  // invalidate a pause-built Companion row; the next normal route/end rebuilds it with the new slot setup
+-    slotsDirty = 1; slotTouched |= 1 << pStep;  // END-FOLD: user-edited slots beat adopted legacy slots (incl. deliberate OFF)
+-    pub(output);  // state-6 arm republishes the slot grade (zero-alloc, C3-safe)
+-  } else if (eid === 5) {
+-    setText(EDR, "");
+-    goState(0, output);  // instant — saveSetup deferred to onExerciseEnd
+-  } else if (eid === 6) {
+-    pStep = (pStep + 1) % 5;
+-    pub(output);
+-    setText(EDR, "SLOT " + (pStep + 1) + "/5");
+-  }
+-};
+-
+ function onLoad(_input, output) {
+   // 3.1 ENABLE WITNESS. No syslog line ever names a JS callback — the whole 2026-07-26 diagnosis had to
+   // INFER "Enable => onLoad" from side-effect timing. systemEvent() writes into the watch's own event log
+@@ -553,13 +544,13 @@
+     return;
+   }
+   if ((!sumStale || !acc || !acc[1]) && !(m && slotsDirty && !projSlot[20])) return;
+-  if (rt >= 3) { if (m) try { lastSummaryCache = [lifeK(4)]; } catch (e) {} return; }
+   try {
++    if (rt >= 3) throw 0;  // R4: the exhausted-budget arm shares the catch fallback (no rt++ past 3, no ext25 parse)
+     var fb = [];
+     loadExt(25)(fb, acc, nm, projSlot, projGradeIdx, f3);
+     if (acc && acc[1]) { lastSummaryCache = fb.slice(0, 4); sumStale = 0; }
+   } catch (e) {
+-    rt++;
++    if (rt < 3) rt++;
+     if (m) try { lastSummaryCache = [lifeK(4)]; } catch (e2) {}
+   }
+ };
+@@ -569,7 +560,7 @@
+   for (i = 0; i < nR; i++) {
+     var b = routesB[i], h = routesA[i] % 1e4, dd = Math.floor(b / 1000), rr = b % 1000;
+     acc[1]++;
+-    if (rSend(i)) { acc[0]++; var e = gradeSystem * 100 + rGrade(i); if (e > acc[6]) { acc[6] = e; acc[7] = 1; } else if (e === acc[6]) acc[7]++; }  // accessors re-derive the exact digit formulas (audit U6); routesA empties only AFTER the loop
++    if (Math.floor(routesA[i] / 1e5) % 10) { acc[0]++; var e = gradeSystem * 100 + Math.floor(routesA[i] / 1e6); if (e > acc[6]) { acc[6] = e; acc[7] = 1; } else if (e === acc[6]) acc[7]++; }  // accessors re-derive the exact digit formulas (audit U6); routesA empties only AFTER the loop
+     if (h > 0) acc[2] += h;
+     if (dd > 0) acc[3] += dd;
+     if (rr > 0) { acc[4] += rr; acc[5]++; }
+@@ -600,12 +591,8 @@
+   if (frDirty && (eventId === 4 || eventId === 6)) return;
+   if (dwell && eventId === 6 && state === 1) return;
+   var dy = eventId === 1 ? 1 : eventId === 2 ? -1 : 0;  // flick feature removed (3.03): eids 7/8 no longer exist — no bindings emit them
+-  if (state === 0) evReady(output, eventId, dy);
+-  else if (state === 1) { if (eventId === 5 || eventId === 6) finishRoute(eventId === 6 ? 1 : 0, output); }
+-  else if (state === 2) evBreak(output, eventId, dy);
+-  else if (state === 5) evEdit(output, eventId);
+-  else if (state === 4) evSetup(output, eventId, dy);
+-  else if (state === 6) evProjSetup(output, eventId, dy);
++  if (state === 1) { if (eventId === 5 || eventId === 6) finishRoute(eventId === 6 ? 1 : 0, output); }
++  else evReady(output, eventId, dy);  // R2: READY/BREAK/SETUP/EDIT/PROJ-SETUP arms live in one closure
+ }
+ 
+ // U2 lifeK (S3 dispatcher split): pause/continue/end/summary bodies behind ONE module fn.
+@@ -651,16 +638,15 @@
+       return;
+     }
+     try { if (currentTemplate !== "saving") { currentTemplate = "saving"; unload('_cm'); } } catch (e) { migOK = 0; }  // deLoad inlined (S3): saving.html swap frees the big template before the ext11 RMW — the fold never runs under the big template
+-    var A = 0, sv, k, sS, u;
++    var A = 0, k, sS, u;
+     if (migPend && migOK) {
+       try {  // THE FOLD: legacy -> complete v3 container in RAM; satellites parse sequentially, each ref dropped before the next parse
+-        sv = localStorage.getObject("stats") || {};
+-        k = loadExt(18)();  // grade names for adopted Companion rows
+-        sS = typeof sv.system !== "number";  // 2.82 = string OR ABSENT stats root (20.07 field incident: real 2.82 stores can lack "stats" entirely — only END-saves wrote it — and === "string" misrouted them into ext17 = empty-v3 stamp, projects orphaned). Only a NUMERIC stats.system means the numeric v1/v2 schema (incl. the fresh seed's system:0); ext16 self-derives the system from watchSetup.sys when stats is empty.
++        k = loadExt(18)();  // [grade names, stats root, 2.82 schema test] — the stats read rides in the once-per-install satellite (S3: -59 B resident)
++        sS = k[2];  // 2.82 = string OR ABSENT stats root (20.07 field incident: real 2.82 stores can lack "stats" entirely — only END-saves wrote it — and === "string" misrouted them into ext17 = empty-v3 stamp, projects orphaned). Only a NUMERIC stats.system means the numeric v1/v2 schema (incl. the fresh seed's system:0); ext16 self-derives the system from watchSetup.sys when stats is empty.
+         u = (pendSlots > 1 || slTries > 2) && !sysDirty;  // adopt the container's own system: the staged seed never ran (instant END) or exhausted its retries (Codex finding: without the slTries arm a 3x-failed seed folded C.g=0)
+-        if (sS) A = loadExt(16)(k, sv, u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain
+-        else { A = loadExt(17)(k, sv); A = loadExt(19)(A, k, sv); }  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
+-        k = sv = 0;
++        A = loadExt(sS ? 16 : 17)(k[0], k[1], u, gradeSystem, projGradeIdx, projSlot, slotTouched);  // audit U13: the working-array merge rides INSIDE ext16 (1.45KB < parse law) — one less evalFile arena in the once-per-install 2.82 chain; ext17 reads only (N, sv) and ignores the rest
++        if (!sS) A = loadExt(19)(A, k[0], k[1]);  // numeric part 2 (systems 5-9) BEFORE the single write — old-C sources are never destroyed
++        k = 0;
+         if (u) gradeSystem = A.g;
+         if (!sS) loadExt(15)(A, projGradeIdx, projSlot, slotTouched, gradeSystem);  // numeric path keeps the standalone merge satellite; slotTouched slots (incl. deliberate OFF) win — recap + Companion row build over the merged vector
+       } catch (e) { A = 0; migOK = 0; }
+@@ -677,10 +663,14 @@
+     } catch (e) { sumUp(0, 2); }
+   } else if (op === 3) {
+     // Recap is served from RAM. No localStorage and no evalFile in the summary path. The fallback
+-    // stays the hard 0-literal, NOT lifeK(4): with a null cache but a live acc (failed pause recap,
+-    // mid-session summary probe) the acc-based row would change observable behavior (dispatch-equiv FLT L).
+-    return lastSummaryCache || [{ id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: 0, postfix: '/ 0' }];
+-  } else return { id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: acc ? acc[0] : 0, postfix: '/ ' + (acc ? acc[1] : 0) };  // op 4: THE sr row (audit C1, 3 sumUp sites)
++    // stays the 0-row, NOT lifeK(4): with a null cache but a live acc (failed pause recap, mid-session
++    // summary probe) the acc-based row would change observable behavior (dispatch-equiv FLT L).
++    // R4: lifeK(4, 1) forces the 0-row ('/ ' + 0 === '/ 0') — one literal instead of two.
++    return lastSummaryCache || [lifeK(4, 1)];
++  } else {  // op 4: THE sr row (audit C1, 3 sumUp sites); o truthy = the forced 0-row of op 3
++    var a = o ? 0 : acc;
++    return { id: 'sr', name: 'Sends / Routes', format: 'Count_Fourdigits', value: a ? a[0] : 0, postfix: '/ ' + (a ? a[1] : 0) };
++  }
+ };
+ 
+ // 3.1 SECOND CLEARING PARTNER for the lethal flag. isPaused is set by lifeK(0) and cleared ONLY by
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/ready.html /tmp/claude-1000/ramdiet/report-final/p2/ready.html
+--- /tmp/claude-1000/ramdiet/report-final/base/ready.html	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/ready.html	2026-09-30 23:41:55.984522634 +0200
+@@ -1,8 +1,8 @@
+ <uiView onLoad="
+           var lock=0,vs=0,M=Math.floor;
+-          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&&(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
++          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100,j=i-2,k=i-5;return i>=50?'OFF':s==0||s==5?3+s/5+M(i/6)+(s?'ABC':'abc').charAt(M(i/2)%3)+(i%2?'+':''):s==1?i<2?'4'+(i?'+':''):5+M(j/3)+(j%3==2?'+':j%3?'':'-'):s==2?'5.'+(i<5?i+5:10+M(k/4)+'abcd'.charAt(k%4)):s==3?4+M(i/3)+'abc'.charAt(i%3):s==4?i?'V'+(i-1):'VB':s==6?'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':''):s==7?'M'+(i+1):s==8?'Set':'Lap'}
+           function mS(x){setText('#rm',x>99?'ROUTE EDIT':x<-99?'PROJECT EDIT':x<0?'PROJECT MODE':'ROUTE MODE');x%=100;return x>0?'#'+x:'P'+(-x)}
+-          function setVs(x){vs=x;setVis('#pm',x!==6);setText('#pu',x===5||x===6?'\uE365':'\uE338');return ''}
++          function setVs(x){vs=x;setVis('#pi',x!==6);setText('#pu',x===5||x===6?'\uE365':'\uE338');return ''}
+           function gV(x){var p=M(x/1e6),g=dG(M(x%1e6/952)),v=p<6;setVis('#gu',v);setVis('#gd',v);return p>0&amp;&amp;p<6?'P'+p+' ('+g+')':g}
+           function pA(x){var q=x<=-6?-x-6:-1,c=q>=0?q%3:x===-2?0:x===-3?1:x===-4?2:-1,w=c===0?'SEND':c===1?'FAIL':c===2?'DEL':'';setVis('#pd',c===1);setText('#pi',c===0?'\uF110':c===2?'\uF200':x<-1?'':'\uF111');if(q>=0){q=M(q/3);return w+' ('+M(q/1000)+'T '+q%1000+'S)'}return w}
+           function pS(x){return x>=0?M(x/1000)+'T '+x%1000+'S':''}
+@@ -16,7 +16,7 @@
+ 
+     <!-- Same firmware-resident, vertically mirrored header tooth as ACTIVE. Authored first so every
+          state label, value and action marker paints above it. -->
+-    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
++    <div id="ht" style="width:100%;height:24%">
+       <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
+     </div>
+     <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#3c4049" />
+@@ -33,19 +33,18 @@
+          Single-state -> NO vState/applyVis eval, NO hdr result bands (always neutral in READY).
+          START (evL 6) fires the firmware lap directly (was the lapState===0 branch). -->
+ 
+-    <!-- Transparent header content layer; the mirrored tooth backing is the first root child above. -->
+-    <div id="hdr" style="position:absolute;top:0;left:0;width:100%;height:24%">
+-      <div class="sp-t-s p-hc" style="top:calc(34% - 50%e);">
+-        <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => mS(x)" default="#1" />
+-      </div>
+-      <div class="sp-vertical-center" style="left:calc(50% - 50%e);top:calc(76% - 50%e)">
+-        <span class="sp-b-s f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
+-        <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
+-        <span class="sp-b-s f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+-      </div>
++    <!-- Header rows sit at the root (UI1: no #hdr wrapper). 8%/18% = the old 34%/76% of the 24%
++         header box, and the same rows as active.html's compact title + secondary row. -->
++    <div class="sp-t-s p-hc" style="top:calc(8% - 50%e);">
++      <eval input="/Zapp/{zapp_index}/Output/modeSub" outputFormat="script x => mS(x)" default="#1" />
++    </div>
++    <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
++      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="TimeOfDay_Fourdigits" default="--:--" /></span>
++      <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
++      <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+     </div>
+ 
+-    <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
++    <div onTap="ev(1)" style="top:29%;width:70%;height:17%"></div>
+     <!-- packedGL's high million selects the EDIT value: 1..5 renders Pn (grade) with live chevrons;
+          6 is the empty-editor lock and hides them. The low remainder stays the grade payload. -->
+     <div id="gu" class="f-ico p-hc" style="top:calc(33% - 50%e);">&#xF266;</div>
+@@ -54,7 +53,7 @@
+       <eval input="/Zapp/{zapp_index}/Output/packedGL" outputFormat="script x => gV(x)" default="--" />
+     </div>
+ 
+-    <div onTap="ev(2)" style="top:54%;left:0;width:70%;height:17%;position:absolute;"></div>
++    <div onTap="ev(2)" style="top:54%;width:70%;height:17%"></div>
+     <div id="gd" class="f-ico p-hc" style="top:calc(62.5% - 50%e);">&#xF267;</div>
+ 
+     <!-- Top pill is state-aware (T1/S2, #173): E338 = overlay entry in READY, E365 = exit/save in the
+@@ -62,9 +61,9 @@
+          them; inside the script string ONLY \uXXXX escapes render (HTML entities break silently) — the
+          entity form is legal only in the XML `default`. -->
+     <div id="pu" class="f-ico cm-bgc" style="top:calc(24% - 50%e);left:calc(85% - 50%e);">&#xE338;</div>
+-    <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute;"></div>
++    <div onTap="evX(5)" style="top:11%;left:70%;width:30%;height:25%"></div>
+ 
+-    <!-- Middle pill (#pm) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
++    <!-- Middle pill (#pi) hides in PROJ-SETUP (T1/S3, #173): evProjSetup has no eid4 branch, so the
+          pill was a live-looking dead control there. setVs toggles it via the PROVEN visibility-only
+          setStyle mechanism (absence = feedback, Era-A sc6). The eid4 tap zone below stays — a tap in
+          state 6 is a no-op by design.
+@@ -77,14 +76,12 @@
+          Project-tagged EDIT routes use the <=-6 capsule: same result preview plus their slot T/S.
+          x>=0 / -1 (READY) keeps the F111 mode-toggle. Decode is in LOCKSTEP with main.js
+          setOutputs + tools/tests/output-pack-equiv.js. -->
+-    <div id="pm" style="position:absolute;top:0;left:0;width:100%;height:100%;">
+-      <div id="pi" class="f-ico cm-bgc" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px);">&#xF111;</div>
+-      <div id="pd" class="sp-b-s cm-bgc" style="position:absolute;top:calc(47% - 50%e);left:calc(94% - 50%e - 3px);visibility:HIDDEN">DEL</div>
+-    </div>
+-    <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute;"></div>
++    <div id="pi" class="f-ico cm-bgc" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px);">&#xF111;</div>
++    <div id="pd" class="sp-b-s cm-bgc" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px);visibility:HIDDEN">DEL</div>
++    <div onTap="ev(4)" style="top:37%;left:70%;width:30%;height:25%"></div>
+ 
+     <div class="f-ico cm-bgc" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xE373;</div>
+-    <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
++    <div onTap="evL()" style="top:63%;left:70%;width:30%;height:25%"></div>
+ 
+     <!-- ONE shared 73%-row directly ABOVE the bottom tooth for BOTH packedAct renderings: the
+          READY/PROJ-SETUP T/S line (pS, x>=0) and the EDIT result line (pA, x<=-2) are mutually
+@@ -104,7 +101,7 @@
+ 
+     <import src="#zone-g" />
+     <eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => setVs(x)" />
+-    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
++    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => (x&gt;0&amp;&amp;x&lt;1?(setVis('#z-ind',1),gaugeControl('#z-ind',x*6.2832,'radian')):setVis('#z-ind',0),'')" default="" />
+ 
+     <:if test="{{ HAS_ON_EVENT }}">
+     <userInput>
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/setup.html /tmp/claude-1000/ramdiet/report-final/p2/setup.html
+--- /tmp/claude-1000/ramdiet/report-final/base/setup.html	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/setup.html	2026-09-30 23:41:55.986060949 +0200
+@@ -1,5 +1,5 @@
+ <uiView onLoad="
+-          var M=Math.floor,SN='French Sport,UIAA Sport,YDS Sport,British Trad,V-Scale,Font Boulder,Ice (WI),Mixed (M),Hangboard,Scrambling'.split(',');
++          var SN='French Sport,UIAA Sport,YDS Sport,British Trad,V-Scale,Font Boulder,Ice (WI),Mixed (M),Hangboard,Scrambling'.split(',');
+           // SETUP only ever previews the DEFAULT grade of the selected system (main.js state-4 sets
+           // gradeV=encGrade(DEFAULT_IDX[gradeSystem])), so the 10 samples are precomputed here as a flat
+           // table instead of shipping the full dG() grade algorithm — same strings, a fraction of the mount.
+@@ -15,11 +15,11 @@
+   <div>
+ 
+     <!-- Shared shaped header backing. Keep it first so setup controls always paint above it. -->
+-    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
++    <div id="ht" style="width:100%;height:24%">
+       <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
+     </div>
+     <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
+-      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
++      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="TimeOfDay_Fourdigits" default="--:--" /></span>
+       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
+       <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
+     </div>
+@@ -28,7 +28,7 @@
+          hidden PROJ-SETUP section too — ~half the old manage mount. Single-state: no vState/applyVis. -->
+ 
+     <!-- Audit U4: the dead #sc4 full-screen wrapper is gone — children sit in the identical root frame. -->
+-      <div onTap="ev(1)" style="top:29%;left:0;width:70%;height:17%;position:absolute;"></div>
++      <div onTap="ev(1)" style="top:29%;width:70%;height:17%"></div>
+       <div class="f-ico p-hc" style="top:calc(38% - 50%e);">&#xF266;</div>
+ 
+       <div class="sp-t-l p-hc p-tc" style="top:calc(50% - 50%e);width:100%">
+@@ -36,18 +36,18 @@
+       </div>
+       <div id="sg" class="sp-t-l p-hc p-tc" style="top:calc(63% - 50%e);width:100%">--</div>
+ 
+-      <div onTap="ev(2)" style="top:68%;left:0;width:70%;height:19%;position:absolute;"></div>
++      <div onTap="ev(2)" style="top:68%;width:70%;height:19%"></div>
+       <div class="f-ico p-hc" style="top:calc(76% - 50%e);">&#xF267;</div>
+ 
+       <!-- Bottom pill (save) — DOWN-long = save&exit on setup -->
+       <div class="f-ico cm-bgc" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xE373;</div>
+-      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute;"></div>
++      <div onTap="evX(6)" style="top:63%;left:70%;width:30%;height:25%"></div>
+ 
+     <!-- Session duration and clock share the shaped header, matching READY/ACTIVE. -->
+ 
+     <import src="#zone-g" />
+     <!-- Audit U5: bare side-effect eval, no 0x0 holder box — the bare pattern is on-watch proven (ready.html) -->
+-    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
++    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => (x&gt;0&amp;&amp;x&lt;1?(setVis('#z-ind',1),gaugeControl('#z-ind',x*6.2832,'radian')):setVis('#z-ind',0),'')" default="" />
+ 
+     <!-- Physical pushButtons — universal events, main.js dispatches by state -->
+     <:if test="{{ HAS_ON_EVENT }}">
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/byte-budget.js /tmp/claude-1000/ramdiet/report-final/p2/tools/byte-budget.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/byte-budget.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/byte-budget.js	2026-09-30 23:38:12.040245715 +0200
+@@ -3,18 +3,34 @@
+ // WITHOUT variables[] — 798 vs 6935 B — so measuring the wrong variant hides real growth).
+ // Gates: main.js resident <= BUDGET (evict law: 7392 clean / 7867 evicts, heap history co-decides
+ // near the line), every ext <= 1600 B (parse law), built lifecycle dispatcher <= 1874 B (cliff).
+-// Run: node tools/byte-budget.js [budget]     exit 1 on any violation.
++// Run: node tools/byte-budget.js [budget] [--fea archive-q.fea]
++// --fea checks the gate's existing build; without it, build a disposable q variant.
+ 'use strict';
+ var fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
+ var ROOT = path.join(__dirname, '..');
+-var BUDGET = +(process.argv[2] || 7200);
++var BUDGET = 6707, fea, budgetSet = false;  // R6 ratchet: the shipped resident size, not a safety line (evict is not monotonic in bytes). Raise only deliberately.
++for (var arg = 2; arg < process.argv.length; arg++) {
++  if (process.argv[arg] === '--fea' && !fea && process.argv[arg + 1]) fea = path.resolve(process.argv[++arg]);
++  else if (!budgetSet && /^\d+$/.test(process.argv[arg]) && +process.argv[arg] > 0) {
++    BUDGET = +process.argv[arg]; budgetSet = true;
++  } else throw new Error('usage: node tools/byte-budget.js [budget] [--fea archive-q.fea]');
++}
+ 
+-var glob = cp.execSync("ls -d " + os.homedir() + "/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1").toString().trim();
+ var out = fs.mkdtempSync(path.join(os.tmpdir(), 'bytechk-'));
+ try {
+-  cp.execSync('node ' + JSON.stringify(glob) + ' --appID bytechk0 --input ' + JSON.stringify(ROOT) + ' --output ' + JSON.stringify(out), { stdio: 'pipe' });
+-  var fea = path.join(out, 'bytechk0-q.fea');  // the variant bledeploy ships
+-  cp.execSync('unzip -o -q ' + JSON.stringify(fea) + ' -d ' + JSON.stringify(path.join(out, 'x')));
++  if (!fea) {
++    var build = process.env.SUUNTOPLUS_TOOLS;
++    if (!build) {
++      var extensions = path.join(os.homedir(), '.vscode', 'extensions');
++      var versions = fs.readdirSync(extensions).filter(function (name) { return /^suunto\.suuntoplus-editor-/.test(name); });
++      versions.sort(function (a, b) { return a.localeCompare(b, 'en', { numeric: true }); });
++      if (!versions.length) throw new Error('SuuntoPlus Editor not found; set SUUNTOPLUS_TOOLS');
++      build = path.join(extensions, versions.pop(), 'node_modules', '@suunto-internal', 'suuntoplus-tools', 'bin', 'build-app.js');
++    }
++    cp.execFileSync(process.execPath, [build, '--appID', 'bytechk0', '--input', ROOT, '--output', out], { stdio: 'pipe' });
++    fea = path.join(out, 'bytechk0-q.fea');
++  }
++  cp.execFileSync('unzip', ['-o', '-q', fea, '-d', path.join(out, 'x')]);
+   var X = path.join(out, 'x'), fails = 0;
+   function bad(m) { console.error('byte-budget: ' + m); fails++; }
+   var mainB = fs.statSync(path.join(X, 'main.js')).size;
+@@ -56,8 +72,8 @@
+   if (pole > 1874) bad('largest built function span ' + pole + ' B exceeds the 1874 B compile cliff');
+   var manB = fs.statSync(path.join(X, 'manifest.jsn')).size;
+   console.log('manifest.jsn (q): ' + manB + ' B');
+-  if (fails) { console.error(fails + ' budget violation(s)'); process.exit(1); }
+-  console.log('byte-budget: ALL WITHIN BUDGET');
++  if (fails) { console.error(fails + ' budget violation(s)'); process.exitCode = 1; }
++  else console.log('byte-budget: ALL WITHIN BUDGET');
+ } finally {
+-  cp.execSync('rm -rf ' + JSON.stringify(out));
++  fs.rmSync(out, { recursive: true, force: true });
+ }
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/proofs/f4-migration-authorizes-clobber.js /tmp/claude-1000/ramdiet/report-final/p2/tools/proofs/f4-migration-authorizes-clobber.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/proofs/f4-migration-authorizes-clobber.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/proofs/f4-migration-authorizes-clobber.js	2026-09-30 23:42:02.508885874 +0200
+@@ -93,7 +93,9 @@
+     chk(w.length >= 1 && w[0].key === 'climbProjStats' && w[0].outcome === 'written' && cleanupOnly(w), 'a1-retry: canonical fold write first, only authorized cleanup shrinks after');
+     var C = p.storage.peek('climbProjStats');
+     var stub = new Stub(JSON.parse(before));  // the untouched pre-run legacy bytes
+-    var Aconv = loadSat(src16new, stub)(loadSat(src18new, stub)(), stub.getObject('stats'));
++    var K18 = loadSat(src18new, stub)();  // S3: ext18 = [names, stats, isLegacy] and reads stats itself
++    chk(K18[2] === true && J(K18[1]) === J(stub.getObject('stats')), 'a1-retry: ext18 must return the stats root and route 2.82 to ext16');
++    var Aconv = loadSat(src16new, stub)(K18[0], K18[1]);
+     chk(J(C) === J(Aconv), 'a1-retry: pure adoption (T=null) must be byte-identical to converter output alone');
+     chk(C.s0[3] === 20, 'a1-retry: pure adoption must NOT increment sessions (got ' + C.s0[3] + ')');
+     chk(r.state().migPend === 0, 'a1-retry: successful fold must clear migPend');
+@@ -218,8 +220,8 @@
+   // The overlay baseline is the converter's own p0 (seed==fold guarantees the session edited
+   // exactly these values) -- only the touched deltas are applied by hand.
+   var stub = new Stub(pre);
+-  var N = loadSat(src18new, stub)();
+-  var E = loadSat(src16new, stub)(N, stub.getObject('stats'));
++  var K18 = loadSat(src18new, stub)(), N = K18[0];  // S3: ext18 = [names, stats, isLegacy]
++  var E = loadSat(src16new, stub)(N, K18[1]);
+   E = platform.snapshot(E);
+   E.s0 = [100, 60, 60, 21, 1000, 18];  // zero deltas, sessions++ (it WAS a session)
+   var P = E.p0.slice(0, 21);                          // fold/seed baseline for the active system
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/proofs/f5-partial-write-rollback.js /tmp/claude-1000/ramdiet/report-final/p2/tools/proofs/f5-partial-write-rollback.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/proofs/f5-partial-write-rollback.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/proofs/f5-partial-write-rollback.js	2026-09-30 23:42:02.508986382 +0200
+@@ -78,7 +78,7 @@
+ 
+ // Expected container: converter output (ext16 semantics) + ONLY session 2's deltas (session 1
+ // was NOT SAVED and must be lost, not resurrected: 101/61/21, never 102+/62+/22).
+-var names = require('vm').runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + ')')();
++var names = require('vm').runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + ')', { localStorage: { getObject: function () {} } })()[0];  // S3: ext18 = [names, stats, isLegacy]
+ var slot0Name = (names[0] || '').split(',')[12];
+ var expected = { v: 3, g: 0, u: 1 }, g;
+ for (g = 0; g < 10; g++) {
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/tests/byte-budget-fixture.js /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/byte-budget-fixture.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/tests/byte-budget-fixture.js	1970-01-01 01:00:00.000000000 +0100
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/byte-budget-fixture.js	2026-09-30 23:38:12.043374651 +0200
+@@ -0,0 +1,46 @@
++'use strict';
++
++// Exercise the real checker with compiled-archive fixtures. No vendor build is
++// needed: an existing archive must enforce every budget and never rebuild.
++var assert = require('assert');
++var fs = require('fs');
++var os = require('os');
++var path = require('path');
++var cp = require('child_process');
++var checker = path.resolve(__dirname, '..', 'byte-budget.js');
++var root = fs.mkdtempSync(path.join(os.tmpdir(), 'budget-fixture-'));
++var cases = 0;
++var base = '// 30599\nreturn function(e){if(4096===e)return {};};';
++
++function check(name, main, ext, args, expectedStatus, message) {
++  var dir = path.join(root, name);
++  fs.mkdirSync(dir);
++  fs.writeFileSync(path.join(dir, 'main.js'), main);
++  fs.writeFileSync(path.join(dir, 'ext10.js'), ext || 'function(){return 1}');
++  fs.writeFileSync(path.join(dir, 'manifest.jsn'), '{}');
++  var fea = path.join(dir, 'fixture q.fea');
++  cp.execFileSync('zip', ['-q', fea, 'main.js', 'ext10.js', 'manifest.jsn'], { cwd: dir });
++  var result = cp.spawnSync(process.execPath, [checker].concat(args || [], ['--fea', fea]), {
++    encoding: 'utf8',
++    env: Object.assign({}, process.env, { TMPDIR: dir, SUUNTOPLUS_TOOLS: '/no-builder-may-run' })
++  });
++  var log = result.stdout + result.stderr;
++  assert.strictEqual(result.status, expectedStatus, name + ': ' + log);
++  assert(log.includes(message), name + ': ' + log);
++  assert(!fs.readdirSync(dir).some(function (f) { return f.startsWith('bytechk-'); }), name + ': leaked temporary extraction');
++  cases++;
++}
++
++try {
++  check('healthy', base, null, [], 0, 'ALL WITHIN BUDGET');
++  check('resident limit', base + ' '.repeat(7201), null, [], 1, 'exceeds the 6707 B budget');
++  check('custom budget', base, null, ['10'], 1, 'exceeds the 10 B budget');
++  check('missing hook', base.replace('30599', '29575'), null, [], 1, 'hook bitmask 29575 != 30599');
++  check('large satellite', base, 'function(){' + ' '.repeat(1600) + '}', [], 1, '1600 B parse band');
++  check('large dispatcher', base.replace('return {};', ' '.repeat(1874) + 'return {};'), null, [], 1, 'exceeds the 1874 B cliff');
++  check('large other function', base + 'var f=function(){' + ' '.repeat(1874) + '};', null, [], 1, 'compile cliff');
++  check('missing dispatcher', '// 30599\nreturn function(e){return e;};', null, [], 1, 'could not locate the lifecycle dispatcher');
++  console.log('byte-budget-fixture: ' + cases + ' archive cases passed; no rebuild, cleanup on success/failure');
++} finally {
++  fs.rmSync(root, { recursive: true, force: true });
++}
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/tests/endfold-seed-equiv.js /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/endfold-seed-equiv.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/tests/endfold-seed-equiv.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/endfold-seed-equiv.js	2026-09-30 23:42:02.508802267 +0200
+@@ -18,16 +18,17 @@
+   global.localStorage = mkLS(store);
+   try { return fn.call(ext); } finally { delete global.localStorage; }
+ }
+-var NAMES = loadFn('ext18.js')();
++global.localStorage = mkLS({});
++var NAMES = loadFn('ext18.js')()[0];  // S3: ext18 = [names, stats, isLegacy]
++delete global.localStorage;
+ 
+ function foldContainer(store) {
+   global.localStorage = mkLS(store);
+   try {
+-    var sv = global.localStorage.getObject('stats') || {};
+-    var A;
+-    // mirror of main.js sS (20.07 hotfix): 2.82 = string OR ABSENT stats; only NUMERIC = v1/v2
+-    if (typeof sv.system !== 'number') A = loadFn('ext16.js')(NAMES, sv);
+-    else { A = loadFn('ext17.js')(NAMES, sv); A = loadFn('ext19.js')(A, NAMES, sv); }
++    // S3 mirror of main.js: ext18 reads stats and decides the schema (20.07 hotfix: 2.82 = string OR ABSENT stats; only NUMERIC = v1/v2)
++    var k = loadFn('ext18.js')(), sv = k[1], A;
++    A = loadFn(k[2] ? 'ext16.js' : 'ext17.js')(k[0], sv);
++    if (!k[2]) A = loadFn('ext19.js')(A, k[0], sv);
+     return A;
+   } finally { delete global.localStorage; }
+ }
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/tests/store-v282-nostats.js /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/store-v282-nostats.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/tests/store-v282-nostats.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/store-v282-nostats.js	2026-09-30 23:42:02.508843534 +0200
+@@ -42,7 +42,7 @@
+ function writes(p) { return p.storage.calls.filter(function (c) { return c.op === 'setObject'; }); }
+ function extCalls(p, n) { return p.evals.calls.filter(function (c) { return c.extension === String(n); }).length; }
+ 
+-var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)')();
++var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)', { localStorage: { getObject: function () {} } })()[0];  // S3: ext18 = [names, stats, isLegacy]
+ var V = (gradeNames[4] || '').split(',');  // V-Scale names, new system 4
+ 
+ // Independent byte oracle: the frozen pre-END-FOLD converter (it ALWAYS derived from
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/tests/store-v282-v2-projects.js /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/store-v282-v2-projects.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/tests/store-v282-v2-projects.js	2026-07-27 18:39:47.000000000 +0200
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/store-v282-v2-projects.js	2026-09-30 23:42:02.508885874 +0200
+@@ -67,7 +67,7 @@
+ var OLD_DIR = path.join(__dirname, 'oracles', 'pre-endfold');
+ var old16src = fs.readFileSync(path.join(OLD_DIR, 'ext16.js'), 'utf8');
+ var old11src = fs.readFileSync(path.join(OLD_DIR, 'ext11.js'), 'utf8');
+-var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)')();
++var gradeNames = vm.runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + '\n)', { localStorage: { getObject: function () {} } })()[0];  // S3: ext18 = [names, stats, isLegacy]
+ 
+ function oracle(store, deltas, g) {
+   var st = clone(store);
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/tests/template-dg-equiv.js /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/template-dg-equiv.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/tests/template-dg-equiv.js	1970-01-01 01:00:00.000000000 +0100
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/template-dg-equiv.js	2026-09-30 23:37:16.762991595 +0200
+@@ -0,0 +1,49 @@
++// template-dg-equiv.js — proves the dG() grade decoder inlined in ready.html and active.html
++// (template onLoad, x = system*100 + index) prints exactly the old resident gradeName for every
++// valid (system, index), plus the '--' (x<0) and 'OFF' (index>=50) arms. The two template copies
++// are hand-golfed and cannot import each other, so this is what keeps them from drifting.
++//
++// Run: node tools/tests/template-dg-equiv.js   (exit non-zero on any mismatch)
++
++'use strict';
++var fs = require('fs'), path = require('path');
++var ROOT = path.join(__dirname, '..', '..');
++var GRADE_LENS = [41, 24, 29, 11, 14, 30, 11, 12, 1, 1];
++var M = Math.floor;
++
++function gradeName(s, i) {
++  if (s === 0) return "" + (3 + M(i / 6)) + "abc".charAt(M(i / 2) % 3) + (i % 2 ? "+" : "");
++  if (s === 1) { var u = (i - 2) % 3; return i < 2 ? "4" + (i ? "+" : "") : "" + (5 + M((i - 2) / 3)) + (u === 0 ? "-" : u === 2 ? "+" : ""); }
++  if (s === 2) return i < 5 ? "5." + (i + 5) : "5." + (10 + M((i - 5) / 4)) + "abcd".charAt((i - 5) % 4);
++  if (s === 3) return "" + (4 + M(i / 3)) + "abc".charAt(i % 3);
++  if (s === 4) return i ? "V" + (i - 1) : "VB";
++  if (s === 5) return "" + (4 + M(i / 6)) + "ABC".charAt(M(i / 2) % 3) + (i % 2 ? "+" : "");
++  if (s === 6) return "WI" + (i ? 3 + M((i - 1) / 2) : 2) + (i && (i - 1) % 2 ? "+" : "");
++  if (s === 7) return "M" + (i + 1);
++  return s === 8 ? "Set" : "Lap";
++}
++
++function loadDG(file) {
++  var line = fs.readFileSync(path.join(ROOT, file), 'utf8').split('\n')
++    .filter(function (l) { return l.indexOf('function dG(') >= 0; });
++  if (line.length !== 1) throw new Error(file + ': expected exactly one dG, found ' + line.length);
++  var src = line[0].trim().replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"');
++  return new Function('M', src + ';return dG')(M);
++}
++
++var fails = 0, checks = 0;
++['ready.html', 'active.html'].forEach(function (f) {
++  var dG = loadDG(f);
++  function eq(x, want) {
++    checks++;
++    var got = dG(x);
++    if (got !== want) { fails++; if (fails < 20) console.log('  FAIL  ' + f + ' dG(' + x + ') = "' + got + '" != "' + want + '"'); }
++  }
++  for (var x = -3; x < 0; x++) eq(x, '--');
++  for (var s = 0; s < 10; s++) {
++    for (var i = 0; i < GRADE_LENS[s]; i++) eq(s * 100 + i, gradeName(s, i));
++    for (i = 50; i < 100; i++) eq(s * 100 + i, 'OFF');
++  }
++});
++console.log('[template-dg-equiv] ' + checks + ' checks, ' + fails + ' mismatches');
++process.exit(fails ? 1 : 0);
+diff '--color=auto' -ruN -x out -x '*.fea' -x node_modules /tmp/claude-1000/ramdiet/report-final/base/tools/tests/wgrade-digit-preserve.js /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/wgrade-digit-preserve.js
+--- /tmp/claude-1000/ramdiet/report-final/base/tools/tests/wgrade-digit-preserve.js	1970-01-01 01:00:00.000000000 +0100
++++ /tmp/claude-1000/ramdiet/report-final/p2/tools/tests/wgrade-digit-preserve.js	2026-09-30 23:37:10.642289393 +0200
+@@ -0,0 +1,51 @@
++// wgrade-digit-preserve.js — drives the REAL main.js (+ real ext*.js via evalFile) through a SEND
++// route with height, then edits its grade through BOTH wGrade call sites: the BREAK grade flick
++// (evBreak dy path) and the EDIT overlay step (evEdit eid 1/2, cm=0). Asserts that only the grade
++// digit moves and send/cm/height (the low six digits of the A pack) survive byte-exact.
++// route-pack-equiv.js only mirrors the pack formulas; this is the main.js-driven guard for wGrade.
++// Run: node tools/tests/wgrade-digit-preserve.js   (exit non-zero on any mismatch)
++'use strict';
++var fs = require('fs'), vm = require('vm'), path = require('path');
++var ROOT = path.join(__dirname, '..', '..');
++var fails = 0;
++function check(c, m) { if (!c) { console.log('  FAIL  ' + m); fails++; } }
++var store = JSON.parse(fs.readFileSync(path.join(ROOT, 'data.json'), 'utf8'));
++store.climbProjStats = require('./v3skel')();
++var sb = {
++  localStorage: {
++    getItem: function () { return null; }, setItem: function () {},
++    getObject: function (k) { return store[k] === undefined ? null : JSON.parse(JSON.stringify(store[k])); },
++    setObject: function (k, v) { store[k] = JSON.parse(JSON.stringify(v)); },
++  },
++  evalFile: function (p) {
++    var src = fs.readFileSync(path.join(ROOT, 'ext' + /ext(\d+)\.js/.exec(p)[1] + '.js'), 'utf8');
++    return new Function('localStorage', 'return (' + src.trim().replace(/;$/, '') + ')')(sb.localStorage);
++  },
++  setText: function () {}, setStyle: function () {}, unload: function () {}, Math: Math, JSON: JSON,
++};
++vm.createContext(sb);
++vm.runInContext(fs.readFileSync(path.join(ROOT, 'main.js'), 'utf8') +
++  '\n;this.__st=function(){return {s:state,A:routesA.slice(),e:editIdx}};' +
++  'this.__l=onLoad;this.__e=evaluate;this.__v=onEvent;this.__x=onExerciseStart;', sb, { filename: 'main.js' });
++var out = {};
++var tick = function (asc) { sb.__e({ H: 2, Asc: asc }, out); };
++var ev = function (id, asc) { sb.__v({}, out, id); tick(asc); };
++var low6 = function (a) { return a % 1e6; }, grade = function (a) { return Math.floor(a / 1e6); };
++sb.__l({}, out); tick(0); ev(6, 0); sb.__x({}, out); tick(0);          // SETUP -> READY
++ev(6, 0); tick(10); tick(37); ev(5, 37); tick(37);                        // route 0: FAIL, +37 m
++ev(6, 37); ev(6, 40); tick(45); ev(6, 45); tick(45);                      // route 1: SEND, +8 m
++var s = sb.__st(), A1 = s.A[1];
++check(s.s === 2 && s.A.length === 2, 'setup: BREAK with 2 routes, got state ' + s.s + ' ' + JSON.stringify(s.A));
++check(Math.floor(A1 / 1e5) % 10 === 1 && Math.floor(A1 / 1e4) % 10 === 0 && A1 % 1e4 === 8, 'route 1 is send=1 cm=0 h=8: ' + A1);
++ev(1, 45); s = sb.__st();                                                 // BREAK flick up -> wGrade(len-1)
++check(grade(s.A[1]) !== grade(A1), 'BREAK flick moved the grade');
++check(low6(s.A[1]) === low6(A1), 'BREAK flick kept send/cm/height: ' + A1 + ' -> ' + s.A[1]);
++var A1b = s.A[1];
++ev(6, 45); ev(5, 45); tick(45); s = sb.__st();                            // READY -> EDIT overlay
++check(s.s === 5 && s.e === 1, 'EDIT overlay on route 1 (state ' + s.s + ', idx ' + s.e + ')');
++ev(1, 45); s = sb.__st();                                                 // EDIT step -> wGrade(editIdx)
++check(grade(s.A[1]) !== grade(A1b), 'EDIT step moved the grade');
++check(low6(s.A[1]) === low6(A1), 'EDIT step kept send/cm/height: ' + A1b + ' -> ' + s.A[1]);
++check(s.A[0] % 1e6 === 37, 'route 0 untouched: ' + s.A[0]);
++console.log(fails ? fails + ' FAIL' : 'ALL PASS');
++process.exit(fails ? 1 : 0);
