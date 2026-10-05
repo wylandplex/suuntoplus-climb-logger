@@ -1,7 +1,7 @@
 <uiView onLoad="
           var M=Math.floor,S=-1,lock=0;
           function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100,j=i-2,k=i-5;return i>=50?'OFF':s==0||s==5?3+s/5+M(i/6)+(s?'ABC':'abc').charAt(M(i/2)%3)+(i%2?'+':''):s==1?i<2?'4'+(i?'+':''):5+M(j/3)+(j%3==2?'+':j%3?'':'-'):s==2?'5.'+(i<5?i+5:10+M(k/4)+'abcd'.charAt(k%4)):s==3?4+M(i/3)+'abc'.charAt(i%3):s==4?i?'V'+(i-1):'VB':s==6?'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':''):s==7?'M'+(i+1):s==8?'Set':'Lap'}
-          function aV(x){if(x===S)return;S=x;setVis('#sc1',x===1);setVis('#sc2',x===2);setText('#ba',String.fromCharCode(x===1?0xF200:0xE373))}
+          function aV(x){if(x===S)return;S=x;setVis('#sc1',x===1);setVis('#sc2',x===2)}
           function pV(x){setVis('#ma',x>=0);return x}
           function hC(x){setVis('#hgb',x===1);setVis('#hob',x===2)}
           function ev(n){$.put('/Zapp/{zapp_index}/Event',n,null,'int32')}
@@ -90,8 +90,11 @@
         <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_Yielding" default="0'00" />
       </div>
 
-      <!-- Tap zones and white action glyphs: FAIL top-right, SEND bottom-right. -->
-      <div class="f-ico" style="top:calc(30% - 50%e);left:calc(89% - 50%e);">&#xF110;</div>
+      <!-- Tap zone and result glyphs: red X = FAIL top-right, green summit flag = SEND bottom-right
+           (static c-red/c-green; runtime colour changes are a no-op). BREAK owns its own white NEXT
+           glyph in #sc2 instead of re-labelling one shared node. -->
+      <div class="f-ico c-red" style="top:calc(30% - 50%e);left:calc(89% - 50%e);">&#xE312;</div>
+      <div class="f-ico c-green" style="top:calc(70% - 50%e);left:calc(89% - 50%e);">&#xE322;</div>
       <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%"></div>
     </div>
 
@@ -110,13 +113,11 @@
         <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_Yielding" default="0'00" />
       </div>
 
+      <div class="f-ico" style="top:calc(70% - 50%e);left:calc(89% - 50%e);">&#xE373;</div>
       <div id="ma" class="f-ico" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px)">&#xE338;</div>
       <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%"></div>
     </div>
 
-    <!-- Same position and action in both states; only the glyph changes. Sharing these nodes keeps the
-         full UI while avoiding a second always-mounted icon and hit target. -->
-    <div id="ba" class="f-ico" style="top:calc(70% - 50%e);left:calc(89% - 50%e);">&#xF200;</div>
     <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%"></div>
 
 
