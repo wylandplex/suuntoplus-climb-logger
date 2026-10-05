@@ -1,7 +1,6 @@
 <uiView onLoad="
           var M=Math.floor,S=-1,lock=0;
-          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):''+(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
-          function tm(x){return M(x/60)+&quot;'&quot;+('0'+M(x%60)).slice(-2)}
+          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100,j=i-2,k=i-5;return i>=50?'OFF':s==0||s==5?3+s/5+M(i/6)+(s?'ABC':'abc').charAt(M(i/2)%3)+(i%2?'+':''):s==1?i<2?'4'+(i?'+':''):5+M(j/3)+(j%3==2?'+':j%3?'':'-'):s==2?'5.'+(i<5?i+5:10+M(k/4)+'abcd'.charAt(k%4)):s==3?4+M(i/3)+'abc'.charAt(i%3):s==4?i?'V'+(i-1):'VB':s==6?'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':''):s==7?'M'+(i+1):s==8?'Set':'Lap'}
           function aV(x){if(x===S)return;S=x;setVis('#sc1',x===1);setVis('#sc2',x===2);setText('#ba',String.fromCharCode(x===1?0xF200:0xE373))}
           function pV(x){setVis('#ma',x>=0);return x}
           function hC(x){setVis('#hgb',x===1);setVis('#hob',x===2)}
@@ -41,7 +40,7 @@
 
     <!-- BACKING LAYER: the upper tooth stays neutral on every screen; static lower result variants
          avoid unreliable runtime colour changes. -->
-    <div id="ht" style="position:absolute;top:0;left:0;width:100%;height:24%">
+    <div id="ht" style="width:100%;height:24%">
       <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#4a4d56" />
     </div>
     <img src="tooth.png" class="p-hc" style="top:calc(100% - 100%e);color:#3c4049" />
@@ -53,7 +52,7 @@
          evals, the 0-dim holder box is gone (bare pattern on-watch proven in ready.html). -->
     <eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" />
     <eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" />
-    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
+    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => (x&gt;0&amp;&amp;x&lt;1?(setVis('#z-ind',1),gaugeControl('#z-ind',x*6.2832,'radian')):setVis('#z-ind',0),'')" default="" />
 
     <!-- Compact title row — route number and grade. -->
     <div class="sp-t-s p-hc" style="top:calc(8% - 50%e)">
@@ -63,7 +62,7 @@
 
     <!-- Compact secondary row — clock, the original F100 separator and session duration. -->
     <div class="sp-b-s p-hc" style="top:calc(18% - 50%e)">
-      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="script x => ('0'+M((x/3600)%24)).slice(-2)+':'+('0'+M((x/60)%60)).slice(-2)" default="--:--" /></span>
+      <span class="f-num"><eval input="/Dev/Time/LocalTime" outputFormat="TimeOfDay_Fourdigits" default="--:--" /></span>
       <span class="f-ico" style="padding-left:6px;padding-right:6px">&#xF100;</span>
       <span class="f-num"><eval input="/Activity/Move/-1/Duration/Current" outputFormat="Duration_FourdigitsFixed" default="0:00" /></span>
     </div>
@@ -81,23 +80,23 @@
 
     <!-- CLIMB — the OPEN lap. ready.html fires lap() on START and evL() fires it only while S===1, so
          Lap/-1 really brackets the climb attempt rather than mixing rest and climbing. -->
-    <div id="sc1" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:VISIBLE">
+    <div id="sc1" style="width:100%;height:100%;visibility:VISIBLE">
       <!-- THE HERO (ZoneSense: p-tc p-hc + medium display face, full width, 76% to the rim).
            f-num is a FONT FAMILY (SuuntoUINextDisplaySemibold), not a glyph filter: it carries no
            letters — which is why labels need a text face — but it DOES carry the apostrophe, exactly as
            Suunto's own big pace readouts (9'30) show. Formatted here rather than through a guessed
            Suunto format name. Whole seconds: a tenths digit would flicker ten times a second all route. -->
       <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
-        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
+        <eval input="/Activity/Lap/-1/Duration/Current" outputFormat="Duration_Yielding" default="0'00" />
       </div>
 
       <!-- Tap zones and white action glyphs: FAIL top-right, SEND bottom-right. -->
-      <div class="f-ico" style="top:calc(24% - 50%e);left:calc(85% - 50%e);">&#xF110;</div>
-      <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%;position:absolute"></div>
+      <div class="f-ico" style="top:calc(30% - 50%e);left:calc(89% - 50%e);">&#xF110;</div>
+      <div onTap="evL(5)" style="top:11%;left:70%;width:30%;height:25%"></div>
     </div>
 
     <!-- BREAK — the CLOSED lap (-2). AVG/MAX appear only once the attempt is complete. -->
-    <div id="sc2" style="position:absolute;top:0;left:0;width:100%;height:100%;visibility:HIDDEN">
+    <div id="sc2" style="width:100%;height:100%;visibility:HIDDEN">
       <div class="sp-t-s cm-mid" style="top:calc(50% - 50%e);left:calc(23% - 50%e)">AVG</div>
       <div class="sp-t-s cm-mid" style="top:calc(50% - 50%e);left:calc(77% - 50%e)">MAX</div>
       <div class="sp-d-xs f-num" style="top:calc(59% - 50%e);left:calc(23% - 50%e)">
@@ -108,17 +107,17 @@
       </div>
 
       <div class="sp-d-l f-num p-tc p-hc" style="top:calc(85% - 50%e);width:100%">
-        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="script x => tm(x)" default="0'00" />
+        <eval input="/Activity/Lap/-2/Duration/Current" outputFormat="Duration_Yielding" default="0'00" />
       </div>
 
       <div id="ma" class="f-ico" style="top:calc(47% - 50%e);left:calc(94% - 50%e - 3px)">&#xE338;</div>
-      <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%;position:absolute"></div>
+      <div onTap="evX(4)" style="top:37%;left:70%;width:30%;height:25%"></div>
     </div>
 
     <!-- Same position and action in both states; only the glyph changes. Sharing these nodes keeps the
          full UI while avoiding a second always-mounted icon and hit target. -->
-    <div id="ba" class="f-ico" style="top:calc(76% - 50%e);left:calc(85% - 50%e);">&#xF200;</div>
-    <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%;position:absolute"></div>
+    <div id="ba" class="f-ico" style="top:calc(70% - 50%e);left:calc(89% - 50%e);">&#xF200;</div>
+    <div onTap="evL(6)" style="top:63%;left:70%;width:30%;height:25%"></div>
 
 
 

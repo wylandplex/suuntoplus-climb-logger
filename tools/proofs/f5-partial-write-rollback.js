@@ -78,7 +78,7 @@ var savedClean = !second.summary().some(function (r) { return r.id === 'ns' || r
 
 // Expected container: converter output (ext16 semantics) + ONLY session 2's deltas (session 1
 // was NOT SAVED and must be lost, not resurrected: 101/61/21, never 102+/62+/22).
-var names = require('vm').runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + ')')();
+var names = require('vm').runInNewContext('(' + fs.readFileSync(path.join(platform.ROOT, 'ext18.js'), 'utf8') + ')', { localStorage: { getObject: function () {} } })()[0];  // S3: ext18 = [names, stats, isLegacy]
 var slot0Name = (names[0] || '').split(',')[12];
 var expected = { v: 3, g: 0, u: 1 }, g;
 for (g = 0; g < 10; g++) {
