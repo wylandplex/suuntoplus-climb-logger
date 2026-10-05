@@ -3,18 +3,34 @@
 // WITHOUT variables[] — 798 vs 6935 B — so measuring the wrong variant hides real growth).
 // Gates: main.js resident <= BUDGET (evict law: 7392 clean / 7867 evicts, heap history co-decides
 // near the line), every ext <= 1600 B (parse law), built lifecycle dispatcher <= 1874 B (cliff).
-// Run: node tools/byte-budget.js [budget]     exit 1 on any violation.
+// Run: node tools/byte-budget.js [budget] [--fea archive-q.fea]
+// --fea checks the gate's existing build; without it, build a disposable q variant.
 'use strict';
 var fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
 var ROOT = path.join(__dirname, '..');
-var BUDGET = +(process.argv[2] || 7200);
+var BUDGET = 6707, fea, budgetSet = false;  // R6 ratchet: the shipped resident size, not a safety line (evict is not monotonic in bytes). Raise only deliberately.
+for (var arg = 2; arg < process.argv.length; arg++) {
+  if (process.argv[arg] === '--fea' && !fea && process.argv[arg + 1]) fea = path.resolve(process.argv[++arg]);
+  else if (!budgetSet && /^\d+$/.test(process.argv[arg]) && +process.argv[arg] > 0) {
+    BUDGET = +process.argv[arg]; budgetSet = true;
+  } else throw new Error('usage: node tools/byte-budget.js [budget] [--fea archive-q.fea]');
+}
 
-var glob = cp.execSync("ls -d " + os.homedir() + "/.vscode/extensions/suunto.suuntoplus-editor-*/node_modules/@suunto-internal/suuntoplus-tools/bin/build-app.js | sort -V | tail -1").toString().trim();
 var out = fs.mkdtempSync(path.join(os.tmpdir(), 'bytechk-'));
 try {
-  cp.execSync('node ' + JSON.stringify(glob) + ' --appID bytechk0 --input ' + JSON.stringify(ROOT) + ' --output ' + JSON.stringify(out), { stdio: 'pipe' });
-  var fea = path.join(out, 'bytechk0-q.fea');  // the variant bledeploy ships
-  cp.execSync('unzip -o -q ' + JSON.stringify(fea) + ' -d ' + JSON.stringify(path.join(out, 'x')));
+  if (!fea) {
+    var build = process.env.SUUNTOPLUS_TOOLS;
+    if (!build) {
+      var extensions = path.join(os.homedir(), '.vscode', 'extensions');
+      var versions = fs.readdirSync(extensions).filter(function (name) { return /^suunto\.suuntoplus-editor-/.test(name); });
+      versions.sort(function (a, b) { return a.localeCompare(b, 'en', { numeric: true }); });
+      if (!versions.length) throw new Error('SuuntoPlus Editor not found; set SUUNTOPLUS_TOOLS');
+      build = path.join(extensions, versions.pop(), 'node_modules', '@suunto-internal', 'suuntoplus-tools', 'bin', 'build-app.js');
+    }
+    cp.execFileSync(process.execPath, [build, '--appID', 'bytechk0', '--input', ROOT, '--output', out], { stdio: 'pipe' });
+    fea = path.join(out, 'bytechk0-q.fea');
+  }
+  cp.execFileSync('unzip', ['-o', '-q', fea, '-d', path.join(out, 'x')]);
   var X = path.join(out, 'x'), fails = 0;
   function bad(m) { console.error('byte-budget: ' + m); fails++; }
   var mainB = fs.statSync(path.join(X, 'main.js')).size;
@@ -56,8 +72,8 @@ try {
   if (pole > 1874) bad('largest built function span ' + pole + ' B exceeds the 1874 B compile cliff');
   var manB = fs.statSync(path.join(X, 'manifest.jsn')).size;
   console.log('manifest.jsn (q): ' + manB + ' B');
-  if (fails) { console.error(fails + ' budget violation(s)'); process.exit(1); }
-  console.log('byte-budget: ALL WITHIN BUDGET');
+  if (fails) { console.error(fails + ' budget violation(s)'); process.exitCode = 1; }
+  else console.log('byte-budget: ALL WITHIN BUDGET');
 } finally {
-  cp.execSync('rm -rf ' + JSON.stringify(out));
+  fs.rmSync(out, { recursive: true, force: true });
 }

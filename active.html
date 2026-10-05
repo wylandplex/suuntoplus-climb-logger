@@ -1,6 +1,6 @@
 <uiView onLoad="
           var M=Math.floor,S=-1,lock=0;
-          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100;if(i>=50)return'OFF';if(s===0)return(3+M(i/6))+'abc'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===1){var u=(i-2)%3;return i<2?'4'+(i?'+':''):''+(5+M((i-2)/3))+(u===0?'-':u===2?'+':'');}if(s===2)return i<5?'5.'+(i+5):'5.'+(10+M((i-5)/4))+'abcd'.charAt((i-5)%4);if(s===3)return(4+M(i/3))+'abc'.charAt(i%3);if(s===4)return i?'V'+(i-1):'VB';if(s===5)return(4+M(i/6))+'ABC'.charAt(M(i/2)%3)+(i%2?'+':'');if(s===6)return'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':'');if(s===7)return'M'+(i+1);return s===8?'Set':'Lap';}
+          function dG(x){if(x<0)return'--';var s=M(x/100),i=x%100,j=i-2,k=i-5;return i>=50?'OFF':s==0||s==5?3+s/5+M(i/6)+(s?'ABC':'abc').charAt(M(i/2)%3)+(i%2?'+':''):s==1?i<2?'4'+(i?'+':''):5+M(j/3)+(j%3==2?'+':j%3?'':'-'):s==2?'5.'+(i<5?i+5:10+M(k/4)+'abcd'.charAt(k%4)):s==3?4+M(i/3)+'abc'.charAt(i%3):s==4?i?'V'+(i-1):'VB':s==6?'WI'+(i?3+M((i-1)/2):2)+(i&amp;&amp;(i-1)%2?'+':''):s==7?'M'+(i+1):s==8?'Set':'Lap'}
           function tm(x){return M(x/60)+&quot;'&quot;+('0'+M(x%60)).slice(-2)}
           function aV(x){if(x===S)return;S=x;setVis('#sc1',x===1);setVis('#sc2',x===2);setText('#ba',String.fromCharCode(x===1?0xF200:0xE373))}
           function pV(x){setVis('#ma',x>=0);return x}
@@ -53,7 +53,7 @@
          evals, the 0-dim holder box is gone (bare pattern on-watch proven in ready.html). -->
     <eval input="/Zapp/{zapp_index}/Output/vState" outputFormat="script x => (aV(x),'')" default="" />
     <eval input="/Zapp/{zapp_index}/Output/hdrRes" outputFormat="script x => (hC(x),'')" default="" />
-    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => ((typeof x==='number'&amp;&amp;isFinite(x)&amp;&amp;x&gt;0&amp;&amp;x&lt;1)?(setVis('#z-ind',1),gaugeControl('#z-ind',x*2*Math.PI,'radian')):setVis('#z-ind',0),'')" default="" />
+    <eval input="/Activity/Zones/HeartRate/Position" outputFormat="script x => (x&gt;0&amp;&amp;x&lt;1?(setVis('#z-ind',1),gaugeControl('#z-ind',x*6.2832,'radian')):setVis('#z-ind',0),'')" default="" />
 
     <!-- Compact title row — route number and grade. -->
     <div class="sp-t-s p-hc" style="top:calc(8% - 50%e)">
