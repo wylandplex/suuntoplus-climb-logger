@@ -1,5 +1,34 @@
 # Changelog
 
+## v3.07 — 2026-10-05
+
+**Less memory, and the button pills now sit on the buttons.** A RAM diet aimed at the 3-app
+memory cliff, plus one layout fix. No change to what is logged or saved.
+
+- **Resident code −433 B (7081 → 6648 B of `main.js`) and 25 → 16 module functions.** A Duktape heap
+  measurement showed that every module-scope function costs ~500 B of heap regardless of how short
+  its text is, so the diet merges functions instead of shaving characters: the packed-route
+  accessors are inlined, the five button handlers share one closure, dead code and duplicated
+  summary literals are gone, and the first-session fold glue moved into the satellite that only
+  that fold loads.
+- **Smaller screens:** READY 9126 → 7765 B, CLIMB/BREAK 10 411 → 9594 B, SETUP 4529 → 4081 B of
+  compiled template (q). Wrapper divs and positioning the firmware does not need are gone.
+- **Clock and timers use the firmware's own formats** instead of a template script that ran every
+  second — about 20 fewer JS allocations per second while climbing. A route longer than an hour now
+  reads `1:01` instead of `61'05`.
+- **The up/down button pills are centred on the buttons.** They sat at 24 %/76 % of the face (about
+  ±37°), the Vertical 2's buttons are at roughly 2 and 4 o'clock (±30°). They now sit at 30 %/70 %
+  and move outward to 89 % so they keep the same distance from the rim on the round face.
+- **The validation gate enforces the byte budget again.** `tools/byte-budget.js` read the gate's
+  `--fea` argument as the budget, got `NaN`, and passed everything. The budget is now a ratchet at
+  the shipped size (6648 B).
+
+Watch-tested (two test builds of this release) on a Vertical 2 (FW 2.56.28) with Movement +
+Weather as co-apps: 29 routes, 30 READY mounts, 3 pause/continue cycles and a first-session fold —
+zero `relMemCb`, `JSalloc`, `pool full`, `CtxDog` or `ASSERT` lines. Offline: 29/29 equivalence
+tests, 23/23 defect proofs refuted, 6000 fuzz runs and an 800-seed differential against v3.06
+without a divergence.
+
 ## v3.06 — 2026-07-27
 
 **Layout fix for the smaller UI2 watches.** Reported from a 9 Peak Pro: arrows, grade and
